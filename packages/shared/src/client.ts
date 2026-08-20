@@ -561,21 +561,53 @@ export async function confirmPasswordReset(
   });
 }
 
-export const changePassword = (body: {
+export const changePassword = async (body: {
   current_password: string;
   new_password: string;
-}) => request<{ message: string }>("/auth/change-password", {
-  method: "POST",
-  body: JSON.stringify(body),
-});
+}) => {
+  const res = await fetch(`${requestBaseUrl}/auth/change-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    let msg = `Unexpected error: ${res.status}`;
+    try {
+      const json = JSON.parse(text);
+      msg = json.message ?? json.detail ?? text;
+    } catch {
+      msg = text.slice(0, 200);
+    }
+    throw new Error(msg);
+  }
+  return JSON.parse(text) as { message: string };
+};
 
-export const changeEmail = (body: {
+export const changeEmail = async (body: {
   current_password: string;
   new_email: string;
-}) => request<{ message: string; email: string }>("/auth/change-email", {
-  method: "POST",
-  body: JSON.stringify(body),
-});
+}) => {
+  const res = await fetch(`${requestBaseUrl}/auth/change-email`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    let msg = `Unexpected error: ${res.status}`;
+    try {
+      const json = JSON.parse(text);
+      msg = json.message ?? json.detail ?? text;
+    } catch {
+      msg = text.slice(0, 200);
+    }
+    throw new Error(msg);
+  }
+  return JSON.parse(text) as { message: string; email: string };
+};
 
 // --- Public result portal (no auth, no school header) ----------------------------
 export async function publicSchools(): Promise<SchoolBrief[]> {
