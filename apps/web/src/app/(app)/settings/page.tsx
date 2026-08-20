@@ -42,6 +42,79 @@ export default function SettingsPage() {
     }
   };
 
+  // Change Password Form
+  const changePasswordSchema = z.object({
+    current_password: z.string().min(1, "Current password is required"),
+    new_password: z.string().min(8, "New password must be at least 8 characters"),
+    confirm_password: z.string(),
+  }).refine(data => data.new_password === data.confirm_password, {
+    message: "Passwords must match",
+    path: ["confirm_password"],
+  });
+
+  const {
+    register: cpRegister,
+    handleSubmit: cpHandleSubmit,
+    formState: { errors: cpErrors, isValid: cpIsValid },
+    reset: cpReset,
+  } = useForm<z.infer<typeof changePasswordSchema>>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: api.changePassword,
+    onSuccess: () => {
+      cpReset();
+      alert("Password changed successfully");
+    },
+    onError: (error: any) => {
+      alert(error?.response?.data?.message ?? "Failed to change password");
+    },
+  });
+
+  const onCpSubmit = (data: z.infer<typeof changePasswordSchema>) => {
+    changePasswordMutation.mutate(data);
+  };
+
+  // Change Email Form
+  const changeEmailSchema = z.object({
+    new_email: z.string().email("Invalid email address"),
+    current_password: z.string().min(1, "Current password is required"),
+  });
+
+  const {
+    register: ceRegister,
+    handleSubmit: ceHandleSubmit,
+    formState: { errors: ceErrors },
+    reset: ceReset,
+  } = useForm<z.infer<typeof changeEmailSchema>>({
+    resolver: zodResolver(changeEmailSchema),
+    defaultValues: {
+      new_email: "",
+      current_password: "",
+    },
+  });
+
+  const changeEmailMutation = useMutation({
+    mutationFn: api.changeEmail,
+    onSuccess: () => {
+      ceReset();
+      alert("Email changed successfully");
+    },
+    onError: (error: any) => {
+      alert(error?.response?.data?.message ?? "Failed to change email");
+    },
+  });
+
+  const onCeSubmit = (data: z.infer<typeof changeEmailSchema>) => {
+    changeEmailMutation.mutate(data);
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
@@ -169,8 +242,90 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
-          <ChangePasswordForm />
-          <ChangeEmailForm />
+          <form onSubmit={cpHandleSubmit(onCpSubmit)} className="space-y-4">
+            <div>
+              <Label htmlFor="current_password">Current Password</Label>
+              <Input
+                id="current_password"
+                type="password"
+                {...cpRegister("current_password")}
+                className={cpErrors.current_password ? "border-destructive" : undefined}
+                placeholder="Enter current password"
+              />
+              {cpErrors.current_password && (
+                <p className="text-xs text-destructive">{cpErrors.current_password.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="new_password">New Password</Label>
+              <Input
+                id="new_password"
+                type="password"
+                {...cpRegister("new_password")}
+                className={cpErrors.new_password ? "border-destructive" : undefined}
+                placeholder="Enter new password"
+              />
+              {cpErrors.new_password && (
+                <p className="text-xs text-destructive">{cpErrors.new_password.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="confirm_password">Confirm Password</Label>
+              <Input
+                id="confirm_password"
+                type="password"
+                {...cpRegister("confirm_password")}
+                className={cpErrors.confirm_password ? "border-destructive" : undefined}
+                placeholder="Confirm new password"
+              />
+              {cpErrors.confirm_password && (
+                <p className="text-xs text-destructive">{cpErrors.confirm_password.message}</p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              disabled={!cpIsValid}
+              className="w-full"
+            >
+              Change Password
+            </Button>
+          </form>
+
+          <form onSubmit={ceHandleSubmit(onCeSubmit)} className="space-y-4">
+            <div>
+              <Label htmlFor="new_email">New Email</Label>
+              <Input
+                id="new_email"
+                type="email"
+                {...ceRegister("new_email")}
+                className={ceErrors.new_email ? "border-destructive" : undefined}
+                placeholder="Enter new email"
+              />
+              {ceErrors.new_email && (
+                <p className="text-xs text-destructive">{ceErrors.new_email.message}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="current_password">Current Password</Label>
+              <Input
+                id="current_password"
+                type="password"
+                {...ceRegister("current_password")}
+                className={ceErrors.current_password ? "border-destructive" : undefined}
+                placeholder="Enter current password"
+              />
+              {ceErrors.current_password && (
+                <p className="text-xs text-destructive">{ceErrors.current_password.message}</p>
+              )}
+            </div>
+            <Button
+              type="submit"
+              disabled={Object.keys(ceErrors).length > 0}
+              className="w-full"
+            >
+              Change Email
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
