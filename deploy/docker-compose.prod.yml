@@ -1,0 +1,70 @@
+# SchoolOS API — production deployment (reference).
+# No Docker available in the local dev environment; this file documents how the
+# stack is intended to run in production. Local dev runs natively (see README).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-schoolos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: schoolos_prod
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-schoolos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+
+  api:
+    build: ../apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-schoolos}:${POSTGRES_PASSWORD}@db:5432/schoolos_prod
+      JWT_SECRET: ${JWT_SECRET:?set in .env}
+      USE_REDIS: "true"
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      COOKIE_SECURE: "true"
+      DEV_EMAIL: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  worker:
+    build: ../apps/api
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+
+  web:
+    build: ../apps/web
+    environment:
+      # Server-side rewrite target — Next proxies /api/* to the API container.
+      # (The browser only ever calls home; nginx terminates the origin.)
+      API_URL: http://api:8000
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - web
+
+volumes:
+  pgdata:

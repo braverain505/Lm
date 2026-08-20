@@ -1,0 +1,228 @@
+"use client";
+
+import { Files, Printer, X } from "lucide-react";
+import { useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CommentManager } from "@/components/comment-manager";
+import { PsychomotorEditor } from "@/components/psychomotor-editor";
+import { ReportCardDocument } from "@/components/report-card-document";
+import { useArms, useReportCard, useReportCards, useReportIndex, useSessions, useTerms } from "@/hooks/use-api";
+import { cn } from "@/lib/utils";
+import "@/app/report-card.css";
+
+export default function ReportsPage() {
+  const { data: sessions = [] } = useSessions();
+  const current = sessions.find((s) => s.is_current) ?? sessions[0];
+  const { data: terms = [] } = useTerms(current?.id ?? null);
+  const { data: arms = [] } = useArms(current?.id ?? null);
+
+  const [activeTermId, setActiveTermId] = useState<string | null>(null);
+  const term = terms.find((t) => t.id === activeTermId) ?? terms.find((t) => t.is_current) ?? terms[0];
+  const [armId, setArmId] = useState("");
+  const [studentId, setStudentId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+
+  const { data: index = [], isLoading: indexLoading } = useReportIndex(armId || null, term?.id ?? null);
+  const { data: card, isLoading: cardLoading, error } = useReportCard(studentId, term?.id ?? null);
+  const {
+    data: bulkCards = [],
+    isLoading: bulkLoading,
+    isFetching: bulkFetching,
+  } = useReportCards(bulkOpen ? armId : null, bulkOpen ? term?.id ?? null : null);
+
+  return (
+    <div className="space-y-6 print:space-y-0">
+      {/* Toolbar (hidden on print) */}
+      <div className="print:hidden">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Report cards</h1>
+            <p className="text-sm text-muted-foreground">
+              Premium printable term reports built from published results — totals are frozen at
+              publish, so cards never drift.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {bulkOpen ? (
+              <Button variant="outline" onClick={() => setBulkOpen(false)}>
+                <X className="h-4 w-4" /> Back to one card
+              </Button>
+            ) : (
+              <>
+                {armId && term && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setBulkOpen(true);
+                      setStudentId(null);
+                    }}
+                  >
+                    <Files className="h-4 w-4" /> All report cards
+                    {!indexLoading && index.length > 0 && (
+                      <span className="text-muted-foreground">({index.filter((r) => r.subjects_published > 0).length})</span>
+                    )}
+                  </Button>
+                )}
+                {card && (
+                  <Button variant="outline" onClick={() => window.print()}>
+                    <Printer className="h-4 w-4" /> Print / PDF
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Term + arm filters */}
+        <div className="mt-4 flex flex-wrap items-center gap-4">
+          {terms.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted-foreground">Term</span>
+              {terms.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTermId(t.id)}
+                  className={cn(
+                    "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
+                    t.id === term?.id
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-input text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="space-y-1">
+            <Label htmlFor="arm">Class arm</Label>
+            <select
+              id="arm"
+              className="h-9 w-56 rounded-md border border-input bg-transparent px-3 text-sm"
+              value={armId}
+              onChange={(e) => {
+                setArmId(e.target.value);
+                setStudentId(null);
+                setBulkOpen(false);
+              }}
+            >
+              <option value="">Choose arm…</option>
+              {arms.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Arm index: students + publish coverage */}
+        {armId && term && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Students in this arm</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {indexLoading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : index.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No enrollments in this arm.</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {index.map((row) => (
+                    <button
+                      key={row.student_id}
+                      onClick={() => setStudentId(row.student_id)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                        row.student_id === studentId
+                          ? "border-primary bg-primary/10"
+                          : "border-input hover:bg-accent",
+                      )}
+                    >
+                      <span className="font-medium">{row.full_name}</span>
+                      {row.subjects_published > 0 ? (
+                        <Badge variant="success">
+                          {row.subjects_published} subject{row.subjects_published === 1 ? "" : "s"} ready
+                        </Badge>
+                      ) : (
+                        <Badge variant="muted">pending</Badge>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* The premium card */}
+      {bulkOpen ? (
+        <div className="space-y-6 print:space-y-0">
+          <div className="print:hidden">
+            <Card>
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+                <div>
+                  <p className="text-sm font-medium">All report cards — {armId ? arms.find((a) => a.id === armId)?.full_name ?? "this arm" : ""}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {bulkLoading || bulkFetching
+                      ? "Loading…"
+                      : `${bulkCards.length} card${bulkCards.length === 1 ? "" : "s"} ready · prints one card per page`}
+                  </p>
+                </div>
+                <Button
+                  variant="default"
+                  disabled={bulkCards.length === 0 || bulkLoading}
+                  onClick={() => window.print()}
+                >
+                  <Printer className="h-4 w-4" /> Print all ({bulkCards.length})
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          {bulkLoading && bulkCards.length === 0 ? (
+            <Skeleton className="h-64 w-full" />
+          ) : bulkCards.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                No published report cards for this arm this term yet.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-8">
+              {bulkCards.map((c) => (
+                <div key={c.enrollment_id} className="rc-print-page">
+                  <ReportCardDocument card={c} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : cardLoading ? (
+        <Skeleton className="h-64 w-full" />
+      ) : error || !card ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            {studentId
+              ? "No published results for this student in this term yet."
+              : "Pick a student to view their report card."}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="report-card-stage">
+          {studentId && term && (
+            <PsychomotorEditor studentId={studentId} termId={term.id} />
+          )}
+          <CommentManager card={card} />
+          <ReportCardDocument card={card} />
+        </div>
+      )}
+    </div>
+  );
+}

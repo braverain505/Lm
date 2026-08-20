@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 226 22% 97%;
+    --foreground: 224 20% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 20% 12%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 95%;
+    --secondary-foreground: 224 20% 12%;
+    --muted: 220 16% 96%;
+    --muted-foreground: 221 12% 46%;
+    --accent: 226 22% 95%;
+    --accent-foreground: 224 20% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 66% 36%;
+    --warning: 34 92% 45%;
+    --info: 217 91% 56%;
+    --border: 220 18% 90%;
+    --input: 220 18% 88%;
+    --ring: 243 75% 59%;
+    --radius: 0.75rem;
+
+    /* Dark sidebar (always dark, indigo-tinted slate) */
+    --sidebar: 224 36% 9%;
+    --sidebar-foreground: 219 20% 72%;
+    --sidebar-muted: 221 14% 52%;
+    --sidebar-accent: 224 30% 15%;
+    --sidebar-active: 226 26% 22%;
+    --sidebar-border: 223 22% 17%;
+    --sidebar-primary: 243 82% 74%;
+
+    /* Chart palette */
+    --chart-1: 243 75% 59%;
+    --chart-2: 189 94% 43%;
+    --chart-3: 152 66% 36%;
+    --chart-4: 34 92% 45%;
+    --chart-5: 262 83% 58%;
+    --chart-6: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 224 36% 6%;
+    --foreground: 210 25% 96%;
+    --card: 224 30% 8%;
+    --card-foreground: 210 25% 96%;
+    --primary: 243 75% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 24% 14%;
+    --secondary-foreground: 210 25% 96%;
+    --muted: 217 24% 13%;
+    --muted-foreground: 217 15% 62%;
+    --accent: 217 24% 15%;
+    --accent-foreground: 210 25% 96%;
+    --destructive: 0 66% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 66% 44%;
+    --warning: 34 92% 52%;
+    --info: 217 91% 62%;
+    --border: 217 24% 15%;
+    --input: 217 24% 16%;
+    --ring: 243 75% 68%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.14);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/25 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .premium-card {
+    @apply rounded-xl border bg-card shadow-card transition-shadow hover:shadow-card-hover;
+  }
+  .stat-card {
+    @apply rounded-xl border bg-card p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card-hover;
+  }
+  .stat-card:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-1;
+  }
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animated sheen that slides across in-progress readiness bars. */
+  .readiness-sheen {
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 80%
+    );
+    animation: readiness-sheen-slide 1.8s ease-in-out infinite;
+  }
+
+  @keyframes readiness-sheen-slide {
+    0% {
+      transform: translateX(-100%);
+    }
+    60%,
+    100% {
+      transform: translateX(100%);
+    }
+  }
+}
+
+/* Print only the receipt (and nothing else on the page). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-print-area,
+  .receipt-print-area * {
+    visibility: visible;
+  }
+  .receipt-print-area {
+    position: absolute;
+    inset: 0;
+    border: none;
+    box-shadow: none;
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "schoolos",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
+}

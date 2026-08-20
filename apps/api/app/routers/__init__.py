@@ -1,0 +1,1 @@
+"""Routers — thin HTTP layer. Business rules live in services."""

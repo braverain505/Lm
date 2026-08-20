@@ -1,0 +1,638 @@
+/* ------------------------------------------------------------------ *
+ * Premium report card: print-ready A4 document styles.
+ * Scoped under .rc-* so it never leaks into the dashboard chrome.
+ * ------------------------------------------------------------------ */
+
+/* Design tokens */
+.rc-sheet {
+  --rc-navy: #1b2c4a;
+  --rc-navy-deep: #12203a;
+  --rc-navy-soft: #2c4268;
+  --rc-gold: #b8903a;
+  --rc-gold-soft: #d9b45e;
+  --rc-green: #1f6b4c;
+  --rc-green-soft: #2c7d5b;
+  --rc-cream: #fcfaf4;
+  --rc-cream-deep: #f6f0e2;
+  --rc-ink: #1c1c1c;
+  --rc-muted: #5c6470;
+  --rc-line: #d9d2c2;
+  --rc-serif: Georgia, "Times New Roman", Times, serif;
+  --rc-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  position: relative;
+  width: 100%;
+  max-width: 210mm;
+  margin: 0 auto;
+  background: var(--rc-cream);
+  color: var(--rc-ink);
+  font-family: var(--rc-sans);
+  border: 1px solid var(--rc-line);
+  box-shadow: 0 8px 28px rgb(27 44 74 / 0.14);
+  border-radius: 10px;
+}
+
+/* Inner gold hairline frame */
+.rc-sheet::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid var(--rc-gold);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.rc-pad {
+  padding: 26px 30px 24px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Header: photo | school identity | logo
+ * ------------------------------------------------------------------ */
+.rc-header {
+  display: grid;
+  grid-template-columns: 120px 1fr 120px;
+  align-items: center;
+  gap: 22px;
+  text-align: center;
+}
+
+.rc-photo,
+.rc-logo {
+  width: 112px;
+  height: 112px;
+  margin: 0 auto;
+  border-radius: 9999px;
+  border: 2px solid var(--rc-gold);
+  overflow: hidden;
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+
+.rc-photo img,
+.rc-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rc-photo-fallback,
+.rc-logo-fallback {
+  font-family: var(--rc-serif);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--rc-navy);
+}
+
+.rc-logo {
+  border-radius: 50%;
+  padding: 6px;
+  background: #fff;
+}
+
+.rc-logo img {
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.rc-school-name {
+  margin: 0;
+  font-family: var(--rc-serif);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--rc-navy);
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.rc-motto {
+  margin: 6px 0 0;
+  font-family: var(--rc-serif);
+  font-size: 12.5px;
+  font-style: italic;
+  letter-spacing: 0.6px;
+  color: var(--rc-navy-soft);
+}
+
+.rc-rule {
+  width: 150px;
+  height: 2px;
+  margin: 12px auto 10px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--rc-gold) 18%,
+    var(--rc-gold) 82%,
+    transparent
+  );
+}
+
+.rc-title {
+  margin: 0;
+  font-family: var(--rc-serif);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--rc-navy);
+}
+
+.rc-session {
+  margin: 8px 0 0;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Student information panel
+ * ------------------------------------------------------------------ */
+.rc-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 36px;
+  margin-top: 22px;
+  padding: 14px 18px;
+  border: 1px solid var(--rc-line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.rc-info p {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  padding: 4px 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.rc-info p + p {
+  border-top: 1px dashed var(--rc-line);
+}
+
+.rc-info span {
+  min-width: 108px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+  padding-top: 2px;
+}
+
+.rc-info strong {
+  font-weight: 600;
+  color: var(--rc-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * Two assessment columns
+ * ------------------------------------------------------------------ */
+.rc-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.rc-panel {
+  border: 1px solid var(--rc-line);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-panel-header {
+  padding: 9px 14px 8px;
+  text-align: center;
+  color: #fff;
+}
+
+.rc-panel-green .rc-panel-header {
+  background: var(--rc-green);
+}
+
+.rc-panel-navy .rc-panel-header {
+  background: var(--rc-navy);
+}
+
+.rc-panel-header h3 {
+  margin: 0;
+  font-family: var(--rc-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+
+.rc-panel-header p {
+  margin: 2px 0 0;
+  font-size: 8.5px;
+  letter-spacing: 0.4px;
+  opacity: 0.92;
+}
+
+.rc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10.5px;
+}
+
+.rc-table th {
+  padding: 5px 8px;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--rc-navy-soft);
+  border-bottom: 1px solid var(--rc-line);
+  background: var(--rc-cream-deep);
+}
+
+.rc-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #e9e3d5;
+}
+
+.rc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.rc-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.rc-table .ctr {
+  text-align: center;
+}
+
+.rc-avg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 12px;
+  border-top: 2px solid var(--rc-line);
+  background: var(--rc-cream-deep);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+}
+
+.rc-panel-green .rc-avg {
+  color: var(--rc-green);
+}
+
+.rc-panel-navy .rc-avg {
+  color: var(--rc-navy);
+}
+
+.rc-avg strong {
+  font-size: 11px;
+  letter-spacing: 0.4px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Grading key
+ * ------------------------------------------------------------------ */
+.rc-grading {
+  margin-top: 16px;
+  border: 1px solid var(--rc-line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px 16px;
+}
+
+.rc-grading h3 {
+  margin: 0 0 6px;
+  font-family: var(--rc-serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--rc-navy);
+}
+
+.rc-bands {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.rc-band {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px;
+  border: 1px solid var(--rc-line);
+  border-radius: 5px;
+  background: var(--rc-cream);
+}
+
+.rc-band em {
+  font-style: normal;
+  font-family: var(--rc-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rc-navy);
+}
+
+.rc-band span {
+  font-size: 8px;
+  color: var(--rc-muted);
+  white-space: nowrap;
+}
+
+.rc-band b {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--rc-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * Performance summary
+ * ------------------------------------------------------------------ */
+.rc-summary {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 16px;
+  border: 1px solid var(--rc-line);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.rc-metric {
+  padding: 10px 8px 9px;
+  text-align: center;
+}
+
+.rc-metric + .rc-metric {
+  border-left: 1px solid var(--rc-line);
+}
+
+.rc-metric .k {
+  display: block;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+}
+
+.rc-metric .v {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--rc-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--rc-navy);
+  line-height: 1.05;
+}
+
+.rc-metric .s {
+  display: block;
+  margin-top: 2px;
+  font-size: 8.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Best in core subject awards
+ * ------------------------------------------------------------------ */
+.rc-awards {
+  margin-top: 14px;
+  border: 1px solid var(--rc-gold);
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px 14px;
+}
+
+.rc-awards h3 {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--rc-gold);
+  margin-bottom: 6px;
+}
+
+.rc-award-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.rc-award {
+  font-size: 11px;
+  color: var(--rc-ink);
+}
+
+.rc-award strong {
+  color: var(--rc-navy);
+  font-family: var(--rc-serif);
+}
+
+.rc-award span {
+  color: var(--rc-muted);
+}
+
+.rc-core {
+  color: var(--rc-gold);
+  font-weight: 700;
+}
+
+.rc-comp-max {
+  display: block;
+  font-size: 7.5px;
+  font-weight: 500;
+  color: var(--rc-muted);
+}
+
+/* ------------------------------------------------------------------ *
+ * Next term panel
+ * ------------------------------------------------------------------ */
+.rc-next {
+  margin-top: 16px;
+  padding: 12px 18px;
+  border-radius: 6px;
+  background: var(--rc-navy);
+  color: #fff;
+  text-align: center;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+}
+
+.rc-next strong {
+  font-family: var(--rc-serif);
+  font-weight: 700;
+  color: var(--rc-gold-soft);
+  font-size: 14px;
+  letter-spacing: 0.6px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Comments
+ * ------------------------------------------------------------------ */
+.rc-comments {
+  margin-top: 16px;
+}
+
+.rc-comments > h3 {
+  margin: 0 0 10px;
+  font-family: var(--rc-serif);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-align: center;
+  color: var(--rc-navy);
+}
+
+.rc-comment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.rc-comment {
+  border: 1px solid var(--rc-line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rc-comment h4 {
+  margin: 0 0 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rc-cream-deep);
+  font-family: var(--rc-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+  text-align: center;
+}
+
+.rc-comment p {
+  margin: 0;
+  flex: 1;
+  font-family: var(--rc-serif);
+  font-size: 10.5px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--rc-ink);
+  min-height: 52px;
+}
+
+.rc-sign {
+  margin-top: 12px;
+}
+
+.rc-sign-line {
+  height: 1px;
+  border-top: 1px solid var(--rc-ink);
+  margin-bottom: 5px;
+}
+
+.rc-sign .who {
+  font-family: var(--rc-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--rc-ink);
+}
+
+.rc-sign .role,
+.rc-sign .date {
+  font-size: 8.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--rc-muted);
+  margin-top: 1px;
+}
+
+.rc-sign .role {
+  margin-top: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Print: A4 portrait, chrome stripped, colors kept
+ * ------------------------------------------------------------------ */
+@page {
+  size: A4 portrait;
+  margin: 8mm 9mm;
+}
+
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .rc-print-page {
+    break-after: page;
+    margin: 0;
+  }
+
+  .rc-print-page:last-child {
+    break-after: auto;
+  }
+
+  .rc-sheet {
+    max-width: none;
+    width: auto;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .rc-sheet::before {
+    inset: 6px;
+  }
+
+  .rc-print-hidden {
+    display: none !important;
+  }
+
+  .rc-panel,
+  .rc-info,
+  .rc-grading,
+  .rc-summary,
+  .rc-next,
+  .rc-comment {
+    break-inside: avoid;
+  }
+
+  .rc-comment-grid,
+  .rc-columns {
+    break-inside: avoid;
+  }
+
+  .rc-table,
+  .rc-table tr,
+  .rc-table td,
+  .rc-table th {
+    break-inside: avoid;
+  }
+}

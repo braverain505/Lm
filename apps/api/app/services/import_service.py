@@ -1,0 +1,694 @@
+"""Legacy data import: batches of raw rows validated, fixed, and imported.
+
+One batch imports one entity type (currently ``students``) from a CSV the
+client parsed into raw JSON rows. The pipeline is:
+
+    create_batch (rows stored verbatim as JSONB)
+      → set_mapping (source column → target field; validates every row)
+      → set_row_fixes (target-keyed overrides; single-row revalidation)
+      → run_import (chunked, commits per chunk → live progress via status)
+
+Rows are never normalized until run time, so re-importing a batch with a
+different column mapping (3.2) reuses the raw rows without a re-upload.
+"""
+from __future__ import annotations
+
+import uuid
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from ..core.errors import ConflictError, NotFoundError, ValidationError
+from ..models import (
+    ClassArm,
+    AcademicSession,
+    Student,
+)
+from ..models.imports import (
+    STATUS_COMPLETED,
+    STATUS_FAILED,
+    STATUS_READY,
+    STATUS_RUNNING,
+    STATUS_UPLOADED,
+    ROW_FAILED,
+    ROW_IMPORTED,
+    ROW_INVALID,
+    ROW_PENDING,
+    ROW_VALID,
+    ImportBatch,
+    ImportRow,
+)
+from .people_service import create_student, enroll_student
+
+MAX_ROWS_PER_BATCH = 5_000
+MAX_CELL_LENGTH = 1_000
+RUN_CHUNK_SIZE = 200
+
+
+@dataclass(frozen=True)
+class FieldSpec:
+    """One importable target field for an entity type (drives mapping + validation)."""
+
+    name: str
+    label: str
+    required: bool = False
+    kind: str = "str"  # "str" | "date"
+    options: tuple[str, ...] | None = None  # allowed values (case-insensitive)
+    max_length: int | None = None
+    default: str | None = None  # e.g. gender auto-supplied on missing? (unused for now)
+
+
+def _f(name, label, **kw) -> FieldSpec:
+    return FieldSpec(name=name, label=label, **kw)
+
+
+# Entity type -> target field spec. Adding a new entity type (e.g. "staff") is
+# just a new entry here — the batch/row machinery is generic.
+FIELD_SPECS: dict[str, dict[str, FieldSpec]] = {
+    "students": {
+        "admission_no": _f("admission_no", "Admission number", max_length=40),
+        "first_name": _f("first_name", "First name", required=True, max_length=80),
+        "last_name": _f("last_name", "Last name", required=True, max_length=80),
+        "middle_name": _f("middle_name", "Middle name", max_length=80),
+        "gender": _f("gender", "Gender", required=True, options=("male", "female")),
+        "date_of_birth": _f("date_of_birth", "Date of birth", kind="date"),
+        "state": _f("state", "State", max_length=80),
+        "lga": _f("lga", "LGA", max_length=80),
+        "address": _f("address", "Address"),
+        "previous_school": _f("previous_school", "Previous school", max_length=200),
+        "class_arm": _f("class_arm", "Class arm", max_length=120),
+    },
+}
+
+SUPPORTED_ENTITY_TYPES = tuple(FIELD_SPECS.keys())
+
+
+def entity_fields(entity_type: str) -> list[FieldSpec]:
+    specs = FIELD_SPECS.get(entity_type)
+    if specs is None:
+        raise ValidationError(f"Unsupported entity type '{entity_type}'")
+    return list(specs.values())
+
+
+# --- Accessors ------------------------------------------------------------------
+def get_batch(db: Session, school_id: uuid.UUID, batch_id: uuid.UUID) -> ImportBatch:
+    batch = db.get(ImportBatch, batch_id)
+    if batch is None or batch.school_id != school_id:
+        raise NotFoundError("Import batch not found")
+    return batch
+
+
+def get_row(
+    db: Session, school_id: uuid.UUID, batch_id: uuid.UUID, row_id: uuid.UUID
+) -> ImportRow:
+    get_batch(db, school_id, batch_id)
+    row = db.get(ImportRow, row_id)
+    if row is None or row.school_id != school_id or row.batch_id != batch_id:
+        raise NotFoundError("Import row not found")
+    return row
+
+
+def list_rows(
+    db: Session,
+    batch: ImportBatch,
+    *,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[ImportRow], int]:
+    """Page through a batch's rows, optionally filtered by row status."""
+    stmt = select(ImportRow).where(ImportRow.batch_id == batch.id)
+    if status:
+        stmt = stmt.where(ImportRow.status == status)
+    total = db.scalar(
+        select(func.count()).select_from(stmt.subquery())
+    ) or 0
+    rows = list(
+        db.scalars(
+            stmt.order_by(ImportRow.row_number).offset(offset).limit(limit)
+        )
+    )
+    return rows, total
+
+
+def list_batches(db: Session, school_id: uuid.UUID, *, limit: int = 100, offset: int = 0) -> list[ImportBatch]:
+    return list(
+        db.scalars(
+            select(ImportBatch)
+            .where(ImportBatch.school_id == school_id)
+            .order_by(ImportBatch.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+    )
+
+
+# --- Upload ----------------------------------------------------------------------
+def _detect_columns(rows: list[dict]) -> list[str]:
+    """Columns in first-seen order from the raw upload payload.
+
+    Must run on the *request* dicts, not on rows read back from the DB:
+    ``data`` is a JSONB column and Postgres reorders JSONB keys (by length
+    then bytewise), so a post-persist scan would scramble the wizard's column
+    order.
+
+    We capture the order from the first row's data dict keys directly,
+    preserving the user's column order. Later rows may have additional keys
+    (which we append), but the initial ordering is fixed from the upload.
+    """
+    if not rows:
+        return []
+    # Use the first row's data keys to establish column order.
+    # This is safe because _detect_columns is only called on the initial
+    # upload payload (not on rows read back from DB), so the key order is
+    # guaranteed to match what the user submitted.
+    first_data = rows[0].get("data") or {}
+    return list(first_data.keys())
+
+
+def create_batch(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    entity_type: str,
+    filename: str,
+    rows: list[dict],
+    created_by: uuid.UUID | None = None,
+    parent_batch_id: uuid.UUID | None = None,
+    columns: list[str] | None = None,
+) -> ImportBatch:
+    """Store a parsed file's raw rows verbatim as JSONB; nothing normalized yet.
+
+    Columns come from the request payload (first-seen order) unless the caller
+    passes them (re-imports inherit the parent's order).
+    """
+    if entity_type not in FIELD_SPECS:
+        raise ValidationError(f"Unsupported entity type '{entity_type}'")
+    if not rows:
+        raise ValidationError("File has no data rows to import")
+    if len(rows) > MAX_ROWS_PER_BATCH:
+        raise ValidationError(f"Too many rows ({len(rows)}); max is {MAX_ROWS_PER_BATCH}")
+    for item in rows:
+        data = item.get("data") or {}
+        for key, value in data.items():
+            if isinstance(value, str) and len(value) > MAX_CELL_LENGTH:
+                raise ValidationError(
+                    f"Cell '{key}' (row {item.get('row_number')}) exceeds {MAX_CELL_LENGTH} characters"
+                )
+
+    batch = ImportBatch(
+        school_id=school_id,
+        entity_type=entity_type,
+        filename=filename or "upload.csv",
+        status=STATUS_UPLOADED,
+        columns=columns if columns is not None else _detect_columns(rows),
+        column_mapping={},
+        parent_batch_id=parent_batch_id,
+        total_rows=len(rows),
+        created_by=created_by,
+    )
+    db.add(batch)
+    db.flush()
+
+    for item in rows:
+        row = ImportRow(
+            school_id=school_id,
+            batch_id=batch.id,
+            row_number=int(item.get("row_number") or 0),
+            data=item.get("data") or {},
+            status=ROW_PENDING,
+            errors={},
+            fixes={},
+        )
+        db.add(row)
+    db.flush()
+    return batch
+
+
+# --- Mapping + validation -----------------------------------------------------------
+def _mapped_values(row: ImportRow) -> dict:
+    """Target field -> value for this row, with user fixes layered on top."""
+    mapping = row.batch.column_mapping or {}
+    values: dict = {}
+    for source, target in mapping.items():
+        if source in row.data:
+            values[target] = row.data[source]
+    values.update(row.fixes or {})
+    return values
+
+
+def _error_messages(field: FieldSpec, value) -> list[str]:
+    """Field-level validation (no DB lookups). Returns human messages."""
+    messages: list[str] = []
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return [f"{field.label} is required"] if field.required else []
+
+    text = value.strip() if isinstance(value, str) else str(value).strip()
+
+    if field.options:
+        if text.lower() not in field.options:
+            readable = " or ".join(f"'{o}'" for o in field.options)
+            messages.append(f"{field.label} must be {readable}")
+    if field.kind == "date":
+        try:
+            date.fromisoformat(text)
+        except ValueError:
+            messages.append(f"{field.label} must be a date in YYYY-MM-DD format")
+    if field.max_length and len(text) > field.max_length:
+        messages.append(f"{field.label} must be {field.max_length} characters or fewer")
+    return messages
+
+
+def _build_first_admission_map(db: Session, batch: ImportBatch) -> dict[str, int]:
+    """{admission_no: first row_number} across the whole file — the first
+    occurrence wins, every later duplicate is flagged."""
+    rows = list(
+        db.scalars(
+            select(ImportRow)
+            .where(ImportRow.batch_id == batch.id)
+            .order_by(ImportRow.row_number)
+        )
+    )
+    first: dict[str, int] = {}
+    for row in rows:
+        value = _mapped_values(row).get("admission_no")
+        if value and str(value).strip():
+            admission = str(value).strip()
+            if admission not in first:
+                first[admission] = row.row_number
+    return first
+
+
+def _arm_key(full_name: str) -> str:
+    """Normalize an arm's written name for tolerant matching.
+
+    "JSS 1 A" and "JSS 1A" both key to "JSS 1A": whitespace is collapsed and
+    the separator before a trailing single-letter arm (A, B, …) is dropped, so
+    import rows can reference an arm either way. Level words keep their spaces
+    ("Senior Secondary 1 A" -> "Senior Secondary 1A").
+    """
+    text = " ".join(str(full_name).split())
+    head, _, tail = text.rpartition(" ")
+    if head and len(tail) == 1 and tail.isalpha():
+        return f"{head}{tail}"
+    return text
+
+
+def _resolve_arm(db: Session, school_id: uuid.UUID, full_name: str) -> ClassArm | None:
+    """Resolve a legacy 'class arm' string to an arm in the school's *current*
+    session, tolerating either written form ("JSS 1A" or "JSS 1 A")."""
+    session = db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.school_id == school_id,
+            AcademicSession.is_current.is_(True),
+        )
+    )
+    if session is None:
+        return None
+    wanted = _arm_key(full_name)
+    for arm in db.scalars(
+        select(ClassArm).where(
+            ClassArm.school_id == school_id,
+            ClassArm.academic_session_id == session.id,
+        )
+    ):
+        if _arm_key(arm.full_name) == wanted:
+            return arm
+    return None
+
+
+def _current_session_name(db: Session, school_id: uuid.UUID) -> str | None:
+    return db.scalar(
+        select(AcademicSession.name).where(
+            AcademicSession.school_id == school_id,
+            AcademicSession.is_current.is_(True),
+        )
+    )
+
+
+def validate_row(
+    db: Session,
+    batch: ImportBatch,
+    row: ImportRow,
+    *,
+    first_admission: dict[str, int] | None = None,
+) -> None:
+    """Recompute one row's status + field errors from mapping + fixes."""
+    errors: dict[str, list[str]] = {}
+    values = _mapped_values(row)
+    specs = FIELD_SPECS[batch.entity_type]
+
+    for target, value in values.items():
+        # Fixes may carry a target we no longer map; skip spec-less keys entirely.
+        spec = specs.get(target)
+        if spec is None:
+            continue
+        msgs = _error_messages(spec, value)
+        if msgs:
+            errors[target] = msgs
+
+    # DB lookups that need the tenant: class arm resolution + duplicates.
+    arm_spec = specs.get("class_arm")
+    arm_value = values.get("class_arm")
+    if arm_spec is not None and arm_value and str(arm_value).strip():
+        if _resolve_arm(db, batch.school_id, str(arm_value)) is None:
+            session_name = _current_session_name(db, batch.school_id)
+            where = f"in the current session ({session_name})" if session_name else "(no current session)"
+            errors["class_arm"] = [f"Class arm '{str(arm_value).strip()}' not found {where}"]
+
+    admission_raw = values.get("admission_no")
+    if admission_raw and str(admission_raw).strip():
+        admission = str(admission_raw).strip()
+        messages: list[str] = []
+        # In-file duplicates: the first row to introduce the number owns it.
+        if first_admission is not None:
+            sooner = first_admission.get(admission)
+            if sooner is not None and sooner < row.row_number:
+                messages.append("Duplicate admission number earlier in this file")
+        # In-school: an existing student owns the number (soft-deleted included).
+        exists = db.scalar(
+            select(Student.id).where(
+                Student.school_id == batch.school_id,
+                Student.admission_no == admission,
+            )
+        )
+        if exists is not None:
+            messages.append("Admission number already registered at this school")
+        if messages:
+            errors["admission_no"] = messages
+
+    row.errors = {k: v for k, v in errors.items()}
+    row.status = ROW_INVALID if errors else ROW_VALID
+
+
+def set_mapping(
+    db: Session,
+    school_id: uuid.UUID,
+    batch_id: uuid.UUID,
+    mapping: dict,
+) -> ImportBatch:
+    """Apply column mapping and re-validate every row. Returns the batch."""
+    batch = get_batch(db, school_id, batch_id)
+    specs = FIELD_SPECS[batch.entity_type]
+
+    unknown = [t for t in mapping.values() if t and t not in specs]
+    if unknown:
+        raise ValidationError("Mapping references unknown fields", {"unknown": unknown})
+
+    # Required fields must be mapped (no silent auto-supply at mapping time).
+    missing = [
+        spec.name for spec in specs.values() if spec.required and spec.name not in mapping.values()
+    ]
+    if missing:
+        labels = {spec.name: spec.label for spec in specs.values()}
+        raise ValidationError(
+            "Every required field must be mapped to a column",
+            {"missing": [labels[m] for m in missing]},
+        )
+
+    # Mapped sources should exist among the file's detected columns — unless
+    # the mapped target is optional (e.g. admission_no auto-generates when the
+    # file has no such column, leaving the target unset).
+    # For optional targets not mapped from a file column, skip the check — the
+    # auto-generation happens at run time (run_import).
+    unknown_sources = [
+        s for s, t in mapping.items()
+        if s not in batch.columns and specs[t].required
+        and t not in ("admission_no",)  # admission_no is optional at mapping time
+    ]
+    if unknown_sources:
+        raise ValidationError(
+            "Mapping references columns that are not in the file",
+            {"unknown_columns": unknown_sources},
+        )
+
+    batch.column_mapping = dict(mapping)
+    _revalidate(db, batch)
+    return batch
+
+
+def _revalidate(db: Session, batch: ImportBatch) -> None:
+    """Recompute every row + batch counters. Called after mapping or fixes."""
+    rows = list(
+        db.scalars(
+            select(ImportRow)
+            .where(ImportRow.batch_id == batch.id)
+            .order_by(ImportRow.row_number)
+        )
+    )
+    valid = invalid = 0
+    error_summary: dict[str, int] = {}
+    first_admission = _build_first_admission_map(db, batch)
+    for row in rows:
+        validate_row(db, batch, row, first_admission=first_admission)
+        if row.status == ROW_VALID:
+            valid += 1
+        else:
+            invalid += 1
+            for field, messages in (row.errors or {}).items():
+                error_summary[field] = error_summary.get(field, 0) + len(messages)
+    batch.rows_valid = valid
+    batch.rows_invalid = invalid
+    batch.error_summary = error_summary
+    batch.status = STATUS_READY
+    db.flush()
+
+
+def set_row_fixes(
+    db: Session,
+    school_id: uuid.UUID,
+    batch_id: uuid.UUID,
+    row_id: uuid.UUID,
+    fixes: dict,
+) -> ImportRow:
+    """Layer user fixes over a row and re-validate just that row."""
+    row = get_row(db, school_id, batch_id, row_id)
+    specs = FIELD_SPECS[row.batch.entity_type]
+    unknown = [k for k in fixes if k not in specs]
+    if unknown:
+        raise ValidationError("Fixes reference unknown fields", {"unknown": unknown})
+    merged = dict(row.fixes or {})
+    for key, value in fixes.items():
+        if value is None:
+            merged.pop(key, None)  # explicit null clears the override
+        else:
+            # Includes "" — an explicitly blanked field is dropped at import
+            # time (e.g. a bad class arm the user chooses to ignore); a
+            # required field left blank simply fails validation.
+            merged[key] = value
+    row.fixes = merged
+
+    # Row fixes can change admission numbers, so rebuild the file-wide map
+    # before revalidating (a fix may deduplicate or introduce a duplicate).
+    batch = row.batch
+    rows = list(
+        db.scalars(
+            select(ImportRow).where(ImportRow.batch_id == batch.id)
+        )
+    )
+    first_admission = _build_first_admission_map(db, batch)
+    valid = invalid = 0
+    error_summary: dict[str, int] = {}
+    for r in rows:
+        validate_row(db, batch, r, first_admission=first_admission)
+        if r.status == ROW_VALID:
+            valid += 1
+        else:
+            invalid += 1
+            for field, messages in (r.errors or {}).items():
+                error_summary[field] = error_summary.get(field, 0) + len(messages)
+    batch.rows_valid = valid
+    batch.rows_invalid = invalid
+    batch.error_summary = error_summary
+    db.flush()
+    return row
+
+
+# --- Run ----------------------------------------------------------------------------
+def _generate_admission_no(batch: ImportBatch, row: ImportRow) -> str:
+    return f"IMP-{batch.id.hex[:4].upper()}-{row.row_number:04d}"
+
+
+def run_import(
+    db: Session,
+    batch_id: uuid.UUID,
+    *,
+    chunk_size: int = RUN_CHUNK_SIZE,
+) -> ImportBatch:
+    """Import a ready batch. Waits on nothing; commits per chunk so a poller
+    sees live ``rows_imported`` / ``rows_failed`` while status is ``running``."""
+    batch = db.get(ImportBatch, batch_id)
+    if batch is None:
+        return batch
+    if batch.status in (STATUS_COMPLETED, STATUS_FAILED):
+        raise ConflictError(f"Import already {batch.status}")
+    # RUNNING means the router committed the transition and scheduled this
+    # job — the job owns the rest of the lifecycle. UPLOADED/READY are direct
+    # (service-level) invocations.
+    if not batch.column_mapping:
+        raise ConflictError("Set a column mapping before running the import")
+
+    session = db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.school_id == batch.school_id,
+            AcademicSession.is_current.is_(True),
+        )
+    )
+    batch.status = STATUS_RUNNING
+    batch.started_at = datetime.now(timezone.utc)
+    db.flush()
+    db.commit()
+
+    rows = list(
+        db.scalars(
+            select(ImportRow)
+            .where(ImportRow.batch_id == batch.id, ImportRow.status == ROW_VALID)
+            .order_by(ImportRow.row_number)
+        )
+    )
+    imported = failed = 0
+    specs = FIELD_SPECS[batch.entity_type]
+
+    for i in range(0, len(rows), chunk_size):
+        chunk = rows[i : i + chunk_size]
+        for row in chunk:
+            values = _mapped_values(row)
+            try:
+                raw_adm = values.get("admission_no")
+                admission_no = (
+                    str(raw_adm).strip() if raw_adm and str(raw_adm).strip()
+                    else _generate_admission_no(batch, row)
+                )
+                gender = str(values.get("gender", "")).strip().lower()
+                student = create_student(
+                    db,
+                    batch.school_id,
+                    admission_no=admission_no,
+                    first_name=str(values.get("first_name", "")).strip() or "Unknown",
+                    last_name=str(values.get("last_name", "")).strip() or "Student",
+                    middle_name=_clean_str(values.get("middle_name")),
+                    gender=gender if gender in ("male", "female") else "other",
+                    date_of_birth=_parse_optional_date(values.get("date_of_birth")),
+                    state=_clean_str(values.get("state")),
+                    lga=_clean_str(values.get("lga")),
+                    address=_clean_str(values.get("address")),
+                    previous_school=_clean_str(values.get("previous_school")),
+                )
+                if "class_arm" in specs and values.get("class_arm"):
+                    arm = _resolve_arm(db, batch.school_id, str(values["class_arm"]))
+                    if arm is not None and session is not None:
+                        enroll_student(
+                            db,
+                            batch.school_id,
+                            student_id=student.id,
+                            arm_id=arm.id,
+                            session_id=session.id,
+                        )
+                row.status = ROW_IMPORTED
+                row.imported_entity_id = student.id
+                imported += 1
+            except Exception as exc:  # noqa: BLE001 — one bad row must not kill the batch
+                row.status = ROW_FAILED
+                row.errors = {"_import": [str(exc)]}
+                failed += 1
+
+        batch.rows_imported = imported
+        batch.rows_failed = failed
+        db.commit()  # per-chunk commit = the live progress checkpoint
+
+    # A row only fails mid-run if it passed validation but hit a race (e.g.
+    # the admission number was created between mapping and run) — uncommon.
+    if rows and failed == len(rows):
+        batch.status = STATUS_FAILED
+    else:
+        batch.status = STATUS_COMPLETED
+    batch.finished_at = datetime.now(timezone.utc)
+    db.commit()
+    return batch
+
+
+def _parse_optional_date(value) -> date | None:
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        return date.fromisoformat(str(value).strip())
+    except ValueError:
+        return None
+
+
+def _clean_str(value) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+# --- Re-import (3.2) ----------------------------------------------------------------
+def reimport(
+    db: Session,
+    school_id: uuid.UUID,
+    batch_id: uuid.UUID,
+    *,
+    created_by: uuid.UUID | None,
+    filename: str | None = None,
+) -> ImportBatch:
+    """Create a child batch that reuses the parent's raw rows, so the user can
+    pick a new column mapping and run again without re-uploading the file."""
+    parent = get_batch(db, school_id, batch_id)
+    rows = list(
+        db.scalars(
+            select(ImportRow)
+            .where(ImportRow.batch_id == parent.id)
+            .order_by(ImportRow.row_number)
+        )
+    )
+    payload = [
+        {"row_number": r.row_number, "data": dict(r.data)} for r in rows
+    ]
+    return create_batch(
+        db,
+        school_id,
+        entity_type=parent.entity_type,
+        filename=filename or parent.filename,
+        rows=payload,
+        created_by=created_by,
+        parent_batch_id=parent.id,
+        columns=parent.columns,
+    )
+
+
+# --- Background entry point ----------------------------------------------------------
+def run_import_job(batch_id: str) -> None:
+    """Open a fresh session and run the import to completion (called from
+    FastAPI BackgroundTasks so the HTTP request returns while it progresses)."""
+    from ..core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        run_import(db, uuid.UUID(batch_id))
+    except Exception:  # noqa: BLE001 — a background crash must not take the worker down
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "Background import failed for batch %s", batch_id
+        )
+    finally:
+        db.close()
+
+
+__all__ = [
+    "SUPPORTED_ENTITY_TYPES",
+    "entity_fields",
+    "create_batch",
+    "get_batch",
+    "get_row",
+    "list_batches",
+    "set_mapping",
+    "set_row_fixes",
+    "run_import",
+    "run_import_job",
+    "reimport",
+    "MAX_ROWS_PER_BATCH",
+]

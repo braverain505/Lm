@@ -1,0 +1,24 @@
+# SchoolOS
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Env / local
+.env
+.env.local
+.storage/
+
+# Misc
+.DS_Store
+*.log
