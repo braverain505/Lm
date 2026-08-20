@@ -26,6 +26,8 @@ export default function ClassesPage() {
   const [offeringsArmId, setOfferingsArmId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [subjectCode, setSubjectCode] = useState("");
+  const [termName, setTermName] = useState("");
+  const [termNo, setTermNo] = useState(0);
   const manageSessionId =
     sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? null;
   const { data: terms = [], isLoading: loadingTerms } = useTerms(manageSessionId);
@@ -98,6 +100,26 @@ export default function ClassesPage() {
     onSuccess: () => {
       invalidate();
       setArmName("");
+    },
+  });
+
+  const createTerm = useMutation({
+    mutationFn: async () => {
+      if (!schoolId) throw new Error("No active school");
+      if (!manageSessionId) throw new Error("Create an academic session first");
+      return api.schoolFetch(schoolId, "/academics/terms", {
+        method: "POST",
+        body: JSON.stringify({
+          session_id: manageSessionId,
+          term_no: termNo,
+          name: termName,
+        }),
+      });
+    },
+    onSuccess: () => {
+      invalidate();
+      setTermName("");
+      setTermNo(0);
     },
   });
 
@@ -268,6 +290,33 @@ export default function ClassesPage() {
                     </div>
                   </div>
                 ))
+              )}
+              {/* Create term form */}
+              {manageSessionId ? (
+                <div className="pt-4 space-y-3">
+                  <Input
+                    placeholder="Term name (e.g. First Term)"
+                    value={termName}
+                    onChange={(e) => setTermName(e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Term number (e.g. 1)"
+                    value={termNo}
+                    onChange={(e) => setTermNo(Number(e.target.value) || 0)}
+                    min="1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => createTerm.mutate()}
+                    disabled={!termName || termNo <= 0 || createTerm.isPending}
+                    className="w-full"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Add term
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Create a session first.</p>
               )}
             </CardContent>
           </Card>

@@ -17,7 +17,6 @@ export default function ResultsPage() {
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
-  const term = terms.find((t) => t.is_current) ?? terms[0];
   const { data: arms = [] } = useArms(current?.id ?? null);
   const { data: myAssignments = [] } = useMyAssignments();
 
@@ -32,8 +31,9 @@ export default function ResultsPage() {
   // For the demo grid we let the user pick an arm, then any subject offering.
   const [armId, setArmId] = useState("");
   const [subjectId, setSubjectId] = useState("");
+  const [termId, setTermId] = useState<string | null>(terms.find(t => t.is_current)?.id ?? terms[0]?.id ?? null);
   const { data: assignments = [] } = useAssignments(armId || null);
-  const { data: readiness = [] } = useReadiness(term?.id ?? null);
+  const { data: readiness = [] } = useReadiness(termId);
   const { data: subjects = [] } = useSubjects();
 
   // Subject options = the school's subject catalog, intersected with the
@@ -73,12 +73,12 @@ export default function ResultsPage() {
         out.push({
           armName: first.arm_name,
           subjectName: first.subject_name,
-          url: `/results/score?arm_id=${arm_id}&subject_id=${first.subject_id}&term_id=${term?.id}`,
+          url: `/results/score?arm_id=${arm_id}&subject_id=${first.subject_id}&term_id=${termId}`,
         });
       }
     });
     return out.slice(0, 6);
-  }, [readiness, term?.id, isTeacherRole, myArmIds]);
+  }, [readiness, termId, isTeacherRole, myArmIds]);
 
   return (
     <div className="space-y-6">
@@ -96,6 +96,21 @@ export default function ResultsPage() {
             <CardDescription>Open a score grid for an arm × subject.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Term</Label>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={termId ?? ""}
+                onChange={(e) => setTermId(e.target.value || null)}
+              >
+                <option value="">Choose term…</option>
+                {terms.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="space-y-2">
               <Label>Class arm</Label>
               <select
@@ -129,10 +144,10 @@ export default function ResultsPage() {
             </div>
             <Button
               className="w-full"
-              disabled={!armId || !subjectId || !current}
+              disabled={!armId || !subjectId || !termId || !current}
               asChild
             >
-              <Link href={`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${current?.id}`}>
+              <Link href={`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
                 <ClipboardList className="h-4 w-4" /> Open grid
               </Link>
             </Button>
