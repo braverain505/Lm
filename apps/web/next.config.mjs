@@ -11,7 +11,7 @@ const nextConfig = {
   // Proxy /api → the FastAPI service so the browser rides a single origin and
   // httpOnly cookies flow without CORS. The API backend publishes under /api.
   async rewrites() {
-    const apiUrl = process.env.API_URL ?? "http://127.0.0.1:8000";
+    const apiUrl = process.env.API_URL ?? "https://schoolos-api-5066.onrender.com";
     return [
       { source: "/api/:path*", destination: `${apiUrl}/api/:path*` },
     ];
