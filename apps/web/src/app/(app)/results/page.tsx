@@ -14,6 +14,7 @@ export default function ResultsPage() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
+  const isHomeroomTeacher = role === "homeroom_teacher";
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
@@ -39,22 +40,21 @@ export default function ResultsPage() {
   // Subject options = the school's subject catalog, intersected with the
   // offering for the selected arm (via assignments) and/or readiness rows.
   const subjectOptions = useMemo(() => {
-    const nameById = new Map(subjects.map((s) => [s.id, s.name]));
-    readiness.forEach((r) => nameById.set(r.subject_id, r.subject_name));
-    const wanted =
-      readiness.length > 0
-        ? new Set([...readiness.map((r) => r.subject_id), ...assignments.map((a) => a.subject_id)])
-        : new Set(assignments.map((a) => a.subject_id));
-    if (armId && wanted.size === 0) return [];
-    let options = [...nameById.entries()]
-      .filter(([id]) => !armId || wanted.has(id))
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    let options = subjects
+      .filter(([id]) => readiness.some((r) => r.subject_id === id))
+      .map(([id, name]) => ({ id, name }));
     if (visibleSubjectIds) {
       options = options.filter((s) => visibleSubjectIds.has(s.id));
     }
-    return options;
+    return options
+      .filter(([id]) => !armId || wanted.has(id))
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [subjects, readiness, assignments, armId, visibleSubjectIds]);
+
+  const wanted = useMemo(() => new Set(assignments.map((a) => a.subject_id)), [
+    assignments,
+  ]);
 
   // Couple of quick links: for each arm pick the first subject to open a grid.
   const quick = useMemo(() => {
@@ -144,8 +144,9 @@ export default function ResultsPage() {
             </div>
             <Button
               className="w-full"
-              disabled={!armId || !subjectId || !termId || !current}
-              asChild
+              disabled={
+                !armId || !subjectId || !termId || assignmentsLoading
+              }
             >
               <Link href={`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
                 <ClipboardList className="h-4 w-4" /> Open grid
@@ -153,7 +154,72 @@ export default function ResultsPage() {
             </Button>
           </CardContent>
         </Card>
-
+        {isHomeroomTeacher && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Add comments</CardTitle>
+              <CardDescription>Add homeroom comments for your class.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Term</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={termId ?? ""}
+                  onChange={(e) => setTermId(e.target.value || null)}
+                >
+                  <option value="">Choose term…</option>
+                  {terms.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Class arm</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={armId}
+                  onChange={(e) => setArmId(e.target.value)}
+                >
+                  <option value="">Choose arm…</option>
+                  {visibleArms.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={subjectId}
+                  onChange={(e) => setSubjectId(e.target.value)}
+                  disabled={!armId}
+                >
+                  <option value="">Choose subject…</option>
+                  {subjectOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                className="w-full"
+                disabled={
+                  !armId || !subjectId || !termId || assignmentsLoading
+                }
+              >
+                <Link href={`/results?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
+                  <FileText className="h-4 w-4" /> Add comments
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
         <div className="lg:col-span-2 space-y-4">
           <Card>
             <CardHeader>
