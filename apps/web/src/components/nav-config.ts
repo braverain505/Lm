@@ -47,20 +47,20 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Academic",
     items: [
-      { href: "/students", label: "Students", icon: Users, perm: "students.view" },
-      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view" },
-      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view" },
+      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["admin", "principal", "vp_academics"] },
       { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view" },
-      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view" },
-      { href: "/approvals", label: "Approvals", icon: ListChecks, perm: "results.verify" },
-      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view" },
+      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/approvals", label: "Approvals", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
+      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
     ],
   },
   {
     label: "Administration",
     items: [
-      { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view" },
+      { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/inventory", label: "Inventory", icon: Package, perm: "inventory.view" },
       { href: "/library", label: "Library", icon: BookCopy, perm: "library.view" },
@@ -89,8 +89,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Reports",
     items: [
-      { href: "/reports", label: "Academic Reports", icon: PieChart, perm: "results.view" },
-      { href: "/attendance", label: "Attendance Reports", icon: CalendarCheck, perm: "attendance.view" },
+      { href: "/reports", label: "Academic Reports", icon: PieChart, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/attendance", label: "Attendance Reports", icon: CalendarCheck, perm: "attendance.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
     ],
   },
   {
@@ -107,7 +107,7 @@ export function visibleNav(permissions: string[], isSuperadmin = false, roleCode
       (item) =>
         (!item.perm || permissions.includes(item.perm)) &&
         (!item.platformAdmin || isSuperadmin) &&
-        (!item.roles || !roleCode || item.roles.includes(roleCode)),
+        (!item.roles || (roleCode ? item.roles.includes(roleCode) : false)),
     ),
   })).filter((section) => section.items.length > 0);
 }

@@ -2,7 +2,7 @@
 
 import { ClipboardList, FileText, ListChecks } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,8 @@ export default function ResultsPage() {
   const role = activeSchool?.role?.code ?? "";
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
   const isHomeroomTeacher = role === "homeroom_teacher";
+  const isSupervisor = !isTeacherRole; // admin, principal, vp, accountant, etc.
+
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
@@ -29,10 +31,26 @@ export default function ResultsPage() {
     : arms;
   const visibleSubjectIds = isTeacherRole ? mySubjectIds : null;
 
-  // For the demo grid we let the user pick an arm, then any subject offering.
+  // Pick arm, subject, term
   const [armId, setArmId] = useState("");
   const [subjectId, setSubjectId] = useState("");
-  const [termId, setTermId] = useState<string | null>(terms.find(t => t.is_current)?.id ?? terms[0]?.id ?? null);
+
+  // Fix: auto-select current term when terms load
+  const [termId, setTermId] = useState<string | null>(null);
+  useEffect(() => {
+    if (terms.length > 0 && termId === null) {
+      const currentTerm = terms.find((t) => t.is_current);
+      setTermId(currentTerm?.id ?? terms[0]?.id ?? null);
+    }
+  }, [terms, termId]);
+
+  // Auto-select first visible arm for teachers
+  useEffect(() => {
+    if (isTeacherRole && visibleArms.length > 0 && !armId) {
+      setArmId(visibleArms[0].id);
+    }
+  }, [isTeacherRole, visibleArms, armId]);
+
   const { data: assignments = [] } = useAssignments(armId || null);
   const { data: readiness = [] } = useReadiness(termId);
   const { data: subjects = [] } = useSubjects();
@@ -53,9 +71,7 @@ export default function ResultsPage() {
     return options.sort((a, b) => a.name.localeCompare(b.name));
   }, [subjects, readiness, assignments, armId, visibleSubjectIds]);
 
-
-
-  // Couple of quick links: for each arm pick the first subject to open a grid.
+  // Quick links: for each arm pick the first subject to open a grid.
   const quick = useMemo(() => {
     const out: { armName: string; subjectName: string; url: string }[] = [];
     const byArm = new Map<string, typeof readiness>();
@@ -89,6 +105,7 @@ export default function ResultsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
+        {/* Score entry card — visible to all */}
         <Card>
           <CardHeader>
             <CardTitle>Score entry</CardTitle>
@@ -141,18 +158,15 @@ export default function ResultsPage() {
                 ))}
               </select>
             </div>
-            <Button
-              className="w-full"
-              disabled={
-                !armId || !subjectId || !termId
-              }
-            >
+            <Button className="w-full" asChild disabled={!armId || !subjectId || !termId}>
               <Link href={`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
                 <ClipboardList className="h-4 w-4" /> Open grid
               </Link>
             </Button>
           </CardContent>
         </Card>
+
+        {/* Homeroom comments card — only for homeroom teachers */}
         {isHomeroomTeacher && (
           <Card>
             <CardHeader>
@@ -190,36 +204,17 @@ export default function ResultsPage() {
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <select
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  disabled={!armId}
-                >
-                  <option value="">Choose subject…</option>
-                  {subjectOptions.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Button
-                className="w-full"
-              disabled={
-                !armId || !subjectId || !termId
-              }
-            >
-              <Link href={`/results?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
-                <FileText className="h-4 w-4" /> Add comments
-              </Link>
+              <Button className="w-full" asChild disabled={!armId || !termId}>
+                <Link href={`/results/comments?arm_id=${armId}&term_id=${termId}`}>
+                  <FileText className="h-4 w-4" /> Add comments
+                </Link>
               </Button>
             </CardContent>
           </Card>
         )}
+
         <div className="lg:col-span-2 space-y-4">
+          {/* Quick links */}
           <Card>
             <CardHeader>
               <CardTitle>Ready to enter</CardTitle>
@@ -241,32 +236,40 @@ export default function ResultsPage() {
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Approvals</CardTitle>
-              <CardDescription>Verify → approve → publish submitted results.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link href="/approvals">
-                  <ListChecks className="h-4 w-4" /> Open approval workbench
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Report cards</CardTitle>
-              <CardDescription>Print term reports from published results.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link href="/reports">
-                  <FileText className="h-4 w-4" /> Open report cards
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+
+          {/* Approvals — admin/supervisor only */}
+          {isSupervisor && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Approvals</CardTitle>
+                <CardDescription>Verify → approve → publish submitted results.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <Link href="/approvals">
+                    <ListChecks className="h-4 w-4" /> Open approval workbench
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Report cards — admin/supervisor only */}
+          {isSupervisor && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Report cards</CardTitle>
+                <CardDescription>Print term reports from published results.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild>
+                  <Link href="/reports">
+                    <FileText className="h-4 w-4" /> Open report cards
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

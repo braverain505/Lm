@@ -2,6 +2,7 @@
 
 import { AccountantDashboard } from "@/components/dashboard/accountant";
 import { ManagementDashboard } from "@/components/dashboard/management";
+import { TeacherDashboard } from "@/components/dashboard/teacher";
 import { useAuth } from "@/providers/auth-provider";
 
 export default function DashboardPage() {
@@ -9,13 +10,17 @@ export default function DashboardPage() {
   const role = activeSchool?.role?.code ?? "";
   const perms = activeSchool?.permissions ?? [];
 
-  const variant =
-    role === "accountant"
-      ? "accountant"
-      : perms.includes("results.verify") || role === "principal" || role === "vp_academics"
-        ? "academic"
-        : "admin";
+  // Teachers and homeroom teachers get the teacher-specific dashboard
+  if (role === "teacher" || role === "homeroom_teacher") {
+    return <TeacherDashboard />;
+  }
 
-  if (variant === "accountant") return <AccountantDashboard />;
+  if (role === "accountant") return <AccountantDashboard />;
+
+  const variant =
+    perms.includes("results.verify") || role === "principal" || role === "vp_academics"
+      ? "academic"
+      : "admin";
+
   return <ManagementDashboard variant={variant === "academic" ? "academic" : "admin"} />;
 }
