@@ -221,7 +221,7 @@ export type {
   CopilotMessageSchema,
 };
 
-const BASE = "/api";
+const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/$/, "");
 
 export class ApiClientError extends Error {
   code: string;
@@ -262,7 +262,19 @@ async function request<T>(
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new ApiClientError(res.status, {
+        error: {
+          code: "ERR_INVALID_RESPONSE",
+          message: `API returned a non-JSON response (${res.status})`,
+        },
+      });
+    }
+  }
 
   if (!res.ok) {
     const parsed = ApiErrorSchema.safeParse(data);
