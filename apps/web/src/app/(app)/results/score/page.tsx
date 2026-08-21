@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { api } from "@schoolos/shared";
@@ -10,7 +11,99 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader } from "@/components/ui/loader";
-import { useActiveSchoolId, useComponents, useGradeBands, useScoreCard } from "@/hooks/use-api";
+import {
+  useActiveSchoolId,
+  useArms,
+  useAssignments,
+  useComponents,
+  useGradeBands,
+  useMyAssignments,
+  useScoreCard,
+  useSessions,
+  useSubjects,
+  useTerms,
+} from "@/hooks/use-api";
+import { useAuth } from "@/providers/auth-provider";
+
+function ScoreContextPicker() {
+  const router = useRouter();
+  const { data: sessions = [] } = useSessions();
+  const currentSession = sessions.find((s) => s.is_current) ?? sessions[0];
+  const { data: terms = [] } = useTerms(currentSession?.id ?? null);
+  const { data: arms = [] } = useArms(currentSession?.id ?? null);
+  const { data: subjects = [] } = useSubjects();
+  const { data: myAssignments = [] } = useMyAssignments();
+  const { activeSchool } = useAuth();
+  const isTeacher = activeSchool?.role?.code === "teacher" || activeSchool?.role?.code === "homeroom_teacher";
+  const [termId, setTermId] = useState("");
+  const [armId, setArmId] = useState("");
+  const [subjectId, setSubjectId] = useState("");
+  const { data: assignments = [] } = useAssignments(armId || null);
+
+  const visibleArms = isTeacher
+    ? arms.filter((arm) => myAssignments.some((item) => item.arm_id === arm.id))
+    : arms;
+  const visibleSubjects = useMemo(() => {
+    const allowed = isTeacher
+      ? new Set(myAssignments.filter((item) => item.arm_id === armId).map((item) => item.subject_id))
+      : null;
+    const assigned = armId ? new Set(assignments.map((item) => item.subject_id)) : null;
+    return subjects.filter((subject) =>
+      (!allowed || allowed.has(subject.id)) && (!assigned || assigned.has(subject.id)),
+    );
+  }, [armId, assignments, isTeacher, myAssignments, subjects]);
+
+  useEffect(() => {
+    if (!termId && terms.length) setTermId(terms.find((term) => term.is_current)?.id ?? terms[0].id);
+  }, [termId, terms]);
+  useEffect(() => {
+    if (!visibleArms.some((arm) => arm.id === armId)) setArmId(visibleArms[0]?.id ?? "");
+  }, [armId, visibleArms]);
+  useEffect(() => {
+    if (!visibleSubjects.some((subject) => subject.id === subjectId)) setSubjectId("");
+  }, [subjectId, visibleSubjects]);
+
+  const openGrid = () => {
+    if (termId && armId && subjectId) {
+      router.push(`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Enter scores</CardTitle>
+        <CardDescription>Choose a term, class arm, and subject to enter 1st CA, 2nd CA, and Exam scores.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4 sm:grid-cols-3">
+        <label className="space-y-2 text-sm font-medium">
+          Term
+          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={termId} onChange={(event) => setTermId(event.target.value)}>
+            <option value="">Choose term...</option>
+            {terms.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2 text-sm font-medium">
+          Class arm
+          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={armId} onChange={(event) => setArmId(event.target.value)}>
+            <option value="">Choose arm...</option>
+            {visibleArms.map((arm) => <option key={arm.id} value={arm.id}>{arm.full_name}</option>)}
+          </select>
+        </label>
+        <label className="space-y-2 text-sm font-medium">
+          Subject
+          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={subjectId} onChange={(event) => setSubjectId(event.target.value)} disabled={!armId}>
+            <option value="">Choose subject...</option>
+            {visibleSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+          </select>
+        </label>
+        <Button className="sm:col-span-3" onClick={openGrid} disabled={!termId || !armId || !subjectId}>
+          Open score grid
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 function ScoreGrid() {
   const searchParams = useSearchParams();
@@ -23,6 +116,8 @@ function ScoreGrid() {
   const { data: card, isLoading } = useScoreCard(armId, subjectId, termId);
   const { data: components = [] } = useComponents(termId, armId);
   const { data: gradeBands = [] } = useGradeBands(termId);
+
+  if (!armId || !subjectId || !termId) return <ScoreContextPicker />;
 
   // Local draft edits: enrollmentId -> componentId -> string value.
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
