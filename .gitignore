@@ -22,3 +22,4 @@ htmlcov/
 # Misc
 .DS_Store
 *.log
+.vercel
