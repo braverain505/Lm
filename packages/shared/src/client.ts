@@ -221,7 +221,10 @@ export type {
   CopilotMessageSchema,
 };
 
-const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "/api").replace(/\/$/, "");
+const BASE = (
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://schoolos-api-5066.onrender.com/api"
+).replace(/\/$/, "");
 
 export class ApiClientError extends Error {
   code: string;
