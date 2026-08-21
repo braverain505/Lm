@@ -41,20 +41,19 @@ export default function ResultsPage() {
   // offering for the selected arm (via assignments) and/or readiness rows.
   const subjectOptions = useMemo(() => {
     let options = subjects
-      .filter(([id]) => readiness.some((r) => r.subject_id === id))
-      .map(([id, name]) => ({ id, name }));
+      .filter((s) => readiness.some((r) => r.subject_id === s.id))
+      .map((s) => ({ id: s.id, name: s.name }));
     if (visibleSubjectIds) {
       options = options.filter((s) => visibleSubjectIds.has(s.id));
     }
-    return options
-      .filter(([id]) => !armId || wanted.has(id))
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    if (armId) {
+      const wanted = new Set(assignments.map((a) => a.subject_id));
+      options = options.filter((s) => wanted.has(s.id));
+    }
+    return options.sort((a, b) => a.name.localeCompare(b.name));
   }, [subjects, readiness, assignments, armId, visibleSubjectIds]);
 
-  const wanted = useMemo(() => new Set(assignments.map((a) => a.subject_id)), [
-    assignments,
-  ]);
+
 
   // Couple of quick links: for each arm pick the first subject to open a grid.
   const quick = useMemo(() => {
@@ -145,7 +144,7 @@ export default function ResultsPage() {
             <Button
               className="w-full"
               disabled={
-                !armId || !subjectId || !termId || assignmentsLoading
+                !armId || !subjectId || !termId
               }
             >
               <Link href={`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
@@ -209,13 +208,13 @@ export default function ResultsPage() {
               </div>
               <Button
                 className="w-full"
-                disabled={
-                  !armId || !subjectId || !termId || assignmentsLoading
-                }
-              >
-                <Link href={`/results?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
-                  <FileText className="h-4 w-4" /> Add comments
-                </Link>
+              disabled={
+                !armId || !subjectId || !termId
+              }
+            >
+              <Link href={`/results?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`}>
+                <FileText className="h-4 w-4" /> Add comments
+              </Link>
               </Button>
             </CardContent>
           </Card>
