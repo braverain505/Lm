@@ -1290,6 +1290,55 @@ def save_psychomotor(
     return list_psychomotor(db, school_id, student_id=student_id, term_id=term_id)
 
 
+def compile_arm_subject(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_id: uuid.UUID,
+    subject_id: uuid.UUID,
+    term_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    permission_codes: set[str] | None = None,
+    is_superadmin: bool = False,
+) -> dict:
+    """One-click compile: submit draft → verify → approve → publish.
+
+    Runs the full approval pipeline for one arm × subject × term so the
+    admin can finalize results in a single action. Returns a summary of
+    how many results moved through each stage.
+    """
+    _require_active_term = None  # caller already checks
+    require_assigned_teacher(
+        db, school_id,
+        actor_id=actor_id, arm_id=arm_id, subject_id=subject_id,
+        permission_codes=permission_codes or set(), is_superadmin=is_superadmin,
+    )
+
+    submitted = submit_arm_subject(
+        db, school_id, arm_id=arm_id, subject_id=subject_id,
+        term_id=term_id, actor_id=actor_id,
+        permission_codes=permission_codes, is_superadmin=is_superadmin,
+    )
+    verified = verify_arm_subject(
+        db, school_id, arm_id=arm_id, subject_id=subject_id,
+        term_id=term_id, actor_id=actor_id,
+    )
+    approved = approve_arm_subject(
+        db, school_id, arm_id=arm_id, subject_id=subject_id,
+        term_id=term_id, actor_id=actor_id,
+    )
+    published = publish_arm_subject(
+        db, school_id, arm_id=arm_id, subject_id=subject_id,
+        term_id=term_id, actor_id=actor_id,
+    )
+    return {
+        "submitted": submitted,
+        "verified": verified,
+        "approved": approved,
+        "published": published,
+    }
+
+
 def grade_bands_for_term(
     db: Session, school_id: uuid.UUID, term_id: uuid.UUID
 ) -> list[dict]:

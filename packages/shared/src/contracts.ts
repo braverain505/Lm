@@ -369,6 +369,15 @@ export type ResultCell = z.infer<typeof ResultCellSchema>;
 export const TransitionResultSchema = z.record(z.number());
 export type TransitionResult = z.infer<typeof TransitionResultSchema>;
 
+// POST /results/compile -> { submitted, verified, approved, published }
+export const CompileResultSchema = z.object({
+  submitted: z.number(),
+  verified: z.number(),
+  approved: z.number(),
+  published: z.number(),
+});
+export type CompileResult = z.infer<typeof CompileResultSchema>;
+
 // --- School ------------------------------------------------------------------------
 export const SchoolSchema = z.object({
   id: z.string().uuid(),

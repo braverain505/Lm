@@ -21,6 +21,8 @@ import {
   BorrowingIn,
   BorrowingInSchema,
   BorrowingSchema,
+  CompileResult,
+  CompileResultSchema,
   CopilotAsk,
   CopilotConversation,
   CopilotConversationDetail,
@@ -1238,6 +1240,19 @@ export function reviewResults(
   return postTransition(schoolId, cell, action, reason);
 }
 
+/** One-click compile: submit → verify → approve → publish. */
+export function compileResults(
+  schoolId: string,
+  cell: ResultCell,
+): Promise<CompileResult> {
+  return schoolFetch<CompileResult>(
+    schoolId,
+    "/results/compile",
+    { method: "POST", body: JSON.stringify(cell) },
+    CompileResultSchema.parse,
+  );
+}
+
 // --- School copilot -----------------------------------------------------------
 export const fetchCopilotIntents = (schoolId: string) =>
   schoolFetch<CopilotIntent[]>(
@@ -1563,6 +1578,7 @@ export const api = {
   pinCheck,
   publicReportCard,
   reviewResults,
+  compileResults,
   fetchCopilotIntents,
   askCopilot,
   fetchConversations,

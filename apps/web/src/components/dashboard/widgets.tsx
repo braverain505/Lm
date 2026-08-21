@@ -15,15 +15,19 @@ import {
   LayoutGrid,
   Lightbulb,
   ListChecks,
+  Loader2,
   NotebookPen,
   Sparkles,
   TrendingUp,
   UserPlus,
   Users,
   Wallet,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+
+import { Button } from "@/components/ui/button";
 
 import {
   AttendanceBars,
@@ -40,7 +44,7 @@ import {
 import { ReadinessBar } from "@/components/readiness-bar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/providers/auth-provider";
-import { useReadiness, useWorkbench } from "@/hooks/use-api";
+import { useCompile, useReadiness, useWorkbench } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import type {
   ActivityItem,
@@ -50,6 +54,7 @@ import type {
   ReadyRow,
   TaskItem,
   WorkbenchRow,
+  ResultCell,
 } from "@schoolos/shared";
 
 // ---------------------------------------------------------------------------
@@ -797,6 +802,121 @@ export function ApprovalQueuePanel({
           </ul>
         </div>
       )}
+    </WidgetCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Compile panel — admin one-click finalize
+// ---------------------------------------------------------------------------
+export function CompilePanel({
+  termId,
+  loading,
+  error,
+  onRetry,
+}: {
+  termId?: string | null;
+  loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
+}) {
+  const { data: rows, isLoading } = useWorkbench(termId ?? null);
+  const compileMutation = useCompile();
+  const busy = loading || isLoading;
+  const queue = rows ?? [];
+
+  // Rows with draft results that can be compiled (scores entered but not yet published)
+  const compilable = queue
+    .filter((r) => r.entered > 0 && r.published === 0 && (r.draft > 0 || r.submitted > 0 || r.verified > 0 || r.approved > 0))
+    .sort((a, b) => b.entered - a.entered)
+    .slice(0, 8);
+
+  const totalDrafts = compilable.reduce((sum, r) => sum + r.draft, 0);
+  const totalSubmitted = compilable.reduce((sum, r) => sum + r.submitted, 0);
+
+  return (
+    <WidgetCard
+      title="Compile results"
+      icon={<Zap className="h-4 w-4 text-primary" />}
+      subtitle="One-click finalize scores into report cards"
+      loading={busy}
+      error={error}
+      onRetry={onRetry}
+      empty={!busy && compilable.length === 0}
+      emptyHint="Scores entered by teachers will appear here for compilation."
+      bodyClassName="pt-4"
+    >
+      {compilable.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <Zap className="h-4 w-4 text-primary" />
+          <span className="text-[13px] text-muted-foreground">
+            <span className="font-semibold text-foreground">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready to compile
+            {totalDrafts > 0 && <span> · <span className="font-medium">{totalDrafts}</span> draft</span>}
+            {totalSubmitted > 0 && <span> · <span className="font-medium">{totalSubmitted}</span> submitted</span>}
+          </span>
+        </div>
+      )}
+
+      <ul className="space-y-2">
+        {compilable.map((r) => {
+          const key = `${r.arm_id}:${r.subject_id}`;
+          const cell = {
+            arm_id: r.arm_id,
+            subject_id: r.subject_id,
+            term_id: r.term_id,
+          };
+          const isCompiling = compileMutation.isPending;
+          return (
+            <li
+              key={key}
+              className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/50 px-3 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium">
+                  {r.subject_name}
+                  <span className="font-normal text-muted-foreground"> · {r.arm_name}</span>
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  {r.entered}/{r.enrolled} scores entered
+                  {r.submitted > 0 && <> · {r.submitted} submitted</>}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                disabled={isCompiling}
+                onClick={() => compileMutation.mutate(cell)}
+                className="gap-1.5"
+              >
+                {isCompiling ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Zap className="h-3.5 w-3.5" />
+                )}
+                Compile
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+
+      {compileMutation.isSuccess && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+          <CheckCircle2 className="h-4 w-4" /> Results compiled and report cards generated!
+        </div>
+      )}
+
+      {compileMutation.isError && (
+        <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {compileMutation.error?.message ?? "Compilation failed. Please try again."}
+        </div>
+      )}
+
+      <Link
+        href="/approvals"
+        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-2 text-[13px] font-semibold text-foreground transition-colors hover:bg-accent"
+      >
+        View full approval queue <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
     </WidgetCard>
   );
 }

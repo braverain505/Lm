@@ -15,6 +15,7 @@ import type {
   BookIn,
   Borrowing,
   BorrowingIn,
+  CompileResult,
   CopilotAsk,
   CopilotConversation,
   CopilotConversationDetail,
@@ -76,7 +77,7 @@ import type {
   SchoolAdminCreate,
 } from "@schoolos/shared";
 
-import { api, reviewResults, type ResultAction } from "@schoolos/shared";
+import { api, reviewResults, compileResults, type ResultAction } from "@schoolos/shared";
 import { useAuth } from "@/providers/auth-provider";
 
 export function useCanComment(): boolean {
@@ -1367,6 +1368,23 @@ export function useResultAction(action: ResultAction) {
       queryClient.invalidateQueries({ queryKey: ["scorecard", schoolId] });
       queryClient.invalidateQueries({ queryKey: ["report-index", schoolId] });
       queryClient.invalidateQueries({ queryKey: ["report-card", schoolId] });
+    },
+  });
+}
+
+export function useCompile() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cell: ResultCell) => compileResults(schoolId!, cell),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["workbench", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["readiness", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["scorecard", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["report-index", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["report-card", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["report-cards", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary", schoolId] });
     },
   });
 }

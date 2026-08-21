@@ -168,7 +168,25 @@ def submit(
         permission_codes=ctx.permission_codes, is_superadmin=ctx.user.is_superadmin,
     )
     db.commit()
-    return {"submitted": count}
+    return {"submitted": count}# --- Compile (one-click finalize) ------------------------------------------------
+@router.post("/compile")
+def compile_results(
+    payload: SubjectSubmitRequest,
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_ENTER)),
+):
+    """One-click compile: submit → verify → approve → publish for one arm ×
+    subject × term. The admin clicks this to finalize results and generate
+    report cards."""
+    _require_active_term(db, ctx.school.id, payload.term_id)
+    result = results_service.compile_arm_subject(
+        db, ctx.school.id,
+        arm_id=payload.arm_id, subject_id=payload.subject_id,
+        term_id=payload.term_id, actor_id=ctx.user.id,
+        permission_codes=ctx.permission_codes, is_superadmin=ctx.user.is_superadmin,
+    )
+    db.commit()
+    return result
 
 
 # --- Approval workflow -------------------------------------------------------------
@@ -178,7 +196,6 @@ def _run_transition(source: str, key: str, count: int, verb: str) -> dict:
             f"No {source} results to {verb} for this arm/subject/term"
         )
     return {key: count}
-
 
 @router.post("/verify")
 def verify(

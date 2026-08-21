@@ -7,6 +7,7 @@ import {
   ApprovalQueuePanel,
   AttendancePanel,
   ClassPerformancePanel,
+  CompilePanel,
   EnrollmentPanel,
   InsightsPanel,
   KpiRow,
@@ -64,6 +65,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
         </div>
 
         <div className="grid gap-4 xl:grid-cols-3">
+          <CompilePanel termId={term?.id} {...common} />
           <PerformancePanel {...common} />
           <InsightsPanel items={summary?.insights?.insights} {...common} />
         </div>
