@@ -1,6 +1,4 @@
 {
-  "installCommand": "npm install",
-  "buildCommand": "npm run build --workspace=apps/web",
-  "outputDirectory": "apps/web/.next",
-  "framework": "nextjs"
+  "buildCommand": "npm install && cd apps/web && npm run build",
+  "outputDirectory": "apps/web/.next"
 }
