@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Bot,
   CalendarCheck,
+  ClipboardCheck,
   Clock,
   FileText,
   GraduationCap,
