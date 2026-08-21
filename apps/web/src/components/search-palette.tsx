@@ -18,8 +18,8 @@ export function SearchPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo(
-    () => flattenNav(visibleNav(activeSchool?.permissions ?? [], user?.is_superadmin ?? false)),
-    [activeSchool?.permissions, user?.is_superadmin],
+    () => flattenNav(visibleNav(activeSchool?.permissions ?? [], user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined)),
+    [activeSchool?.permissions, user?.is_superadmin, activeSchool?.role?.code],
   );
 
   const results = useMemo(() => {

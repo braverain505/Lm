@@ -26,7 +26,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
   const { session, term } = useSessionTerm();
 
   const permissions = activeSchool?.permissions ?? [];
-  const sections = visibleNav(permissions, user?.is_superadmin ?? false);
+  const sections = visibleNav(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
   const { title } = pageMeta(pathname);
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();

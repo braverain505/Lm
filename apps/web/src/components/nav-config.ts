@@ -30,6 +30,8 @@ export interface NavItem {
   perm: string | null;
   /** Only visible to Lumo platform admins (User.is_superadmin). */
   platformAdmin?: boolean;
+  /** Role codes allowed to see this item. If omitted, all roles with the required perm can see it. */
+  roles?: string[];
 }
 
 export interface NavSection {
@@ -59,7 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Administration",
     items: [
       { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view" },
-      { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view" },
+      { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/inventory", label: "Inventory", icon: Package, perm: "inventory.view" },
       { href: "/library", label: "Library", icon: BookCopy, perm: "library.view" },
     ],
@@ -98,13 +100,14 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 /** Visible nav (permission-filtered) used by the sidebar and the search palette. */
-export function visibleNav(permissions: string[], isSuperadmin = false): NavSection[] {
+export function visibleNav(permissions: string[], isSuperadmin = false, roleCode?: string): NavSection[] {
   return NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
       (item) =>
         (!item.perm || permissions.includes(item.perm)) &&
-        (!item.platformAdmin || isSuperadmin),
+        (!item.platformAdmin || isSuperadmin) &&
+        (!item.roles || !roleCode || item.roles.includes(roleCode)),
     ),
   })).filter((section) => section.items.length > 0);
 }
