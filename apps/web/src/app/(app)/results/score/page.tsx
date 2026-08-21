@@ -117,8 +117,6 @@ function ScoreGrid() {
   const { data: components = [] } = useComponents(termId, armId);
   const { data: gradeBands = [] } = useGradeBands(termId);
 
-  if (!armId || !subjectId || !termId) return <ScoreContextPicker />;
-
   // Local draft edits: enrollmentId -> componentId -> string value.
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   useEffect(() => {
@@ -208,6 +206,8 @@ function ScoreGrid() {
     () => Object.values(draft).reduce((n, cells) => n + Object.keys(cells).length, 0),
     [draft],
   );
+
+  if (!armId || !subjectId || !termId) return <ScoreContextPicker />;
 
   if (isLoading) {
     return (
