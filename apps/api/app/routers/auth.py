@@ -31,11 +31,12 @@ REFRESH_COOKIE = "schoolos_refresh"
 
 
 def _set_cookies(response: Response, result: auth_service.AuthResult) -> None:
+    samesite = "none" if settings.cookie_secure else "lax"
     response.set_cookie(
         settings.cookie_name,
         result.access_token,
         httponly=True,
-        samesite="lax",
+        samesite=samesite,
         secure=settings.cookie_secure,
         max_age=settings.access_token_minutes * 60,
         path="/",
@@ -44,7 +45,7 @@ def _set_cookies(response: Response, result: auth_service.AuthResult) -> None:
         REFRESH_COOKIE,
         result.refresh_token,
         httponly=True,
-        samesite="lax",
+        samesite=samesite,
         secure=settings.cookie_secure,
         max_age=settings.refresh_token_days * 86400,
         path="/api/auth",
