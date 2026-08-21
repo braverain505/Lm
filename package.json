@@ -4,5 +4,9 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@schoolos/web",
+    "dev": "npm run dev --workspace=@schoolos/web"
+  }
 }
