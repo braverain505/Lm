@@ -13,7 +13,10 @@ class Settings(BaseSettings):
     app_name: str = "Lumo API"
     debug: bool = False
     api_base_path: str = "/api"
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "https://lumodemo.vercel.app",
+    ]
 
     # --- Database ---
     database_url: str = (
