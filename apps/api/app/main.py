@@ -5,6 +5,7 @@ lives in ``app.services``. Every tenant request is scoped by the membership
 resolved in ``core.deps.get_school_context`` from the ``X-School-Id`` header.
 """
 import logging
+import os
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -79,6 +80,22 @@ async def lifespan(app: FastAPI):
             db.close()
     except Exception:  # never take the API down over role reconciliation
         logger.exception("Role template reconciliation failed")
+
+    # Render starts Uvicorn directly and does not run the standalone seed
+    # command. Keep the platform login provisioned when its password is set.
+    if os.getenv("SEED_PLATFORM_PASSWORD"):
+        try:
+            from .seed import ensure_platform_admin
+
+            db = SessionLocal()
+            try:
+                ensure_platform_admin(db)
+                db.commit()
+                logger.info("Platform admin account provisioned")
+            finally:
+                db.close()
+        except Exception:
+            logger.exception("Platform admin provisioning failed")
     yield
 
 
