@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useResultAction, useSessions, useTerms, useWorkbench, type ReviewInput } from "@/hooks/use-api";
+import { useCompile, useResultAction, useSessions, useTerms, useWorkbench, type ReviewInput } from "@/hooks/use-api";
 import { Check, Loader2, RotateCcw, X } from "lucide-react";
 import type { WorkbenchRow } from "@schoolos/shared";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,8 @@ export default function ApprovalsPage() {
   const approving = useResultAction("approve");
   const publishing = useResultAction("publish");
   const rejecting = useResultAction("reject");
-  const busy = validating.isPending || approving.isPending || publishing.isPending || rejecting.isPending;
+  const compiling = useCompile();
+  const busy = validating.isPending || approving.isPending || publishing.isPending || rejecting.isPending || compiling.isPending;
 
   const [rejectingKey, setRejectingKey] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -80,14 +81,35 @@ export default function ApprovalsPage() {
     }
   };
 
+  const processReady = () => {
+    rows
+      .filter((row) => row.draft > 0 && row.entered === row.enrolled)
+      .reduce(
+        (chain, row) => chain.then(() => compiling.mutateAsync({ cell: cellOf(row) }).then(() => undefined)),
+        Promise.resolve(),
+      )
+      .catch(() => undefined);
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Result approvals</h1>
-        <p className="text-sm text-muted-foreground">
-          Move results from teacher entry to published — verifiers, approvers, and publishers act here.
-          Every step is journaled.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Result approvals</h1>
+            <p className="text-sm text-muted-foreground">
+              Move results from teacher entry to published — verifiers, approvers, and publishers act here.
+              Every step is journaled.
+            </p>
+          </div>
+          <Button
+            disabled={busy || rows.every((row) => row.draft === 0 || row.entered !== row.enrolled)}
+            onClick={processReady}
+          >
+            {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+            Process ready results
+          </Button>
+        </div>
       </div>
 
       {/* Term picker */}
@@ -155,6 +177,17 @@ export default function ApprovalsPage() {
                     <StagePill label="published" count={row.published} tone="success" />
 
                     <div className="ml-auto flex items-center gap-2">
+                      {row.draft > 0 && row.entered === row.enrolled && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => compiling.mutate({ cell: cellOf(row) })}
+                        >
+                          {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                          Generate card
+                        </Button>
+                      )}
                       {!isRejecting && step && (
                         <Button
                           size="sm"
