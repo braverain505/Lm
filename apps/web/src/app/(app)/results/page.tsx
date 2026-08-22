@@ -24,8 +24,8 @@ export default function ResultsPage() {
   const { data: myAssignments = [] } = useMyAssignments();
 
   // Teachers only enter scores for their assigned arms × subjects.
-  const myArmIds = new Set(myAssignments.map((a) => a.arm_id));
-  const mySubjectIds = new Set(myAssignments.map((a) => a.subject_id));
+  const myArmIds = useMemo(() => new Set(myAssignments.map((a) => a.arm_id)), [myAssignments]);
+  const mySubjectIds = useMemo(() => new Set(myAssignments.map((a) => a.subject_id)), [myAssignments]);
   const visibleArms = isTeacherRole
     ? arms.filter((a) => myArmIds.has(a.id))
     : arms;
@@ -58,9 +58,10 @@ export default function ResultsPage() {
   // Subject options = the school's subject catalog, intersected with the
   // offering for the selected arm (via assignments) and/or readiness rows.
   const subjectOptions = useMemo(() => {
-    let options = subjects
-      .filter((s) => readiness.some((r) => r.subject_id === s.id))
-      .map((s) => ({ id: s.id, name: s.name }));
+    let options = (isTeacherRole
+      ? subjects.filter((s) => readiness.some((r) => r.subject_id === s.id))
+      : subjects
+    ).map((s) => ({ id: s.id, name: s.name }));
     if (visibleSubjectIds) {
       options = options.filter((s) => visibleSubjectIds.has(s.id));
     }
