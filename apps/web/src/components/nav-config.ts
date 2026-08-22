@@ -51,11 +51,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Academic",
     items: [
-      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["admin", "principal", "vp_academics"] },
+      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view" },
-      { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter" },
+      { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
       { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
       { href: "/reports", label: "Generate Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
@@ -83,8 +84,8 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Administration",
     items: [
-      { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-      { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
       { href: "/inventory", label: "Inventory", icon: Package, perm: "inventory.view" },
       { href: "/library", label: "Library", icon: BookCopy, perm: "library.view" },
     ],
