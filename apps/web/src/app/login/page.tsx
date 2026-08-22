@@ -192,15 +192,7 @@ export default function LoginPage() {
           </div>
 
           <div className="rounded-2xl border bg-card p-8 shadow-card">
-            <Image
-              src="/logo_lumo.png"
-              alt="Lumo"
-              width={1536}
-              height={1024}
-              priority
-              className="mx-auto h-16 w-auto rounded-lg object-contain"
-            />
-            <h2 className="mt-6 text-[22px] font-bold tracking-tight">Welcome back</h2>
+            <h2 className="text-[22px] font-bold tracking-tight">Welcome back</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Sign in to your school workspace
             </p>
