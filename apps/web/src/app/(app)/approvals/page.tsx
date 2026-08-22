@@ -182,7 +182,7 @@ export default function ApprovalsPage() {
                           size="sm"
                           variant="outline"
                           disabled={busy}
-                          onClick={() => compiling.mutate({ cell: cellOf(row) })}
+                          onClick={() => compiling.mutate(cellOf(row))}
                         >
                           {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                           Generate card
