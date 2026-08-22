@@ -69,9 +69,10 @@ def list_components(
     term_id: uuid.UUID,
     arm_id: uuid.UUID | None = None,
 ):
+    comps = results_service.ensure_default_components(db, ctx.school.id, term_id)
+    db.commit()
     comps = results_service.effective_components(
-        db, ctx.school.id, term_id,
-        class_arm_id=arm_id,
+        db, ctx.school.id, term_id, class_arm_id=arm_id
     )
     return [_component(c) for c in comps]
 
@@ -122,9 +123,11 @@ def get_scorecard(
     term_id: uuid.UUID,
     ctx=Depends(require_permission(RESULTS_VIEW)),
 ):
-    return results_service.scorecard(
+    result = results_service.scorecard(
         db, ctx.school.id, arm_id=arm_id, subject_id=subject_id, term_id=term_id
     )
+    db.commit()
+    return result
 
 
 @router.put("/scorecard")

@@ -102,6 +102,14 @@ function ScoreContextPicker() {
   );
 }
 
+function componentLabel(name: string): string {
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, "");
+  if (normalized === "ca1" || normalized === "1stca") return "1st CA";
+  if (normalized === "ca2" || normalized === "2ndca") return "2nd CA";
+  if (normalized === "exam" || normalized === "exams") return "Exams";
+  return name;
+}
+
 function ScoreGrid() {
   const searchParams = useSearchParams();
   const armId = searchParams.get("arm_id");
@@ -256,7 +264,7 @@ function ScoreGrid() {
                 </th>
                 {card.components.map((c) => (
                   <th key={c.id} className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
-                    {c.name}
+                    {componentLabel(c.name)}
                     <span className="block font-normal text-[10px] text-muted-foreground/70">
                       /{c.max_score} · {c.weight}%
                     </span>

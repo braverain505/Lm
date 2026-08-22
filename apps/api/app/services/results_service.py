@@ -173,6 +173,31 @@ def effective_components(
     return sorted(merged.values(), key=lambda c: (c.sort_order, c.name))
 
 
+def ensure_default_components(
+    db: Session, school_id: uuid.UUID, term_id: uuid.UUID
+) -> list[AssessmentComponent]:
+    """Create the standard CA/Exam fields for a term that has none."""
+    components = effective_components(db, school_id, term_id)
+    if components:
+        return components
+
+    for sort_order, (name, max_score, weight) in enumerate(
+        (("1st CA", 20, 20), ("2nd CA", 30, 30), ("Exam", 70, 50))
+    ):
+        db.add(
+            AssessmentComponent(
+                school_id=school_id,
+                term_id=term_id,
+                name=name,
+                max_score=max_score,
+                weight=weight,
+                sort_order=sort_order,
+            )
+        )
+    db.flush()
+    return effective_components(db, school_id, term_id)
+
+
 def validate_component_weights(components: list[AssessmentComponent]) -> None:
     """Weights across the effective set must sum to 100."""
     total = round(sum(float(c.weight) for c in components), 2)
@@ -199,10 +224,8 @@ def scorecard(
     term = get_term(db, school_id, term_id)
     enrollments = list_enrollments(db, school_id, arm_id)
 
-    components = effective_components(
-        db, school_id, term.id,
-        class_arm_id=arm.id,
-    )
+    components = ensure_default_components(db, school_id, term.id)
+    components = effective_components(db, school_id, term.id, class_arm_id=arm.id)
 
     enrollment_ids = [e.id for e in enrollments]
     scores: list[Score] = []
