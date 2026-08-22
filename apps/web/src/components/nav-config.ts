@@ -107,7 +107,7 @@ export const NAV_SECTIONS: NavSection[] = [
   },
   {
     label: "Lumo",
-    items: [{ href: "/admin", label: "Admin", icon: Shield, perm: null, platformAdmin: true }],
+     items: [{ href: "/admin", label: "All Schools", icon: Shield, perm: null, platformAdmin: true }],
   },
   {
     label: "Reports",

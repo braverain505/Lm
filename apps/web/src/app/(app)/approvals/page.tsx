@@ -85,7 +85,7 @@ export default function ApprovalsPage() {
     rows
       .filter((row) => row.draft > 0 && row.entered === row.enrolled)
       .reduce(
-        (chain, row) => chain.then(() => compiling.mutateAsync({ cell: cellOf(row) }).then(() => undefined)),
+            (chain, row) => chain.then(() => compiling.mutateAsync(cellOf(row)).then(() => undefined)),
         Promise.resolve(),
       )
       .catch(() => undefined);

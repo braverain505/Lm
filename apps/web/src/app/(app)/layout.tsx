@@ -32,8 +32,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Platform admins with no school membership have nothing to do in the
     // school workspace — take them to the command center.
-    if (!loading && user?.is_superadmin && memberships.length === 0) {
-      router.replace("/super-admin");
+      if (!loading && user?.is_superadmin && memberships.length === 0) {
+        router.replace("/admin");
     }
   }, [loading, user, memberships, router]);
 
