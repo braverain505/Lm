@@ -14,7 +14,6 @@ import { Loader } from "@/components/ui/loader";
 import {
   useActiveSchoolId,
   useArms,
-  useAssignments,
   useComponents,
   useGradeBands,
   useMyAssignments,
@@ -38,7 +37,6 @@ function ScoreContextPicker() {
   const [termId, setTermId] = useState("");
   const [armId, setArmId] = useState("");
   const [subjectId, setSubjectId] = useState("");
-  const { data: assignments = [] } = useAssignments(armId || null);
 
   const visibleArms = isTeacher
     ? arms.filter((arm) => myAssignments.some((item) => item.arm_id === arm.id))
@@ -47,11 +45,8 @@ function ScoreContextPicker() {
     const allowed = isTeacher
       ? new Set(myAssignments.filter((item) => item.arm_id === armId).map((item) => item.subject_id))
       : null;
-    const assigned = armId ? new Set(assignments.map((item) => item.subject_id)) : null;
-    return subjects.filter((subject) =>
-      (!allowed || allowed.has(subject.id)) && (!assigned || assigned.has(subject.id)),
-    );
-  }, [armId, assignments, isTeacher, myAssignments, subjects]);
+    return subjects.filter((subject) => !allowed || allowed.has(subject.id));
+  }, [armId, isTeacher, myAssignments, subjects]);
 
   useEffect(() => {
     if (!termId && terms.length) setTermId(terms.find((term) => term.is_current)?.id ?? terms[0].id);
@@ -60,7 +55,9 @@ function ScoreContextPicker() {
     if (!visibleArms.some((arm) => arm.id === armId)) setArmId(visibleArms[0]?.id ?? "");
   }, [armId, visibleArms]);
   useEffect(() => {
-    if (!visibleSubjects.some((subject) => subject.id === subjectId)) setSubjectId("");
+    if (!visibleSubjects.some((subject) => subject.id === subjectId)) {
+      setSubjectId(visibleSubjects[0]?.id ?? "");
+    }
   }, [subjectId, visibleSubjects]);
 
   const openGrid = () => {
