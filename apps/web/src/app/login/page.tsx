@@ -111,7 +111,7 @@ export default function LoginPage() {
           {/* Brand */}
           <div className="flex items-center gap-3">
             <Image
-              src="/lumo-logo.png"
+              src="/logo_lumo.png"
               alt="Lumo"
               width={1536}
               height={1024}
@@ -182,7 +182,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <Image
-              src="/lumo-logo.png"
+              src="/logo_lumo.png"
               alt="Lumo"
               width={1536}
               height={1024}
@@ -193,7 +193,7 @@ export default function LoginPage() {
 
           <div className="rounded-2xl border bg-card p-8 shadow-card">
             <Image
-              src="/lumo-logo.png"
+              src="/logo_lumo.png"
               alt="Lumo"
               width={1536}
               height={1024}

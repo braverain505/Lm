@@ -55,7 +55,7 @@ function ResetPasswordForm() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-background to-muted/40 p-6">
       <div className="w-full max-w-[26rem] rounded-2xl border bg-card p-8 shadow-card">
         <Image
-          src="/lumo-logo.png"
+          src="/logo_lumo.png"
           alt="Lumo"
           width={1536}
           height={1024}

@@ -51,12 +51,12 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
       <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", collapsed ? "justify-center px-3" : "gap-3 px-5")}>
         <Link href="/dashboard" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           <Image
-            src="/lumo-logo.png"
+            src="/logo_lumo.png"
             alt="Lumo"
             width={1536}
             height={1024}
             priority
-            className="h-9 w-auto shrink-0 rounded-lg object-contain"
+            className="h-11 w-auto shrink-0 rounded-lg object-contain"
           />
         </Link>
       </div>

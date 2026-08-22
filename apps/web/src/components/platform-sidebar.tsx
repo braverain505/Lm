@@ -47,12 +47,12 @@ export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSid
       >
         <Link href="/super-admin" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           <Image
-            src="/lumo-logo.png"
+            src="/logo_lumo.png"
             alt="Lumo"
             width={1536}
             height={1024}
             priority
-            className="h-9 w-auto shrink-0 rounded-lg object-contain"
+            className="h-11 w-auto shrink-0 rounded-lg object-contain"
           />
         </Link>
       </div>

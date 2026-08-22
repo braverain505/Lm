@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Lumo — School Management Platform",
   description: "Multi-tenant school management: academics, results, people, analytics.",
-  icons: { icon: "/lumo-logo.png" },
+  icons: { icon: "/logo_lumo.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
