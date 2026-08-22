@@ -367,6 +367,19 @@ def cumulative(
     )
 
 
+@router.get("/broadsheet")
+def broadsheet(
+    db: DbSession,
+    arm_id: uuid.UUID,
+    term_id: uuid.UUID,
+    ctx=Depends(require_permission(RESULTS_VIEW)),
+):
+    """Return published report-card totals for every student in an arm."""
+    return results_service.report_cards_bulk(
+        db, ctx.school.id, arm_id=arm_id, term_id=term_id
+    )
+
+
 # --- AI result comments ---------------------------------------------------------
 def _comment_out(row: ResultComment, student_id: uuid.UUID) -> ResultCommentOut:
     return ResultCommentOut(

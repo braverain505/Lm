@@ -5,7 +5,7 @@ import { api } from "@schoolos/shared";
 import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useActiveSchoolId, useSessions } from "@/hooks/use-api";
+import { useActiveSchoolId, useSessions, useStudents } from "@/hooks/use-api";
 
 type Cumulative = {
   session: { id: string; name: string };
@@ -15,6 +15,7 @@ type Cumulative = {
 export default function CumulativeReportPage() {
   const schoolId = useActiveSchoolId();
   const { data: sessions = [] } = useSessions();
+  const { data: students = [] } = useStudents();
   const [studentId, setStudentId] = useState("");
   const [sessionId, setSessionId] = useState("");
   const { data, isLoading, error } = useQuery({
@@ -27,7 +28,7 @@ export default function CumulativeReportPage() {
     <div className="space-y-6">
       <div><h1 className="text-2xl font-semibold">Cumulative Broadsheet</h1><p className="text-sm text-muted-foreground">Review published subject averages across an academic session.</p></div>
       <Card><CardHeader><CardTitle>Choose student and session</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">
-        <input className="h-9 rounded-md border px-3 text-sm" placeholder="Student ID" value={studentId} onChange={(event) => setStudentId(event.target.value)} />
+        <select className="h-9 rounded-md border px-3 text-sm" value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Choose student...</option>{students.map((student) => <option key={student.id} value={student.id}>{student.full_name} · {student.admission_no}</option>)}</select>
         <select className="h-9 rounded-md border px-3 text-sm" value={sessionId} onChange={(event) => setSessionId(event.target.value)}><option value="">Choose session...</option>{sessions.map((session) => <option key={session.id} value={session.id}>{session.name}</option>)}</select>
       </CardContent></Card>
       {isLoading && <p className="text-sm text-muted-foreground">Loading cumulative results...</p>}
