@@ -1198,6 +1198,50 @@ def report_cards_bulk(
     return cards
 
 
+def cumulative_for_session(
+    db: Session, school_id: uuid.UUID, *, student_id: uuid.UUID, session_id: uuid.UUID
+) -> dict:
+    """Aggregate published subject totals across every term in a session."""
+    get_student(db, school_id, student_id)
+    terms = list(
+        db.scalars(
+            select(Term).where(
+                Term.school_id == school_id,
+                Term.academic_session_id == session_id,
+            ).order_by(Term.term_no)
+        )
+    )
+    if not terms:
+        raise NotFoundError("No terms found for this academic session")
+    rows = db.execute(
+        select(Result, Subject, Term)
+        .join(Subject, Subject.id == Result.subject_id)
+        .join(Term, Term.id == Result.term_id)
+        .where(
+            Result.school_id == school_id,
+            Result.student_enrollment_id.in_(
+                select(StudentEnrollment.id).where(
+                    StudentEnrollment.school_id == school_id,
+                    StudentEnrollment.student_id == student_id,
+                    StudentEnrollment.academic_session_id == session_id,
+                )
+            ),
+            Result.term_id.in_([term.id for term in terms]),
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+        .order_by(Subject.name, Term.term_no)
+    ).all()
+    grouped: dict[uuid.UUID, dict] = {}
+    for result, subject, term in rows:
+        item = grouped.setdefault(subject.id, {"subject_id": str(subject.id), "subject_name": subject.name, "terms": []})
+        snapshot = result.published_snapshot or {}
+        item["terms"].append({"term_id": str(term.id), "term_name": term.name, "total": snapshot.get("total", result.total)})
+    for item in grouped.values():
+        values = [float(row["total"]) for row in item["terms"] if row["total"] is not None]
+        item["average"] = round(sum(values) / len(values), 2) if values else None
+    return {"session": {"id": str(session_id), "name": terms[0].session.name}, "subjects": list(grouped.values())}
+
+
 def _enrollment_for_term(
     db: Session, school_id: uuid.UUID, *, student_id: uuid.UUID, term_id: uuid.UUID
 ) -> StudentEnrollment:

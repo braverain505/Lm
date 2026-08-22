@@ -355,6 +355,18 @@ def report_cards_bulk(
     return [ReportCard(**c) for c in cards]
 
 
+@router.get("/cumulative")
+def cumulative(
+    db: DbSession,
+    student_id: uuid.UUID,
+    session_id: uuid.UUID,
+    ctx=Depends(require_permission(RESULTS_VIEW)),
+):
+    return results_service.cumulative_for_session(
+        db, ctx.school.id, student_id=student_id, session_id=session_id
+    )
+
+
 # --- AI result comments ---------------------------------------------------------
 def _comment_out(row: ResultComment, student_id: uuid.UUID) -> ResultCommentOut:
     return ResultCommentOut(
