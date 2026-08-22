@@ -59,6 +59,7 @@ export default function ApprovalsPage() {
 
   const [rejectingKey, setRejectingKey] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [processError, setProcessError] = useState<string | null>(null);
 
   const grouped = new Map<string, WorkbenchRow[]>();
   rows.forEach((r) => {
@@ -82,13 +83,18 @@ export default function ApprovalsPage() {
   };
 
   const processReady = () => {
-    rows
-      .filter((row) => row.draft > 0 && row.entered === row.enrolled)
+    const ready = rows.filter((row) => row.draft > 0 && row.entered === row.enrolled);
+    if (ready.length === 0) return;
+    if (!window.confirm(`Process and publish ${ready.length} complete result${ready.length === 1 ? "" : "s"}?`)) return;
+    setProcessError(null);
+    ready
       .reduce(
             (chain, row) => chain.then(() => compiling.mutateAsync(cellOf(row)).then(() => undefined)),
         Promise.resolve(),
       )
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        setProcessError(error instanceof Error ? error.message : "Could not process all ready results");
+      });
   };
 
   return (
@@ -109,6 +115,7 @@ export default function ApprovalsPage() {
             {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             Process ready results
           </Button>
+          {processError && <p className="w-full text-right text-xs text-destructive">{processError}</p>}
         </div>
       </div>
 
