@@ -1079,6 +1079,8 @@ def ensure_platform_admin(db: Session) -> User:
         db.flush()
     else:
         admin.is_superadmin = True
+        if os.getenv("SEED_PLATFORM_PASSWORD"):
+            admin.password_hash = hash_password(PLATFORM_ADMIN_PASSWORD)
     return admin
 
 
