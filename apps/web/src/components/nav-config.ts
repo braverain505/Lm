@@ -55,7 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
       { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view" },
+      { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
       { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
       { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
