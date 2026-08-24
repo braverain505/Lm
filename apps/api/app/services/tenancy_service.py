@@ -162,7 +162,18 @@ def slugify(name: str) -> str:
 
 
 def create_school(
-    db: Session, *, name: str, school_type: str, slug: str | None = None
+    db: Session,
+    *,
+    name: str,
+    school_type: str,
+    slug: str | None = None,
+    established_year: int | None = None,
+    website: str | None = None,
+    email: str | None = None,
+    phone: str | None = None,
+    address: str | None = None,
+    state: str | None = None,
+    country: str = "NG",
 ) -> School:
     """Create a school tenant, its default campus, and its role set."""
     target = slug or slugify(name)
@@ -173,6 +184,13 @@ def create_school(
         name=name,
         slug=target,
         school_type=school_type,
+        established_year=established_year,
+        website=website,
+        email=email,
+        phone=phone,
+        address=address,
+        state=state,
+        country=country,
         settings={},
     )
     db.add(school)

@@ -22,11 +22,12 @@ import { useDashboardSummary } from "@/hooks/use-api";
 
 function Greeting() {
   const { user, activeSchool } = useAuth();
+  const { term } = useSessionTerm();
   const hour = new Date().getHours();
   const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/[0.08] via-cyan-400/[0.06] to-transparent px-5 py-4 sm:px-6">
       <div>
         <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
           {part}, {user?.full_name?.split(" ")[0] ?? "there"}
@@ -35,6 +36,7 @@ function Greeting() {
           Here&apos;s what&apos;s happening at {activeSchool?.school_name} — {today}.
         </p>
       </div>
+      {term && <span className="rounded-full border border-primary/20 bg-card/80 px-3 py-1.5 text-xs font-semibold text-primary">{term.name}</span>}
     </div>
   );
 }

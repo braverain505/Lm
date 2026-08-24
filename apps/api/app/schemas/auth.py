@@ -7,6 +7,13 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class RegisterSchoolRequest(BaseModel):
     school_name: str = Field(min_length=2, max_length=160)
     school_type: str = Field(default="primary", max_length=24)
+    established_year: int | None = Field(default=None, ge=1800, le=2100)
+    website: str | None = Field(default=None, max_length=200)
+    school_email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=40)
+    address: str | None = Field(default=None, max_length=500)
+    state: str | None = Field(default=None, max_length=120)
+    country: str = Field(default="NG", min_length=2, max_length=2)
     admin_email: EmailStr
     admin_full_name: str = Field(min_length=2, max_length=160)
     password: str = Field(min_length=8, max_length=128)

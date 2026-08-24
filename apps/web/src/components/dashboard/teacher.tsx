@@ -75,7 +75,7 @@ export function TeacherDashboard() {
 
   // Build tool shortcuts based on permissions
   const toolShortcuts = [
-    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, tone: "bg-indigo-500/10 text-indigo-600", always: true },
+    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, tone: "bg-primary/10 text-primary", always: true },
     { label: "Attendance", desc: "Mark today's register", href: "/attendance", icon: CalendarCheck, tone: "bg-emerald-500/10 text-emerald-700", permission: "attendance.mark" },
     { label: "Timetable", desc: "Weekly schedule", href: "/timetable", icon: LayoutGrid, tone: "bg-amber-500/14 text-amber-700", permission: "timetable.view" },
     { label: "Lesson plans", desc: "Generate with AI", href: "/lesson-plans", icon: NotebookPen, tone: "bg-rose-500/10 text-rose-700", permission: "results.comment" },
@@ -148,7 +148,7 @@ export function TeacherDashboard() {
         </div>
       </div>
 
-      <div className="gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         {/* My responsibilities */}
         <WidgetCard
           title="My responsibilities"

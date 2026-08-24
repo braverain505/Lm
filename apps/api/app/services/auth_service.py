@@ -82,6 +82,13 @@ def register_school(
     admin_email: str,
     admin_full_name: str,
     password: str,
+    established_year: int | None = None,
+    website: str | None = None,
+    school_email: str | None = None,
+    phone: str | None = None,
+    address: str | None = None,
+    state: str | None = None,
+    country: str = "NG",
     device: str | None = None,
     ip: str | None = None,
 ) -> AuthResult:
@@ -103,7 +110,18 @@ def register_school(
     db.add(user)
     db.flush()
 
-    school = create_school(db, name=school_name, school_type=school_type)
+    school = create_school(
+        db,
+        name=school_name,
+        school_type=school_type,
+        established_year=established_year,
+        website=website,
+        email=school_email,
+        phone=phone,
+        address=address,
+        state=state,
+        country=country.upper(),
+    )
     role = _super_admin_role(db, school.id)
     db.add(
         SchoolMembership(

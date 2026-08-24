@@ -336,6 +336,13 @@ async function fetchWithRefresh(path: string, init: RequestInit): Promise<Respon
 export async function registerSchool(body: {
   school_name: string;
   school_type: string;
+  established_year?: number;
+  website?: string;
+  school_email?: string;
+  phone?: string;
+  address?: string;
+  state?: string;
+  country?: string;
   admin_email: string;
   admin_full_name: string;
   password: string;
@@ -345,6 +352,14 @@ export async function registerSchool(body: {
     body: JSON.stringify(body),
     zod: TokenResponseSchema.parse,
   });
+}
+
+export async function fetchSchoolMe(schoolId: string) {
+  return schoolFetch(schoolId, "/schools/me");
+}
+
+export async function updateSchool(schoolId: string, body: Record<string, unknown>) {
+  return schoolFetch(schoolId, "/schools/me", { method: "PATCH", body: JSON.stringify(body) });
 }
 
 export async function login(body: { email: string; password: string }): Promise<TokenResponse> {
@@ -1531,6 +1546,8 @@ export const api = {
   confirmPasswordReset,
   changePassword,
   changeEmail,
+  fetchSchoolMe,
+  updateSchool,
   fetchPlatformSchools,
   setSchoolAi,
   setSchoolSuspended,

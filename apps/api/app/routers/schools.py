@@ -34,6 +34,11 @@ class SchoolOut(BaseModel):
     email: str | None
     phone: str | None
     logo_url: str | None
+    established_year: int | None
+    website: str | None
+    address: str | None
+    state: str | None
+    country: str
 
 
 class CampusOut(BaseModel):

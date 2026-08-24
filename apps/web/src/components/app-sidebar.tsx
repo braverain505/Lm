@@ -10,6 +10,7 @@ import { pageMeta, visibleNav } from "@/components/nav-config";
 import { Avatar } from "@/components/ui/avatar";
 import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
+import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -24,6 +25,12 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
   const router = useRouter();
   const { user, memberships, activeSchool, setActiveSchool, clear } = useAuth();
   const { session, term } = useSessionTerm();
+  const { data: schoolProfile } = useQuery({
+    queryKey: ["school", activeSchool?.school_id],
+    queryFn: () => api.fetchSchoolMe(activeSchool!.school_id),
+    enabled: Boolean(activeSchool?.school_id),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const permissions = activeSchool?.permissions ?? [];
   const sections = visibleNav(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
@@ -50,14 +57,12 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
       {/* Brand */}
       <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", collapsed ? "justify-center px-3" : "gap-3 px-5")}>
         <Link href="/dashboard" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
-          <Image
-            src="/logo_lumo.png"
-            alt="Lumo"
-            width={1536}
-            height={1024}
-            priority
-            className="h-11 w-auto shrink-0 rounded-lg object-contain"
-          />
+          {schoolProfile?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-11 w-11 shrink-0 rounded-lg bg-white object-contain" />
+          ) : (
+            <Image src="/logo_lumo.png" alt="Lumo" width={1536} height={1024} priority className="h-11 w-auto shrink-0 rounded-lg object-contain" />
+          )}
         </Link>
       </div>
 
