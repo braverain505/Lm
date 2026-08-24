@@ -354,12 +354,30 @@ export async function registerSchool(body: {
   });
 }
 
-export async function fetchSchoolMe(schoolId: string) {
-  return schoolFetch(schoolId, "/schools/me");
+export type SchoolProfile = {
+  id: string;
+  name: string;
+  short_name: string | null;
+  slug: string;
+  school_type: string;
+  currency: string;
+  timezone: string;
+  email: string | null;
+  phone: string | null;
+  logo_url: string | null;
+  established_year: number | null;
+  website: string | null;
+  address: string | null;
+  state: string | null;
+  country: string;
+};
+
+export async function fetchSchoolMe(schoolId: string): Promise<SchoolProfile> {
+  return schoolFetch<SchoolProfile>(schoolId, "/schools/me");
 }
 
-export async function updateSchool(schoolId: string, body: Record<string, unknown>) {
-  return schoolFetch(schoolId, "/schools/me", { method: "PATCH", body: JSON.stringify(body) });
+export async function updateSchool(schoolId: string, body: Record<string, unknown>): Promise<SchoolProfile> {
+  return schoolFetch<SchoolProfile>(schoolId, "/schools/me", { method: "PATCH", body: JSON.stringify(body) });
 }
 
 export async function login(body: { email: string; password: string }): Promise<TokenResponse> {
