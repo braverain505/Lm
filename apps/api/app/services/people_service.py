@@ -274,6 +274,17 @@ def delete_staff(db: Session, school_id: uuid.UUID, staff_id: uuid.UUID) -> None
 def list_students(
     db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID | None = None, q: str | None = None
 ) -> list[Student]:
+    current_class = (
+        select(ClassArm.full_name)
+        .join(StudentEnrollment, StudentEnrollment.class_arm_id == ClassArm.id)
+        .where(
+            StudentEnrollment.student_id == Student.id,
+            StudentEnrollment.is_current.is_(True),
+            StudentEnrollment.status == "active",
+        )
+        .limit(1)
+        .scalar_subquery()
+    )
     stmt = (
         select(Student)
         .where(Student.school_id == school_id, Student.is_deleted.is_(False))
@@ -290,7 +301,16 @@ def list_students(
             (Student.first_name.ilike(like)) | (Student.last_name.ilike(like))
             | (Student.admission_no.ilike(like))
         )
-    return list(db.scalars(stmt.order_by(Student.last_name, Student.first_name)))
+    return list(
+        db.scalars(
+            stmt.order_by(
+                current_class.is_(None),
+                current_class,
+                Student.last_name,
+                Student.first_name,
+            )
+        )
+    )
 
 
 def get_student(db: Session, school_id: uuid.UUID, student_id: uuid.UUID) -> Student:
