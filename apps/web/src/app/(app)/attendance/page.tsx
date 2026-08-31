@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Lock } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSessionTerm } from "@/providers/session-context";
 import {
   useMarkStaffAttendance,
   useMarkStudentAttendance,
@@ -40,6 +42,7 @@ function todayISO() {
 }
 
 export default function AttendancePage() {
+  const { isTermClosed } = useSessionTerm();
   const [mode, setMode] = useState<"students" | "staff">("students");
   const [studentId, setStudentId] = useState("");
   const [staffId, setStaffId] = useState("");
@@ -67,6 +70,7 @@ export default function AttendancePage() {
   } = useForm<MarkForm>({ resolver: zodResolver(markSchema) });
 
   const mark = (values: MarkForm) => {
+    if (isTermClosed) return;
     if (mode === "students" && studentId) {
       markStudent.mutate({ student_id: studentId, ...values }, { onSuccess: () => reset() });
     } else if (mode === "staff" && staffId) {
@@ -106,6 +110,16 @@ export default function AttendancePage() {
         </div>
       </div>
 
+      {/* Closed term warning */}
+      {isTermClosed && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>
+            The current term is closed. Attendance marking is disabled — records are read-only.
+          </span>
+        </div>
+      )}
+
       <Card className="premium-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[15px]">
@@ -120,6 +134,7 @@ export default function AttendancePage() {
                 className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
                 value={subjectId}
                 onChange={(e) => (mode === "students" ? setStudentId(e.target.value) : setStaffId(e.target.value))}
+                disabled={isTermClosed}
               >
                 <option value="">Choose…</option>
                 {mode === "students"
@@ -140,12 +155,12 @@ export default function AttendancePage() {
             >
               <div className="space-y-1.5">
                 <Label>Date</Label>
-                <Input type="date" defaultValue={todayISO()} {...register("attendance_date")} />
+                <Input type="date" defaultValue={todayISO()} {...register("attendance_date")} disabled={isTermClosed} />
                 {errors.attendance_date && <p className="text-[11px] text-destructive">{errors.attendance_date.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...register("status")}>
+                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...register("status")} disabled={isTermClosed}>
                   {(["present", "absent", "late", "excused"] as const).map((s) => (
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
@@ -153,10 +168,10 @@ export default function AttendancePage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Notes (optional)</Label>
-                <Input placeholder="e.g. medical appointment" {...register("notes")} />
+                <Input placeholder="e.g. medical appointment" {...register("notes")} disabled={isTermClosed} />
               </div>
               <div className="flex items-end">
-                <Button type="submit" disabled={isSubmitting || markStudent.isPending || markStaff.isPending}>
+                <Button type="submit" disabled={isSubmitting || markStudent.isPending || markStaff.isPending || isTermClosed}>
                   {isSubmitting ? "Saving…" : "Mark attendance"}
                 </Button>
               </div>

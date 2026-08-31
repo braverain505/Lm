@@ -1,7 +1,7 @@
 "use client";
 
 import type { AcademicSession, Term } from "@schoolos/shared";
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/providers/auth-provider";
 import { useSessions, useTerms } from "@/hooks/use-api";
@@ -14,6 +14,10 @@ interface SessionTermState {
   loadingTerms: boolean;
   setSession: (session: AcademicSession) => void;
   setTerm: (term: Term) => void;
+  /** True when the active term is closed (no mutations allowed). */
+  isTermClosed: boolean;
+  /** Confirm before switching away from an open term. Returns true if user confirmed. */
+  confirmTermSwitch: (nextTerm: Term) => boolean;
 }
 
 const SessionTermContext = createContext<SessionTermState | null>(null);
@@ -59,6 +63,30 @@ export function SessionTermProvider({ children }: { children: ReactNode }) {
 
   const term = useMemo(() => terms.find((t) => t.id === termId) ?? null, [terms, termId]);
 
+  const isTermClosed = useMemo(
+    () => term?.status === "closed",
+    [term?.status],
+  );
+
+  /** Warn the user when switching from an open term with unsaved work. */
+  const confirmTermSwitch = useCallback(
+    (nextTerm: Term): boolean => {
+      if (!term) return true;
+      // If the current term is closed, always allow switching (read-only).
+      if (term.status === "closed") return true;
+      // If switching to the same term, no-op.
+      if (nextTerm.id === term.id) return true;
+      // If switching to a closed term, allow (viewing historical data).
+      if (nextTerm.status === "closed") return true;
+      // Switching between open terms — warn about potential unsaved changes.
+      return window.confirm(
+        `You are about to switch from ${term.name} to ${nextTerm.name}. ` +
+        `Any unsaved score entries will be lost. Continue?`,
+      );
+    },
+    [term],
+  );
+
   const value = useMemo<SessionTermState>(() => {
     const setSession = (next: AcademicSession) => {
       setSessionId(next.id);
@@ -74,8 +102,8 @@ export function SessionTermProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-    return { sessions, terms, session, term, loadingTerms, setSession, setTerm };
-  }, [sessions, terms, session, term, loadingTerms, schoolId]);
+    return { sessions, terms, session, term, loadingTerms, setSession, setTerm, isTermClosed, confirmTermSwitch };
+  }, [sessions, terms, session, term, loadingTerms, schoolId, isTermClosed, confirmTermSwitch]);
 
   return <SessionTermContext.Provider value={value}>{children}</SessionTermContext.Provider>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, GraduationCap, HelpCircle, Menu } from "lucide-react";
+import { CalendarDays, GraduationCap, HelpCircle, Lock, Menu } from "lucide-react";
 import Link from "next/link";
 
 import { pageMeta } from "@/components/nav-config";
@@ -24,7 +24,7 @@ interface AppHeaderProps {
 
 export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
   const { activeSchool } = useAuth();
-  const { sessions, terms, session, term, loadingTerms, setSession, setTerm } = useSessionTerm();
+  const { sessions, terms, session, term, loadingTerms, setSession, setTerm, isTermClosed } = useSessionTerm();
   const meta = pageMeta(pathname);
 
   return (
@@ -52,6 +52,14 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
       </div>
 
       <div className="ml-auto flex items-center gap-1.5">
+        {/* Closed term indicator */}
+        {isTermClosed && (
+          <span className="hidden items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning sm:inline-flex">
+            <Lock className="h-3 w-3" />
+            Term closed — read only
+          </span>
+        )}
+
         {/* Session selector */}
         {sessions.length > 0 && (
           <Select value={session?.id ?? ""} onValueChange={(v) => {
@@ -86,6 +94,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
                   {t.is_current ? " · Current" : ""}
+                  {t.status === "closed" ? " · Closed" : ""}
                 </SelectItem>
               ))}
             </SelectContent>

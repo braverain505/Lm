@@ -129,6 +129,19 @@ def activate_term(
     return TermOut.model_validate(term)
 
 
+@router.post("/terms/{term_id}/close", response_model=TermOut)
+def close_term(
+    term_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Admin closes a term. Once closed, no result mutations are allowed.
+    Results entered in the term remain viewable but immutable."""
+    term = academics_service.close_term(db, ctx.school.id, term_id)
+    db.commit()
+    return TermOut.model_validate(term)
+
+
 # --- Class arms ----------------------------------------------------------------
 @router.get("/sessions/{session_id}/arms", response_model=list[ArmOut])
 def list_arms(session_id: uuid.UUID, db: DbSession, ctx=Depends(require_permission(ACADEMICS_VIEW))):

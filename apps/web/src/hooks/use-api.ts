@@ -176,6 +176,21 @@ export function useTerms(sessionId: string | null) {
   });
 }
 
+export function useCloseTerm() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (termId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.closeTerm(schoolId, termId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["terms", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary", schoolId] });
+    },
+  });
+}
+
 export function useOfferings(armId: string | null) {
   const schoolId = useActiveSchoolId();
   return useQuery({

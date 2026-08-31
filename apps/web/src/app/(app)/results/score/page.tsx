@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Lock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -48,65 +49,94 @@ function ScoreContextPicker() {
     return subjects.filter((subject) => !allowed || allowed.has(subject.id));
   }, [armId, isTeacher, myAssignments, subjects]);
 
-  useEffect(() => {
-    if (!termId && terms.length) setTermId(terms.find((term) => term.is_current)?.id ?? terms[0].id);
-  }, [termId, terms]);
-  useEffect(() => {
-    if (!visibleArms.some((arm) => arm.id === armId)) setArmId(visibleArms[0]?.id ?? "");
-  }, [armId, visibleArms]);
-  useEffect(() => {
-    if (!visibleSubjects.some((subject) => subject.id === subjectId)) {
-      setSubjectId(visibleSubjects[0]?.id ?? "");
-    }
-  }, [subjectId, visibleSubjects]);
-
-  const openGrid = () => {
-    if (termId && armId && subjectId) {
-      router.push(`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`);
-    }
-  };
+  const selectedTerm = terms.find((t) => t.id === termId);
+  const isTermClosed = selectedTerm?.status === "closed";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Enter scores</CardTitle>
-        <CardDescription>Choose a term, class arm, and subject to enter 1st CA, 2nd CA, and Exam scores.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-3">
-        <label className="space-y-2 text-sm font-medium">
-          Term
-          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={termId} onChange={(event) => setTermId(event.target.value)}>
-            <option value="">Choose term...</option>
-            {terms.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}
-          </select>
-        </label>
-        <label className="space-y-2 text-sm font-medium">
-          Class arm
-          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={armId} onChange={(event) => setArmId(event.target.value)}>
-            <option value="">Choose arm...</option>
-            {visibleArms.map((arm) => <option key={arm.id} value={arm.id}>{arm.full_name}</option>)}
-          </select>
-        </label>
-        <label className="space-y-2 text-sm font-medium">
-          Subject
-          <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm font-normal" value={subjectId} onChange={(event) => setSubjectId(event.target.value)} disabled={!armId}>
-            <option value="">Choose subject...</option>
-            {visibleSubjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-          </select>
-        </label>
-        <Button className="sm:col-span-3" onClick={openGrid} disabled={!termId || !armId || !subjectId}>
-          Open score grid
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Score Entry</h1>
+        <p className="text-sm text-muted-foreground">Select a class, subject, and term to enter scores.</p>
+      </div>
+
+      {isTermClosed && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>
+            The <strong>{selectedTerm?.name}</strong> term is closed. Score entry is disabled — results are read-only.
+          </span>
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Open a score grid</CardTitle>
+          <CardDescription>Pick the context below to start entering scores.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Term</label>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={termId}
+                onChange={(e) => setTermId(e.target.value)}
+              >
+                <option value="">Choose term…</option>
+                {terms.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}{t.status === "closed" ? " (closed)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Class arm</label>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={armId}
+                onChange={(e) => setArmId(e.target.value)}
+                disabled={!termId}
+              >
+                <option value="">Choose arm…</option>
+                {visibleArms.map((a) => (
+                  <option key={a.id} value={a.id}>{a.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Subject</label>
+              <select
+                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                value={subjectId}
+                onChange={(e) => setSubjectId(e.target.value)}
+                disabled={!armId}
+              >
+                <option value="">Choose subject…</option>
+                {visibleSubjects.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <Button
+            disabled={!armId || !subjectId || !termId || isTermClosed}
+            onClick={() =>
+              router.push(`/results/score?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`)
+            }
+          >
+            Open grid
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 function componentLabel(name: string): string {
-  const normalized = name.trim().toLowerCase().replace(/\s+/g, "");
-  if (normalized === "ca1" || normalized === "1stca") return "1st CA";
-  if (normalized === "ca2" || normalized === "2ndca") return "2nd CA";
-  if (normalized === "exam" || normalized === "exams") return "Exams";
+  // Strip leading "CA" / "Exam" prefix abbreviations and clean up.
+  const n = name.trim();
+  if (/^CA\s*\d*/i.test(n)) return n.replace(/^CA\s*/i, "CA ");
   return name;
 }
 
@@ -122,6 +152,13 @@ function ScoreGrid() {
   const { data: components = [] } = useComponents(termId, armId);
   const { data: gradeBands = [] } = useGradeBands(termId);
 
+  // Check if the term is closed
+  const { data: sessions = [] } = useSessions();
+  const currentSession = sessions.find((s) => s.is_current) ?? sessions[0];
+  const { data: terms = [] } = useTerms(currentSession?.id ?? null);
+  const activeTerm = terms.find((t) => t.id === termId);
+  const isTermClosed = activeTerm?.status === "closed";
+
   // Local draft edits: enrollmentId -> componentId -> string value.
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
   useEffect(() => {
@@ -129,6 +166,7 @@ function ScoreGrid() {
   }, [armId, subjectId, termId]);
 
   const setCell = (enrollmentId: string, componentId: string, value: string) => {
+    if (isTermClosed) return; // Block edits on closed terms
     setDraft((prev) => ({
       ...prev,
       [enrollmentId]: { ...(prev[enrollmentId] ?? {}), [componentId]: value },
@@ -143,9 +181,6 @@ function ScoreGrid() {
     return v === null || v === undefined ? "" : String(v);
   };
 
-  /** Weighted 0-100 total for a row, live over draft + saved cells:
-   *  contribution = (score / max_score) * weight, exactly as the server
-   *  computes it at publish. */
   const liveTotal = (enrollmentId: string): number | null => {
     const row = card?.students.find((s) => s.enrollment_id === enrollmentId);
     let anyValue = false;
@@ -172,6 +207,7 @@ function ScoreGrid() {
   const save = useMutation({
     mutationFn: async () => {
       if (!schoolId || !armId || !subjectId || !termId) throw new Error("Missing grid params");
+      if (isTermClosed) throw new Error("This term is closed — scores cannot be saved");
       const entries = (card?.students ?? []).map((row) => ({
         student_enrollment_id: row.enrollment_id,
         scores: components
@@ -196,6 +232,7 @@ function ScoreGrid() {
   const submit = useMutation({
     mutationFn: async () => {
       if (!schoolId || !armId || !subjectId || !termId) throw new Error("Missing params");
+      if (isTermClosed) throw new Error("This term is closed — scores cannot be submitted");
       return api.schoolFetch(schoolId, "/results/submit", {
         method: "POST",
         body: JSON.stringify({ arm_id: armId, subject_id: subjectId, term_id: termId }),
@@ -237,6 +274,16 @@ function ScoreGrid() {
 
   return (
     <div className="space-y-6">
+      {/* Closed term warning */}
+      {isTermClosed && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>
+            The <strong>{card.term.name}</strong> term is closed. This grid is read-only — score changes are disabled.
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -245,10 +292,17 @@ function ScoreGrid() {
           <p className="text-sm text-muted-foreground">{card.term.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => submit.mutate()} disabled={submit.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => submit.mutate()}
+            disabled={submit.isPending || isTermClosed}
+          >
             {submit.isPending ? "Submitting…" : "Submit verified"}
           </Button>
-          <Button onClick={() => save.mutate()} disabled={dirtyCount === 0 || save.isPending}>
+          <Button
+            onClick={() => save.mutate()}
+            disabled={dirtyCount === 0 || save.isPending || isTermClosed}
+          >
             Save {dirtyCount > 0 ? `(${dirtyCount})` : ""}
           </Button>
         </div>
@@ -287,9 +341,11 @@ function ScoreGrid() {
                         type="number"
                         min={0}
                         max={c.max_score}
-                        className="h-8 w-20 text-center"
+                        className={`h-8 w-20 text-center ${isTermClosed ? "opacity-60 cursor-not-allowed" : ""}`}
                         value={cellValue(row.enrollment_id, c.id)}
                         onChange={(e) => setCell(row.enrollment_id, c.id, e.target.value)}
+                        disabled={isTermClosed}
+                        readOnly={isTermClosed}
                       />
                     </td>
                   ))}

@@ -1006,6 +1006,9 @@ export const activateSession = (schoolId: string, sessionId: string) =>
 export const activateTerm = (schoolId: string, termId: string) =>
   schoolFetch<unknown>(schoolId, `/academics/terms/${termId}/activate`, { method: "POST" });
 
+export const closeTerm = (schoolId: string, termId: string) =>
+  schoolFetch<unknown>(schoolId, `/academics/terms/${termId}/close`, { method: "POST" });
+
 export const fetchMyAssignments = (schoolId: string) =>
   schoolFetch<MyAssignment[]>(
     schoolId,

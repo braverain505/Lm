@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, Mail, Phone, ShieldCheck, Timer } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, ShieldCheck, Timer, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +14,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
+import { useSessionTerm } from "@/providers/session-context";
 import { Avatar } from "@/components/ui/avatar";
 
 export default function SettingsPage() {
@@ -25,9 +26,17 @@ export default function SettingsPage() {
   const { data: school, isLoading } = useSchoolMe();
   const { data: overview } = useOverview();
   const { data: sessions = [] } = useSessions();
+  const { term } = useSessionTerm();
+  const closeTerm = useCloseTerm();
 
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Track which session's terms we're showing
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+    () => sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? ""
+  );
+  const { data: settingsTerms = [], isLoading: termsLoading } = useTerms(selectedSessionId || null);
 
   const onPickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,6 +104,26 @@ export default function SettingsPage() {
   const onCeSubmit = (data: z.infer<typeof changeEmailSchema>) => {
     changeEmailMutation.mutate(data);
   };
+
+  const handleCloseTerm = async (termId: string, termName: string) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to close the ${termName} term?\n\n` +
+      `This will:\n` +
+      `• Prevent all score entries and result modifications\n` +
+      `• Lock attendance records for this term\n` +
+      `• Make all data read-only\n\n` +
+      `This action cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+    try {
+      await closeTerm.mutateAsync(termId);
+      void queryClient.invalidateQueries({ queryKey: ["terms"] });
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to close term");
+    }
+  };
+
+  const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -208,6 +237,103 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Term Management — admin only */}
+      {canManage && (
+        <Card className="premium-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[15px]">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <Lock className="h-4 w-4 text-primary" />
+              </span>
+              Term Management
+            </CardTitle>
+            <CardDescription>
+              Close terms to lock results and make them read-only. Closed terms cannot be reopened.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground/60">Session</Label>
+                <select
+                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all md:w-72"
+                  value={selectedSessionId}
+                  onChange={(e) => setSelectedSessionId(e.target.value)}
+                >
+                  {sessions.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}{s.is_current ? " (current)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+
+              {termsLoading ? (
+                <Skeleton className="h-20 w-full" />
+              ) : settingsTerms.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground/70">No terms in this session.</p>
+              ) : (
+                <div className="space-y-2">
+                  {settingsTerms.map((t) => {
+                    const isActive = term?.id === t.id;
+                    const isClosed = t.status === "closed";
+                    const isOpen = t.status === "open";
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 px-4 py-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                            isClosed
+                              ? "bg-muted text-muted-foreground"
+                              : isOpen
+                                ? "bg-success/10 text-success"
+                                : "bg-primary/10 text-primary"
+                          }`}>
+                            {isClosed ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-semibold">
+                              {t.name}
+                              {isActive && <span className="ml-2 text-primary">(active)</span>}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground/60">
+                              {t.start_date ?? "—"} → {t.end_date ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isClosed ? "muted" : isOpen ? "success" : "outline"}>
+                            {t.status}
+                          </Badge>
+                          {isOpen && !isClosed && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-warning hover:text-warning hover:border-warning/30"
+                              onClick={() => handleCloseTerm(t.id, t.name)}
+                              disabled={closeTerm.isPending}
+                            >
+                              <Lock className="h-3.5 w-3.5" />
+                              Close term
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {closeTerm.isSuccess && (
+                <div className="rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-[13px] text-success">
+                  Term closed successfully. All results in this term are now read-only.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sign-in credentials */}
       <Card className="premium-card">

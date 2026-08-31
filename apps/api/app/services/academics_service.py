@@ -134,6 +134,19 @@ def activate_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term
     return term
 
 
+def close_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
+    """Admin closes a term: marks it closed and unsets is_current. Once closed,
+    no result mutations are allowed for this term."""
+    term = get_term(db, school_id, term_id)
+    get_session(db, school_id, term.academic_session_id)  # validate ownership
+    if term.status == TermStatus.CLOSED.value:
+        raise ValidationError(f"The {term.name} term is already closed")
+    term.status = TermStatus.CLOSED.value
+    term.is_current = False
+    db.flush()
+    return term
+
+
 def require_active_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> None:
     """Guard used by every results write: a term only accepts work when both it
     and its session have been activated by an admin (status = open)."""

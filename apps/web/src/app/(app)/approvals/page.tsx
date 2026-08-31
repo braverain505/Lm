@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompile, useResultAction, useSessions, useTerms, useWorkbench, type ReviewInput } from "@/hooks/use-api";
-import { Check, Loader2, RotateCcw, X } from "lucide-react";
+import { Check, Loader2, Lock, RotateCcw, X } from "lucide-react";
 import type { WorkbenchRow } from "@schoolos/shared";
 import { cn } from "@/lib/utils";
+import { useSessionTerm } from "@/providers/session-context";
 
 type NextStep = { action: "verify" | "approve" | "publish"; label: string } | null;
 
@@ -42,11 +43,13 @@ function StagePill({ label, count, tone }: StagePillProps) {
 }
 
 export default function ApprovalsPage() {
+  const { isTermClosed } = useSessionTerm();
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
   const [activeTermId, setActiveTermId] = useState<string | null>(null);
   const term = terms.find((t) => t.id === activeTermId) ?? terms.find((t) => t.is_current) ?? terms[0];
+  const selectedTermClosed = term?.status === "closed";
   const activeTermIdKey = term?.id ?? activeTermId;
 
   const { data: rows = [], isLoading, error } = useWorkbench(activeTermIdKey ?? null);
@@ -108,8 +111,13 @@ export default function ApprovalsPage() {
               Every step is journaled.
             </p>
           </div>
+          {selectedTermClosed && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-3 py-2 text-[12px] text-warning">
+              <Lock className="h-3.5 w-3.5 shrink-0" /> This term is closed — all actions are disabled.
+            </div>
+          )}
           <Button
-            disabled={busy || rows.every((row) => row.draft === 0 || row.entered !== row.enrolled)}
+            disabled={busy || selectedTermClosed || rows.every((row) => row.draft === 0 || row.entered !== row.enrolled)}
             onClick={processReady}
           >
             {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
@@ -134,7 +142,7 @@ export default function ApprovalsPage() {
                   : "border-input text-muted-foreground hover:bg-accent",
               )}
             >
-              {t.name}
+              {t.name}{t.status === "closed" ? " (closed)" : ""}
             </button>
           ))}
         </div>
@@ -188,7 +196,7 @@ export default function ApprovalsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          disabled={busy}
+                          disabled={busy || selectedTermClosed}
                           onClick={() => compiling.mutate(cellOf(row))}
                         >
                           {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
@@ -198,7 +206,7 @@ export default function ApprovalsPage() {
                       {!isRejecting && step && (
                         <Button
                           size="sm"
-                          disabled={busy}
+                          disabled={busy || selectedTermClosed}
                           onClick={() => run(step.action, row)}
                         >
                           {(() => {
@@ -215,7 +223,7 @@ export default function ApprovalsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={busy}
+                          disabled={busy || selectedTermClosed}
                           onClick={() => {
                             setRejectingKey(key);
                             setReason("");
@@ -242,7 +250,7 @@ export default function ApprovalsPage() {
                           <Button
                             size="sm"
                             variant="destructive"
-                            disabled={!reason.trim() || rejecting.isPending}
+                            disabled={!reason.trim() || rejecting.isPending || selectedTermClosed}
                             onClick={() => {
                               rejecting.mutate(
                                 { cell: cellOf(row), reason: reason.trim() },
