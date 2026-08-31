@@ -60,6 +60,7 @@ import type {
 // ---------------------------------------------------------------------------
 // Segmented control
 // ---------------------------------------------------------------------------
+
 function Segmented<T extends string>({
   value,
   options,
@@ -70,14 +71,16 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border bg-muted/50 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-muted/40 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-            value === o.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            "rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-150",
+            value === o.value
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.label}
@@ -90,6 +93,7 @@ function Segmented<T extends string>({
 // ---------------------------------------------------------------------------
 // KPI row
 // ---------------------------------------------------------------------------
+
 export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary; loading: boolean; accountant?: boolean }) {
   const k = data?.kpis;
   const attendance = data?.attendance;
@@ -107,7 +111,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Wallet,
           sub: feeCount != null ? `${feeCount} students with balances` : "No balances yet",
           href: "/billing",
-          iconClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300",
+          iconClass: "bg-primary/10 text-primary",
         },
         {
           label: "Students",
@@ -123,7 +127,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: LayoutGrid,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
-          iconClass: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
+          iconClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
         },
         {
           label: "Attendance rate",
@@ -151,7 +155,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Users,
           sub: `${data?.distribution?.total ?? 0} enrolled`,
           href: "/students",
-          iconClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-300",
+          iconClass: "bg-primary/10 text-primary",
         },
         {
           label: "Teachers",
@@ -167,7 +171,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: LayoutGrid,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
-          iconClass: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
+          iconClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
         },
         {
           label: "Attendance",
@@ -190,7 +194,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
       ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {cards.map((c) => (
         <KpiCard key={c.label} {...c} loading={loading} />
       ))}
@@ -201,6 +205,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
 // ---------------------------------------------------------------------------
 // Academic performance
 // ---------------------------------------------------------------------------
+
 export function PerformancePanel({ data, loading, error, onRetry }: { data?: DashboardSummary; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const byTerm = data?.performance?.by_term ?? [];
   return (
@@ -216,12 +221,12 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
       className="lg:col-span-2"
       bodyClassName="pt-4"
     >
-      <div className="mb-3 flex items-center gap-4 text-xs">
+      <div className="mb-3 flex items-center gap-4 text-[11px]">
         <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <span className="h-2.5 w-2.5 rounded-full bg-chart-1" /> Average
+          <span className="h-2 w-2 rounded-full bg-primary" /> Average
         </span>
         <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <span className="h-2.5 w-2.5 rounded-full bg-chart-3" /> Pass rate
+          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pass rate
         </span>
       </div>
       <PerformanceChart data={byTerm} />
@@ -232,6 +237,7 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
 // ---------------------------------------------------------------------------
 // Result readiness (core SchoolOS widget)
 // ---------------------------------------------------------------------------
+
 export function ReadinessPanel({
   termId,
   summary,
@@ -275,9 +281,9 @@ export function ReadinessPanel({
   const inProgress = agg ? agg.totals.entered - agg.totals.submitted : 0;
 
   const statuses = [
-    { label: "Submitted", value: submitted, color: "bg-chart-1", icon: ClipboardCheck },
-    { label: "In progress", value: inProgress, color: "bg-chart-4", icon: Clock },
-    { label: "Pending", value: pending, color: "bg-chart-6", icon: AlertTriangle },
+    { label: "Submitted", value: submitted, color: "bg-primary", icon: ClipboardCheck },
+    { label: "In progress", value: inProgress, color: "bg-amber-500", icon: Clock },
+    { label: "Pending", value: pending, color: "bg-muted-foreground/40", icon: AlertTriangle },
   ];
 
   return (
@@ -309,8 +315,8 @@ export function ReadinessPanel({
       </div>
 
       {agg && agg.list.length > 0 && (
-        <div className="mt-5 space-y-3 border-t pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mt-5 space-y-3 border-t border-border/40 pt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             By subject
           </p>
           {agg.list.slice(0, 6).map((row) => {
@@ -334,7 +340,7 @@ export function ReadinessPanel({
 
       <Link
         href="/readiness"
-        className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-2 text-[13px] font-semibold text-foreground transition-colors hover:bg-accent"
+        className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] font-semibold text-foreground transition-all hover:bg-accent hover:border-border"
       >
         View Result Readiness <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -345,6 +351,7 @@ export function ReadinessPanel({
 // ---------------------------------------------------------------------------
 // Enrollment distribution
 // ---------------------------------------------------------------------------
+
 export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: DashboardSummary; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const slices = data?.distribution?.slices ?? [];
   return (
@@ -364,7 +371,7 @@ export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: Dash
         {slices.slice(0, 6).map((s) => (
           <li key={s.level_code} className="flex items-center justify-between text-[13px]">
             <span className="flex items-center gap-2 text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-chart-1" />
+              <span className="h-2 w-2 rounded-full bg-primary" />
               {s.level_name}
             </span>
             <span className="font-medium">
@@ -380,6 +387,7 @@ export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: Dash
 // ---------------------------------------------------------------------------
 // Attendance overview
 // ---------------------------------------------------------------------------
+
 export function AttendancePanel({ data, loading, error, onRetry }: { data?: DashboardSummary; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const [range, setRange] = useState<"today" | "week" | "month">("today");
   const att = data?.attendance;
@@ -415,26 +423,26 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
           {bars.length > 0 ? (
             <AttendanceBars data={bars} height={190} />
           ) : (
-            <div className="flex h-[190px] items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-[190px] items-center justify-center text-[13px] text-muted-foreground">
               No attendance recorded yet.
             </div>
           )}
         </div>
         {ov && (
           <div className="flex flex-col justify-center gap-2">
-            <div className="rounded-xl border bg-muted/30 px-4 py-3 text-center">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Rate</p>
+            <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Rate</p>
               <p className="text-2xl font-bold">{ov.rate == null ? "—" : `${Math.round(ov.rate)}%`}</p>
             </div>
-            <div className="grid grid-cols-1 gap-1.5 text-[13px]">
+            <div className="grid grid-cols-1 gap-1 text-[12px]">
               {[
                 { label: "Present", value: ov.present, color: "bg-success" },
                 { label: "Absent", value: ov.absent, color: "bg-destructive" },
                 { label: "Late", value: ov.late, color: "bg-warning" },
               ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-6 rounded-lg border px-3 py-1.5">
+                <div key={s.label} className="flex items-center justify-between gap-6 rounded-lg border border-border/40 px-3 py-1.5">
                   <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <span className={cn("h-2 w-2 rounded-full", s.color)} /> {s.label}
+                    <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} /> {s.label}
                   </span>
                   <span className="font-semibold">{s.value}</span>
                 </div>
@@ -450,6 +458,7 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
 // ---------------------------------------------------------------------------
 // Class performance
 // ---------------------------------------------------------------------------
+
 export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?: DashboardSummary; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const byClass = data?.performance?.by_class ?? [];
   return (
@@ -465,13 +474,13 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
       bodyClassName="pt-4"
     >
       <ClassPerformanceBar data={byClass} />
-      <ul className="mt-3 space-y-1.5 border-t pt-3">
+      <ul className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
         {byClass.slice(0, 6).map((c) => (
           <li key={c.arm_name} className="flex items-center justify-between text-[13px]">
             <span className="text-muted-foreground">{c.arm_name}</span>
             <span className="flex items-center gap-3">
               <span className="font-medium">{c.avg_score == null ? "—" : `${c.avg_score}%`}</span>
-              <span className="w-14 text-right text-xs text-muted-foreground">{c.count} results</span>
+              <span className="w-14 text-right text-[11px] text-muted-foreground">{c.count} results</span>
             </span>
           </li>
         ))}
@@ -483,10 +492,11 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
 // ---------------------------------------------------------------------------
 // Quick actions
 // ---------------------------------------------------------------------------
+
 const ALL_ACTIONS: { label: string; desc: string; href: string; icon: React.ElementType; perm: string; tone: string }[] = [
-  { label: "Add student", desc: "Enroll into a class", href: "/students", icon: UserPlus, perm: "students.create", tone: "bg-indigo-500/10 text-indigo-600" },
+  { label: "Add student", desc: "Enroll into a class", href: "/students", icon: UserPlus, perm: "students.create", tone: "bg-primary/10 text-primary" },
   { label: "Add teacher", desc: "Create a staff record", href: "/teachers", icon: GraduationCap, perm: "staff.create", tone: "bg-emerald-500/10 text-emerald-700" },
-  { label: "Create class", desc: "Arms & offerings", href: "/classes", icon: LayoutGrid, perm: "academics.manage", tone: "bg-amber-500/14 text-amber-700" },
+  { label: "Create class", desc: "Arms & offerings", href: "/classes", icon: LayoutGrid, perm: "academics.manage", tone: "bg-amber-500/10 text-amber-700" },
   { label: "Enter result", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, perm: "results.enter", tone: "bg-rose-500/10 text-rose-700" },
   { label: "Mark attendance", desc: "Today's register", href: "/attendance", icon: CalendarCheck, perm: "attendance.mark", tone: "bg-sky-500/10 text-sky-700" },
   { label: "Review approvals", desc: "Verify & publish", href: "/approvals", icon: ListChecks, perm: "results.verify", tone: "bg-violet-500/10 text-violet-700" },
@@ -511,14 +521,14 @@ export function QuickActions() {
           <Link
             key={a.label}
             href={a.href}
-            className="group flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-all hover:border-primary/25 hover:bg-accent/50"
+            className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50"
           >
-            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", a.tone)}>
+            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", a.tone)}>
               <a.icon className="h-4 w-4" />
             </span>
             <span className="min-w-0">
               <span className="block text-[13px] font-semibold leading-tight">{a.label}</span>
-              <span className="block truncate text-[11px] text-muted-foreground">{a.desc}</span>
+              <span className="block truncate text-[11px] text-muted-foreground/70">{a.desc}</span>
             </span>
           </Link>
         ))}
@@ -530,10 +540,11 @@ export function QuickActions() {
 // ---------------------------------------------------------------------------
 // Recent activity
 // ---------------------------------------------------------------------------
+
 const ACTIVITY_META: Record<string, { icon: React.ElementType; tone: string }> = {
-  result: { icon: ClipboardCheck, tone: "bg-indigo-500/10 text-indigo-600" },
+  result: { icon: ClipboardCheck, tone: "bg-primary/10 text-primary" },
   student: { icon: UserPlus, tone: "bg-emerald-500/10 text-emerald-700" },
-  staff: { icon: GraduationCap, tone: "bg-amber-500/14 text-amber-700" },
+  staff: { icon: GraduationCap, tone: "bg-amber-500/10 text-amber-700" },
   payment: { icon: Wallet, tone: "bg-sky-500/10 text-sky-700" },
   ai: { icon: Bot, tone: "bg-violet-500/10 text-violet-700" },
   attendance: { icon: CalendarCheck, tone: "bg-rose-500/10 text-rose-700" },
@@ -555,7 +566,7 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
       className={className}
       bodyClassName="pt-3"
     >
-      <ul className="space-y-1">
+      <ul className="space-y-0.5">
         {list.slice(0, 8).map((a) => {
           const meta = ACTIVITY_META[a.kind] ?? ACTIVITY_META.other;
           const Icon = meta.icon;
@@ -563,18 +574,18 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
             <li key={a.id}>
               <Link
                 href={a.href ?? "#"}
-                className="group flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-accent"
+                className="group flex items-start gap-3 rounded-xl px-2 py-2 transition-colors duration-150 hover:bg-accent/60"
               >
-                <span className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", meta.tone)}>
+                <span className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", meta.tone)}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{a.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-[11.5px] text-muted-foreground/70">
                     {a.detail ? `${a.detail} · ` : ""}{a.actor_name}
                   </p>
                 </div>
-                <span className="shrink-0 text-[11px] text-muted-foreground/70">{relativeTime(a.created_at)}</span>
+                <span className="shrink-0 text-[10.5px] text-muted-foreground/50">{relativeTime(a.created_at)}</span>
               </Link>
             </li>
           );
@@ -587,8 +598,9 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
 // ---------------------------------------------------------------------------
 // Pending tasks
 // ---------------------------------------------------------------------------
+
 const TASK_META: Record<string, { icon: React.ElementType; tone: string }> = {
-  results: { icon: ClipboardCheck, tone: "bg-indigo-500/10 text-indigo-600" },
+  results: { icon: ClipboardCheck, tone: "bg-primary/10 text-primary" },
   finance: { icon: Wallet, tone: "bg-sky-500/10 text-sky-700" },
   students: { icon: UserPlus, tone: "bg-emerald-500/10 text-emerald-700" },
   attendance: { icon: CalendarCheck, tone: "bg-rose-500/10 text-rose-700" },
@@ -607,7 +619,7 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
       bodyClassName="pt-3"
     >
       {!loading && !error && list.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border bg-success/5 px-3 py-3 text-sm">
+        <div className="flex items-center gap-2 rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-[13px]">
           <CheckCircle2 className="h-4 w-4 text-success" /> All caught up — nothing pending.
         </div>
       ) : (
@@ -619,16 +631,16 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
               <li key={t.id}>
                 <Link
                   href={t.href}
-                  className="group flex items-center gap-3 rounded-lg border px-3.5 py-3 transition-all hover:border-primary/25 hover:bg-accent/50"
+                  className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50"
                 >
-                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", meta.tone)}>
+                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", meta.tone)}>
                     <Icon className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{t.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{t.detail}</p>
+                    <p className="truncate text-[11.5px] text-muted-foreground/70">{t.detail}</p>
                   </div>
-                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-bold text-primary">
+                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-bold text-primary">
                     {t.count}
                   </span>
                 </Link>
@@ -644,10 +656,11 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
 // ---------------------------------------------------------------------------
 // AI insights
 // ---------------------------------------------------------------------------
+
 const INSIGHT_META: Record<string, { icon: React.ElementType; tone: string; dot: string }> = {
-  positive: { icon: TrendingUp, tone: "border-success/25 bg-success/5", dot: "bg-success" },
-  warning: { icon: AlertTriangle, tone: "border-warning/30 bg-warning/5", dot: "bg-warning" },
-  info: { icon: Lightbulb, tone: "border-border bg-muted/30", dot: "bg-primary" },
+  positive: { icon: TrendingUp, tone: "border-success/20 bg-success/[0.03]", dot: "bg-success" },
+  warning: { icon: AlertTriangle, tone: "border-warning/20 bg-warning/[0.03]", dot: "bg-warning" },
+  info: { icon: Lightbulb, tone: "border-border/40 bg-muted/20", dot: "bg-primary" },
 };
 
 export function InsightsPanel({ items, loading, error, onRetry }: { items?: InsightItem[]; loading: boolean; error?: boolean; onRetry?: () => void }) {
@@ -682,18 +695,18 @@ export function InsightsPanel({ items, loading, error, onRetry }: { items?: Insi
                   <Icon className="h-4 w-4 shrink-0 text-primary" />
                   {i.title}
                 </p>
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-violet-500/30 bg-violet-500/10">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-violet-500/20 bg-violet-500/10">
                   <Bot className="h-3 w-3 text-violet-600 dark:text-violet-300" />
                 </span>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{i.body}</p>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{i.body}</p>
               <div className="mt-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
-                  <span className="text-[11px] text-muted-foreground">Confidence {Math.round(i.confidence * 100)}%</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
+                  <span className="text-[10.5px] text-muted-foreground/60">Confidence {Math.round(i.confidence * 100)}%</span>
                 </div>
                 {i.href && (
-                  <Link href={i.href} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+                  <Link href={i.href} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary hover:underline">
                     View details <ArrowRight className="h-3 w-3" />
                   </Link>
                 )}
@@ -709,6 +722,7 @@ export function InsightsPanel({ items, loading, error, onRetry }: { items?: Insi
 // ---------------------------------------------------------------------------
 // Approval queue (VP academics / principal focus)
 // ---------------------------------------------------------------------------
+
 export function ApprovalQueuePanel({
   termId,
   loading,
@@ -745,11 +759,11 @@ export function ApprovalQueuePanel({
     .slice(0, 5);
 
   const funnel = [
-    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/50" },
-    { label: "Submitted", value: totals.submitted, color: "bg-chart-2" },
-    { label: "Verified", value: totals.verified, color: "bg-chart-4" },
-    { label: "Approved", value: totals.approved, color: "bg-chart-3" },
-    { label: "Returned", value: totals.rejected, color: "bg-chart-6" },
+    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/30" },
+    { label: "Submitted", value: totals.submitted, color: "bg-primary" },
+    { label: "Verified", value: totals.verified, color: "bg-amber-500" },
+    { label: "Approved", value: totals.approved, color: "bg-success" },
+    { label: "Returned", value: totals.rejected, color: "bg-destructive" },
   ];
   const maxStage = Math.max(1, ...funnel.map((f) => f.value));
 
@@ -769,7 +783,7 @@ export function ApprovalQueuePanel({
         {funnel.map((f) => (
           <div key={f.label} className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{f.label}</span>
-            <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/50">
               <div className={cn("h-full rounded-full transition-all duration-500", f.color)} style={{ width: `${(f.value / maxStage) * 100}%` }} />
             </div>
             <span className="w-8 shrink-0 text-right text-[13px] font-semibold">{f.value}</span>
@@ -778,8 +792,8 @@ export function ApprovalQueuePanel({
       </div>
 
       {needsReview.length > 0 && (
-        <div className="mt-5 border-t pt-4">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <div className="mt-5 border-t border-border/40 pt-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Needs attention
           </p>
           <ul className="space-y-1">
@@ -787,7 +801,7 @@ export function ApprovalQueuePanel({
               <li key={`${r.arm_id}-${r.subject_id}`}>
                 <Link
                   href="/approvals"
-                  className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] transition-colors hover:bg-accent"
+                  className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] transition-colors hover:bg-accent/60"
                 >
                   <span className="truncate">
                     <span className="font-medium">{r.arm_name}</span>
@@ -809,6 +823,7 @@ export function ApprovalQueuePanel({
 // ---------------------------------------------------------------------------
 // Compile panel — admin one-click finalize
 // ---------------------------------------------------------------------------
+
 export function CompilePanel({
   termId,
   loading,
@@ -825,7 +840,6 @@ export function CompilePanel({
   const busy = loading || isLoading;
   const queue = rows ?? [];
 
-  // Rows with draft results that can be compiled (scores entered but not yet published)
   const compilable = queue
     .filter((r) => r.entered > 0 && r.published === 0 && (r.draft > 0 || r.submitted > 0 || r.verified > 0 || r.approved > 0))
     .sort((a, b) => b.entered - a.entered)
@@ -847,9 +861,9 @@ export function CompilePanel({
       bodyClassName="pt-4"
     >
       {compilable.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3 py-2.5">
           <Zap className="h-4 w-4 text-primary" />
-          <span className="text-[13px] text-muted-foreground">
+          <span className="text-[12px] text-muted-foreground">
             <span className="font-semibold text-foreground">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready to compile
             {totalDrafts > 0 && <span> · <span className="font-medium">{totalDrafts}</span> draft</span>}
             {totalSubmitted > 0 && <span> · <span className="font-medium">{totalSubmitted}</span> submitted</span>}
@@ -869,14 +883,14 @@ export function CompilePanel({
           return (
             <li
               key={key}
-              className="flex flex-wrap items-center gap-3 rounded-lg border bg-card/50 px-3 py-2.5"
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-card/50 px-3 py-2.5"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-medium">
                   {r.subject_name}
                   <span className="font-normal text-muted-foreground"> · {r.arm_name}</span>
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                <p className="mt-0.5 text-[11px] text-muted-foreground/70">
                   {r.entered}/{r.enrolled} scores entered
                   {r.submitted > 0 && <> · {r.submitted} submitted</>}
                 </p>
@@ -900,20 +914,20 @@ export function CompilePanel({
       </ul>
 
       {compileMutation.isSuccess && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-success/30 bg-success/5 px-3 py-2 text-sm text-success">
+        <div className="mt-3 flex items-center gap-2 rounded-xl border border-success/20 bg-success/5 px-3 py-2 text-[13px] text-success">
           <CheckCircle2 className="h-4 w-4" /> Results compiled and report cards generated!
         </div>
       )}
 
       {compileMutation.isError && (
-        <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
           {compileMutation.error?.message ?? "Compilation failed. Please try again."}
         </div>
       )}
 
       <Link
         href="/approvals"
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-2 text-[13px] font-semibold text-foreground transition-colors hover:bg-accent"
+        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] font-semibold text-foreground transition-all hover:bg-accent hover:border-border"
       >
         View full approval queue <ArrowRight className="h-3.5 w-3.5" />
       </Link>

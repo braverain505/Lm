@@ -140,18 +140,18 @@ export default function StudentsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Students</h1>
-          <p className="text-sm text-muted-foreground">{data.length} student records</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Students</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">{data.length} student records</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setPromoteOpen((v) => !v)}>
-            <ArrowUpRight className="h-4 w-4" /> Promote to next session
+          <Button variant="outline" onClick={() => setPromoteOpen((v) => !v)} className="gap-1.5">
+            <ArrowUpRight className="h-4 w-4" /> Promote
           </Button>
-          <Button onClick={() => setAddOpen((v) => !v)}>
+          <Button onClick={() => setAddOpen((v) => !v)} className="gap-1.5">
             <Plus className="h-4 w-4" /> {addOpen ? "Close" : "Add student"}
           </Button>
         </div>
@@ -159,11 +159,14 @@ export default function StudentsPage() {
 
       {/* Add student */}
       {addOpen && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-primary" /> New student
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                  <UserPlus className="h-4 w-4 text-primary" />
+                </span>
+                New student
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -174,22 +177,17 @@ export default function StudentsPage() {
                 }}
                 className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
               >
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Admission no.</Label>
                   <Input placeholder="STU-001" value={form.admission_no} onChange={(e) => setForm({ ...form, admission_no: e.target.value })} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Photo (optional)</Label>
                   <div className="flex items-center gap-3">
                     {form.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={form.photo_url}
-                        alt="Student preview"
-                        className="h-14 w-14 rounded-full border object-cover"
-                      />
+                      <img src={form.photo_url} alt="Student preview" className="h-14 w-14 rounded-full border object-cover" />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-muted/40 text-muted-foreground">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/40 text-muted-foreground/40">
                         <UserPlus className="h-5 w-5" />
                       </div>
                     )}
@@ -198,27 +196,27 @@ export default function StudentsPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={onPickPhoto}
-                      className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-primary hover:file:bg-primary/20"
+                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
                     />
                   </div>
-                  {photoUploading && <p className="text-xs text-muted-foreground">Uploading photo…</p>}
+                  {photoUploading && <p className="text-[11px] text-muted-foreground/60">Uploading photo…</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>First name</Label>
                   <Input placeholder="Aisha" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Last name</Label>
                   <Input placeholder="Bello" value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Gender</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>State (optional)</Label>
                   <Input placeholder="Lagos" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
                 </div>
@@ -236,24 +234,26 @@ export default function StudentsPage() {
 
       {/* Promote */}
       {promoteOpen && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ArrowUpRight className="h-4 w-4 text-primary" /> Promote students
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-500/10">
+                  <ArrowUpRight className="h-4 w-4 text-emerald-700" />
+                </span>
+                Promote students
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
-                Move all actively-enrolled students from one session into the next. For each source
-                class, choose the class they move to in the new session.
+              <p className="mb-4 text-[13px] text-muted-foreground">
+                Move all actively-enrolled students from one session into the next.
               </p>
               <form onSubmit={onPromote} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>From session</Label>
                     <select
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                       value={promoteFrom}
                       onChange={(e) => onPromoteFromChange(e.target.value)}
                       required
@@ -264,10 +264,10 @@ export default function StudentsPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>To session</Label>
                     <select
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                       value={promoteTo}
                       onChange={(e) => {
                         setPromoteTo(e.target.value);
@@ -285,16 +285,16 @@ export default function StudentsPage() {
                 </div>
 
                 {promoteFrom && promoteTo && fromArms.length > 0 && (
-                  <div className="space-y-2 rounded-lg border p-3">
-                    <p className="text-xs font-medium text-muted-foreground">
+                  <div className="space-y-2 rounded-xl border border-border/40 bg-muted/20 p-4">
+                    <p className="text-[11px] font-semibold text-muted-foreground/70">
                       Class mappings (from {sessions.find((s) => s.id === promoteFrom)?.name})
                     </p>
                     {fromArms.map((arm) => (
-                      <div key={arm.id} className="flex flex-wrap items-center gap-2 text-sm">
+                      <div key={arm.id} className="flex flex-wrap items-center gap-2 text-[13px]">
                         <span className="min-w-40 font-medium">{arm.full_name}</span>
-                        <span className="text-muted-foreground">→</span>
+                        <span className="text-muted-foreground/50">→</span>
                         <select
-                          className="h-8 w-52 rounded-md border border-input bg-transparent px-2 text-sm"
+                          className="flex h-8 w-52 rounded-lg border border-border/80 bg-background/50 px-2 text-[13px]"
                           value={armMappings[arm.id] ?? ""}
                           onChange={(e) =>
                             setArmMappings((m) => ({ ...m, [arm.id]: e.target.value }))
@@ -307,7 +307,7 @@ export default function StudentsPage() {
                         </select>
                       </div>
                     ))}
-                    <p className="pt-1 text-xs text-muted-foreground">
+                    <p className="pt-1 text-[11px] text-muted-foreground/60">
                       Classes without a target are skipped.
                     </p>
                   </div>
@@ -334,23 +334,23 @@ export default function StudentsPage() {
       )}
 
       {promoteResult && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400">
+        <div className="rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-[13px] text-success">
           {promoteResult}
         </div>
       )}
 
       {/* Enroll inline panel */}
       {enrollFor && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <Card className="premium-card">
             <CardHeader>
               <CardTitle>Enroll {data.find((s) => s.id === enrollFor)?.full_name}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={onEnroll} className="flex flex-wrap items-end gap-3">
-                <div className="min-w-56 space-y-2">
+                <div className="min-w-56 space-y-1.5">
                   <Label>Class arm ({sessions.find((s) => s.id === currentSessionId)?.name ?? "current session"})</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={enrollArm} onChange={(e) => setEnrollArm(e.target.value)} required>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={enrollArm} onChange={(e) => setEnrollArm(e.target.value)} required>
                     <option value="">Choose arm…</option>
                     {arms.map((a) => (
                       <option key={a.id} value={a.id}>{a.full_name}</option>
@@ -369,13 +369,13 @@ export default function StudentsPage() {
 
       {/* PIN inline panel */}
       {pinFor && (
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
           <Card className="premium-card">
             <CardHeader>
               <CardTitle>Set result-portal PIN for {data.find((s) => s.id === pinFor)?.full_name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="mb-4 text-sm text-muted-foreground">
+              <p className="mb-4 text-[13px] text-muted-foreground">
                 A 4–6 digit PIN lets this student view their published report cards on the public portal.
               </p>
               <form
@@ -385,7 +385,7 @@ export default function StudentsPage() {
                 }}
                 className="flex flex-wrap items-end gap-3"
               >
-                <div className="w-40 space-y-2">
+                <div className="w-40 space-y-1.5">
                   <Label>PIN</Label>
                   <Input
                     inputMode="numeric"
@@ -408,25 +408,25 @@ export default function StudentsPage() {
 
       {/* Table */}
       <Card className="premium-card">
-        <CardContent className="p-4">
+        <CardContent className="p-5">
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
             <Input
-              placeholder="Search students…"
+              placeholder="Search students by name or admission number…"
               className="pl-9"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-medium">Admission</th>
-                  <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">Gender</th>
-                  <th className="pb-2 font-medium">State</th>
-                  <th className="pb-2 font-medium text-right">Actions</th>
+                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="pb-2.5 font-semibold">Admission</th>
+                  <th className="pb-2.5 font-semibold">Name</th>
+                  <th className="pb-2.5 font-semibold">Gender</th>
+                  <th className="pb-2.5 font-semibold">State</th>
+                  <th className="pb-2.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -434,17 +434,24 @@ export default function StudentsPage() {
                   <tr><td colSpan={5}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                      {data.length === 0 ? "No students yet. Add your first student." : "No matches."}
+                    <td colSpan={5} className="py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
+                          <UserPlus className="h-5 w-5 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-[13px] font-medium text-muted-foreground/70">
+                          {data.length === 0 ? "No students yet. Add your first student." : "No matches found."}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   filtered.map((s) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-accent/40">
-                      <td className="py-3 font-mono text-xs">{s.admission_no}</td>
+                    <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
                       <td className="py-3 font-medium">{s.full_name}</td>
-                      <td className="py-3 capitalize">{s.gender}</td>
-                      <td className="py-3">{s.state ?? "—"}</td>
+                      <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
+                      <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
                       <td className="py-3">
                         <div className="flex justify-end gap-2">
                           <Button variant="outline" size="sm" onClick={() => setPinFor(s.id)}>

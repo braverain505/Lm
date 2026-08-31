@@ -28,37 +28,37 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
   const meta = pageMeta(pathname);
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-xl lg:px-6 print:hidden">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:px-6 print:hidden">
       <button
         onClick={onOpenMobileNav}
-        className="focus-ring -ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent lg:hidden"
+        className="-ml-1 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
         aria-label="Open navigation"
       >
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* Page title + breadcrumb */}
+      {/* Page title */}
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-          <span className="capitalize">{activeSchool?.role?.name ?? "Workspace"}</span>
+        <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground/70">
+          <span>{activeSchool?.role?.name ?? "Workspace"}</span>
           {meta.breadcrumb && (
             <>
-              <span className="text-border">/</span>
+              <span className="text-border">·</span>
               <span>{meta.breadcrumb}</span>
             </>
           )}
         </div>
-        <h1 className="truncate text-[15px] font-semibold leading-tight tracking-tight">{meta.title}</h1>
+        <h1 className="mt-0.5 truncate text-[15px] font-semibold tracking-tight">{meta.title}</h1>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1.5">
         {/* Session selector */}
         {sessions.length > 0 && (
           <Select value={session?.id ?? ""} onValueChange={(v) => {
             const s = sessions.find((x) => x.id === v);
             if (s) setSession(s);
           }}>
-            <SelectTrigger icon={<CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />} className="hidden h-9 w-auto md:inline-flex">
+            <SelectTrigger icon={<CalendarDays className="h-3.5 w-3.5 text-muted-foreground/60" />} className="hidden h-8 w-auto text-[12.5px] md:inline-flex">
               <SelectValue placeholder="Session" />
             </SelectTrigger>
             <SelectContent>
@@ -78,7 +78,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
             const t = terms.find((x) => x.id === v);
             if (t) setTerm(t);
           }}>
-            <SelectTrigger icon={<GraduationCap className="h-3.5 w-3.5 text-muted-foreground" />} className="hidden h-9 w-auto sm:inline-flex">
+            <SelectTrigger icon={<GraduationCap className="h-3.5 w-3.5 text-muted-foreground/60" />} className="hidden h-8 w-auto text-[12.5px] sm:inline-flex">
               <SelectValue placeholder="Term" />
             </SelectTrigger>
             <SelectContent>
@@ -92,15 +92,17 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
           </Select>
         )}
 
+        <span className="hidden h-5 w-px bg-border/60 sm:block" />
+
         {/* Search */}
-        <div className={cn("hidden sm:block")}>
+        <div className="hidden sm:block">
           <SearchPalette />
         </div>
 
         {/* Help */}
         <Link
           href="/copilot"
-          className="focus-ring flex h-9 w-9 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-card transition-colors hover:bg-accent/60 hover:text-foreground"
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/50 text-muted-foreground/60 transition-all hover:border-border hover:bg-accent hover:text-foreground"
           title="Lumo AI help"
           aria-label="Help"
         >
@@ -110,7 +112,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
         {/* Notifications */}
         <Notifications />
 
-        <span className="hidden h-6 w-px bg-border sm:block" />
+        <span className="hidden h-5 w-px bg-border/60 sm:block" />
 
         {/* Profile */}
         <ProfileMenu />

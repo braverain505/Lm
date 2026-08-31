@@ -42,7 +42,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Change Password Form
   const changePasswordSchema = z.object({
     current_password: z.string().min(1, "Current password is required"),
     new_password: z.string().min(8, "New password must be at least 8 characters"),
@@ -59,29 +58,19 @@ export default function SettingsPage() {
     reset: cpReset,
   } = useForm<z.infer<typeof changePasswordSchema>>({
     resolver: zodResolver(changePasswordSchema),
-    defaultValues: {
-      current_password: "",
-      new_password: "",
-      confirm_password: "",
-    },
+    defaultValues: { current_password: "", new_password: "", confirm_password: "" },
   });
 
   const changePasswordMutation = useMutation({
     mutationFn: api.changePassword,
-    onSuccess: () => {
-      cpReset();
-      alert("Password changed successfully");
-    },
-    onError: (error: any) => {
-      alert(error?.response?.data?.message ?? "Failed to change password");
-    },
+    onSuccess: () => { cpReset(); alert("Password changed successfully"); },
+    onError: (error: any) => { alert(error?.response?.data?.message ?? "Failed to change password"); },
   });
 
   const onCpSubmit = (data: z.infer<typeof changePasswordSchema>) => {
     changePasswordMutation.mutate(data);
   };
 
-  // Change Email Form
   const changeEmailSchema = z.object({
     new_email: z.string().email("Invalid email address"),
     current_password: z.string().min(1, "Current password is required"),
@@ -94,21 +83,13 @@ export default function SettingsPage() {
     reset: ceReset,
   } = useForm<z.infer<typeof changeEmailSchema>>({
     resolver: zodResolver(changeEmailSchema),
-    defaultValues: {
-      new_email: "",
-      current_password: "",
-    },
+    defaultValues: { new_email: "", current_password: "" },
   });
 
   const changeEmailMutation = useMutation({
     mutationFn: api.changeEmail,
-    onSuccess: () => {
-      ceReset();
-      alert("Email changed successfully");
-    },
-    onError: (error: any) => {
-      alert(error?.response?.data?.message ?? "Failed to change email");
-    },
+    onSuccess: () => { ceReset(); alert("Email changed successfully"); },
+    onError: (error: any) => { alert(error?.response?.data?.message ?? "Failed to change email"); },
   });
 
   const onCeSubmit = (data: z.infer<typeof changeEmailSchema>) => {
@@ -116,20 +97,23 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-5">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">School Settings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="text-[22px] font-bold tracking-tight text-foreground">School Settings</h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">
           School profile, academic structure and your account.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-5 md:grid-cols-2">
         {/* School profile */}
-        <Card>
+        <Card className="premium-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Building2 className="h-4 w-4 text-primary" /> School profile
+            <CardTitle className="flex items-center gap-2 text-[15px]">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <Building2 className="h-4 w-4 text-primary" />
+              </span>
+              School profile
             </CardTitle>
             <CardDescription>Identifiers used across Lumo</CardDescription>
           </CardHeader>
@@ -138,48 +122,43 @@ export default function SettingsPage() {
               <Skeleton className="h-40 w-full" />
             ) : (
               <>
-                <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Building2 className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="font-semibold">{school?.name ?? activeSchool?.school_name}</p>
-                    <p className="text-xs capitalize text-muted-foreground">
+                    <p className="text-[13px] font-semibold">{school?.name ?? activeSchool?.school_name}</p>
+                    <p className="text-[11px] capitalize text-muted-foreground">
                       {school?.school_type ?? "School"}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
                   {school?.logo_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={school.logo_url}
-                      alt="School logo"
-                      className="h-14 w-14 rounded-xl border object-contain bg-white"
-                    />
+                    <img src={school.logo_url} alt="School logo" className="h-12 w-12 rounded-xl border object-contain bg-white" />
                   ) : (
-                    <span className="flex h-14 w-14 items-center justify-center rounded-xl border bg-background text-muted-foreground">
-                      <ImagePlus className="h-6 w-6" />
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-border bg-background text-muted-foreground/40">
+                      <ImagePlus className="h-5 w-5" />
                     </span>
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">School logo</p>
-                    <p className="text-xs text-muted-foreground">
-                      Shown on the report card header. JPEG, PNG or WebP up to 5 MB.
+                    <p className="text-[13px] font-medium">School logo</p>
+                    <p className="text-[11px] text-muted-foreground/70">
+                      Shown on report card header. JPEG, PNG or WebP up to 5 MB.
                     </p>
                     <input
                       ref={logoInputRef}
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={onPickLogo}
-                      className="mt-1 block w-full max-w-56 text-xs text-muted-foreground file:mr-2 file:rounded-md file:border-0 file:bg-primary/10 file:px-2.5 file:py-1 file:text-xs file:font-medium file:text-primary hover:file:bg-primary/20"
+                      className="mt-1 block w-full max-w-56 text-[11px] text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-primary/10 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
                     />
                     {logoUploading && (
-                      <p className="mt-1 text-xs text-muted-foreground">Uploading logo…</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/60">Uploading logo…</p>
                     )}
                   </div>
                 </div>
-                <dl className="space-y-2 text-sm">
+                <dl className="space-y-2 text-[13px]">
                   {[
                     { icon: Globe, label: "Slug", value: school?.slug },
                     { icon: Timer, label: "Timezone", value: school?.timezone },
@@ -187,8 +166,8 @@ export default function SettingsPage() {
                     { icon: ShieldCheck, label: "Currency", value: school?.currency },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-center gap-3">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <dt className="w-36 text-muted-foreground">{label}</dt>
+                      <Icon className="h-4 w-4 text-muted-foreground/50" />
+                      <dt className="w-36 text-muted-foreground/70">{label}</dt>
                       <dd className="font-medium">{value ?? "—"}</dd>
                     </div>
                   ))}
@@ -199,30 +178,30 @@ export default function SettingsPage() {
         </Card>
 
         {/* Account */}
-        <Card>
+        <Card className="premium-card">
           <CardHeader>
-            <CardTitle className="text-base">Your account</CardTitle>
+            <CardTitle className="text-[15px]">Your account</CardTitle>
             <CardDescription>Signed in identity and role</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-3">
-              <Avatar name={user?.full_name} className="h-12 w-12" />
+              <Avatar name={user?.full_name} className="h-11 w-11" />
               <div className="min-w-0">
-                <p className="font-semibold">{user?.full_name}</p>
-                <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                <p className="text-[14px] font-semibold">{user?.full_name}</p>
+                <p className="truncate text-[11.5px] text-muted-foreground">{user?.email}</p>
               </div>
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                <span className="text-muted-foreground">School</span>
+              <div className="flex items-center justify-between rounded-xl border border-border/40 px-3 py-2.5 text-[13px]">
+                <span className="text-muted-foreground/70">School</span>
                 <span className="font-medium">{activeSchool?.school_name}</span>
               </div>
-              <div className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                <span className="text-muted-foreground">Role</span>
+              <div className="flex items-center justify-between rounded-xl border border-border/40 px-3 py-2.5 text-[13px]">
+                <span className="text-muted-foreground/70">Role</span>
                 <Badge variant="default" className="capitalize">{activeSchool?.role?.name ?? "Member"}</Badge>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-[11.5px] text-muted-foreground/70">
               <Mail className="h-3.5 w-3.5" /> {user?.email}
               <Phone className="h-3.5 w-3.5" /> {school?.phone ?? "—"}
             </div>
@@ -231,19 +210,21 @@ export default function SettingsPage() {
       </div>
 
       {/* Sign-in credentials */}
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <KeyRound className="h-4 w-4 text-primary" /> Sign-in credentials
+          <CardTitle className="flex items-center gap-2 text-[15px]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <KeyRound className="h-4 w-4 text-primary" />
+            </span>
+            Sign-in credentials
           </CardTitle>
           <CardDescription>
-            Update the login used to access Lumo. Your current password is
-            required to make any change.
+            Update the login used to access Lumo. Your current password is required to make any change.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <form onSubmit={cpHandleSubmit(onCpSubmit)} className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="current_password">Current Password</Label>
               <Input
                 id="current_password"
@@ -253,10 +234,10 @@ export default function SettingsPage() {
                 placeholder="Enter current password"
               />
               {cpErrors.current_password && (
-                <p className="text-xs text-destructive">{cpErrors.current_password.message}</p>
+                <p className="text-[11px] text-destructive">{cpErrors.current_password.message}</p>
               )}
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="new_password">New Password</Label>
               <Input
                 id="new_password"
@@ -266,10 +247,10 @@ export default function SettingsPage() {
                 placeholder="Enter new password"
               />
               {cpErrors.new_password && (
-                <p className="text-xs text-destructive">{cpErrors.new_password.message}</p>
+                <p className="text-[11px] text-destructive">{cpErrors.new_password.message}</p>
               )}
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="confirm_password">Confirm Password</Label>
               <Input
                 id="confirm_password"
@@ -279,20 +260,16 @@ export default function SettingsPage() {
                 placeholder="Confirm new password"
               />
               {cpErrors.confirm_password && (
-                <p className="text-xs text-destructive">{cpErrors.confirm_password.message}</p>
+                <p className="text-[11px] text-destructive">{cpErrors.confirm_password.message}</p>
               )}
             </div>
-            <Button
-              type="submit"
-              disabled={!cpIsValid}
-              className="w-full"
-            >
+            <Button type="submit" disabled={!cpIsValid} className="w-full">
               Change Password
             </Button>
           </form>
 
           <form onSubmit={ceHandleSubmit(onCeSubmit)} className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="new_email">New Email</Label>
               <Input
                 id="new_email"
@@ -302,10 +279,10 @@ export default function SettingsPage() {
                 placeholder="Enter new email"
               />
               {ceErrors.new_email && (
-                <p className="text-xs text-destructive">{ceErrors.new_email.message}</p>
+                <p className="text-[11px] text-destructive">{ceErrors.new_email.message}</p>
               )}
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label htmlFor="current_password">Current Password</Label>
               <Input
                 id="current_password"
@@ -315,14 +292,10 @@ export default function SettingsPage() {
                 placeholder="Enter current password"
               />
               {ceErrors.current_password && (
-                <p className="text-xs text-destructive">{ceErrors.current_password.message}</p>
+                <p className="text-[11px] text-destructive">{ceErrors.current_password.message}</p>
               )}
             </div>
-            <Button
-              type="submit"
-              disabled={Object.keys(ceErrors).length > 0}
-              className="w-full"
-            >
+            <Button type="submit" disabled={Object.keys(ceErrors).length > 0} className="w-full">
               Change Email
             </Button>
           </form>
@@ -330,23 +303,26 @@ export default function SettingsPage() {
       </Card>
 
       {/* Sessions */}
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarRange className="h-4 w-4 text-primary" /> Academic sessions
+          <CardTitle className="flex items-center gap-2 text-[15px]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <CalendarRange className="h-4 w-4 text-primary" />
+            </span>
+            Academic sessions
           </CardTitle>
           <CardDescription>Sessions configured for this school</CardDescription>
         </CardHeader>
         <CardContent>
           {sessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sessions have been created yet.</p>
+            <p className="text-[13px] text-muted-foreground/70">No sessions have been created yet.</p>
           ) : (
-            <ul className="divide-y">
+            <ul className="divide-y divide-border/40">
               {sessions.map((s) => (
-                <li key={s.id} className="flex items-center justify-between py-3 text-sm">
+                <li key={s.id} className="flex items-center justify-between py-3 text-[13px]">
                   <div>
                     <p className="font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground/60">
                       {s.start_date ?? "—"} → {s.end_date ?? "—"}
                     </p>
                   </div>

@@ -64,15 +64,15 @@ const config = {
         "2xl": "calc(var(--radius) + 8px)",
       },
       boxShadow: {
-        card: "0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06)",
-        "card-hover": "0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 6px -2px rgb(16 24 40 / 0.05)",
-        pop: "0 12px 32px -8px rgb(16 24 40 / 0.16), 0 4px 8px -4px rgb(16 24 40 / 0.06)",
+        card: "0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04)",
+        "card-hover": "0 2px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04)",
+        pop: "0 12px 40px -12px rgb(0 0 0 / 0.18), 0 4px 6px -4px rgb(0 0 0 / 0.06)",
         lift: "0 -1px 0 0 hsl(var(--border)) inset",
-        glow: "0 0 0 3px hsl(var(--primary) / 0.15)",
+        glow: "0 0 0 3px hsl(var(--primary) / 0.12)",
       },
       keyframes: {
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(4px)" },
+          from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
         "fade-in-soft": {
@@ -80,12 +80,16 @@ const config = {
           to: { opacity: "1" },
         },
         "scale-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
+          from: { opacity: "0", transform: "scale(0.97)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
         "slide-in-right": {
-          from: { opacity: "0", transform: "translateX(12px)" },
+          from: { opacity: "0", transform: "translateX(16px)" },
           to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "slide-in-bottom": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
         },
         shimmer: {
           "0%": { backgroundPosition: "-400px 0" },
@@ -93,10 +97,14 @@ const config = {
         },
       },
       animation: {
-        "fade-in": "fade-in 0.4s ease-out",
-        "fade-in-soft": "fade-in-soft 0.25s ease-out",
-        "scale-in": "scale-in 0.18s ease-out",
-        "slide-in-right": "slide-in-right 0.22s cubic-bezier(0.21, 1.02, 0.73, 1)",
+        "fade-in": "fade-in 0.3s ease-out",
+        "fade-in-soft": "fade-in-soft 0.2s ease-out",
+        "scale-in": "scale-in 0.15s ease-out",
+        "slide-in-right": "slide-in-right 0.2s cubic-bezier(0.21, 1.02, 0.73, 1)",
+        "slide-in-bottom": "slide-in-bottom 0.2s ease-out",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],
       },
     },
   },

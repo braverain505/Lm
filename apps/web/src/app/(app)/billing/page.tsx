@@ -107,10 +107,12 @@ export default function BillingPage() {
 
   if (!canView) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
-        <Lock className="h-8 w-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+          <Lock className="h-6 w-6 text-muted-foreground/50" />
+        </div>
         <h1 className="text-lg font-semibold">Accounting is Accountant-only</h1>
-        <p className="max-w-sm text-sm text-muted-foreground">
+        <p className="max-w-sm text-[13px] text-muted-foreground">
           Only the school Accountant role can view fees, payments, and receipts.
         </p>
       </div>
@@ -118,27 +120,27 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Billing</h1>
-          <p className="text-sm text-muted-foreground">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Billing</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
             Fee structures, invoices, and payments for {students.length} students.
           </p>
         </div>
-        <Button onClick={() => setShowStructureForm((v) => !v)}>
+        <Button onClick={() => setShowStructureForm((v) => !v)} className="gap-1.5">
           <Plus className="h-4 w-4" /> Add fee structure
         </Button>
       </div>
 
       {/* Fee structures */}
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle>Fee structures</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-[15px]">Fee structures</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {showStructureForm && (
-            <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
               <form
                 onSubmit={submitStructure((v) => {
                   createStructure.mutate(
@@ -146,29 +148,29 @@ export default function BillingPage() {
                     { onSuccess: () => { resetStructure(); setShowStructureForm(false); } },
                   );
                 })}
-                className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-5"
+                className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-5"
               >
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Name</Label>
                   <Input placeholder="Tuition" {...regStructure("name")} />
-                  {structureErrors.name && <p className="text-xs text-destructive">{structureErrors.name.message}</p>}
+                  {structureErrors.name && <p className="text-[11px] text-destructive">{structureErrors.name.message}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Type</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" {...regStructure("fee_type")}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regStructure("fee_type")}>
                     {["tuition", "boarding", "activity", "examination", "library", "other"].map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Amount</Label>
                   <Input type="number" step="0.01" placeholder="100000" {...regStructure("amount")} />
-                  {structureErrors.amount && <p className="text-xs text-destructive">{structureErrors.amount.message}</p>}
+                  {structureErrors.amount && <p className="text-[11px] text-destructive">{structureErrors.amount.message}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Frequency</Label>
-                  <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" {...regStructure("billing_frequency")}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regStructure("billing_frequency")}>
                     {["term", "month", "year", "one_time"].map((f) => (
                       <option key={f} value={f}>{f}</option>
                     ))}
@@ -184,37 +186,37 @@ export default function BillingPage() {
           )}
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">Type</th>
-                  <th className="pb-2 font-medium">Amount</th>
-                  <th className="pb-2 font-medium">Frequency</th>
-                  <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium text-right">Active</th>
+                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="pb-2.5 font-semibold">Name</th>
+                  <th className="pb-2.5 font-semibold">Type</th>
+                  <th className="pb-2.5 font-semibold">Amount</th>
+                  <th className="pb-2.5 font-semibold">Frequency</th>
+                  <th className="pb-2.5 font-semibold">Status</th>
+                  <th className="pb-2.5 font-semibold text-right">Active</th>
                 </tr>
               </thead>
               <tbody>
                 {loadingStructures ? (
                   <tr><td colSpan={6}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                 ) : structures.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <tr><td colSpan={6} className="py-12 text-center text-[13px] text-muted-foreground/70">
                     No fee structures yet. Add one above.
                   </td></tr>
                 ) : (
                   structures.map((s) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-accent/40">
-                      <td className="py-2.5 font-medium">{s.name}</td>
-                      <td className="py-2.5 capitalize">{s.fee_type}</td>
-                      <td className="py-2.5">₦{s.amount.toLocaleString()}</td>
-                      <td className="py-2.5 capitalize">{s.billing_frequency}</td>
-                      <td className="py-2.5">
-                        <span className={`rounded-full px-2 py-0.5 text-xs ${s.is_active ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                    <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <td className="py-3 font-medium">{s.name}</td>
+                      <td className="py-3 capitalize text-muted-foreground">{s.fee_type}</td>
+                      <td className="py-3 font-medium">₦{s.amount.toLocaleString()}</td>
+                      <td className="py-3 capitalize text-muted-foreground">{s.billing_frequency}</td>
+                      <td className="py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                           {s.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-3 text-right">
                         <Button
                           variant="outline"
                           size="sm"
@@ -234,16 +236,16 @@ export default function BillingPage() {
       </Card>
 
       {/* Invoices */}
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle>Invoices</CardTitle>
+          <CardTitle className="text-[15px]">Invoices</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Student</Label>
               <select
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
               >
@@ -263,17 +265,17 @@ export default function BillingPage() {
                   { onSuccess: () => resetInvoice() },
                 );
               })}
-              className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-3"
+              className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-3"
             >
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Fee structure</Label>
-                <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" {...regInvoice("fee_structure_id")}>
+                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regInvoice("fee_structure_id")}>
                   <option value="">Choose…</option>
                   {structures.filter((s) => s.is_active).map((s) => (
                     <option key={s.id} value={s.id}>{s.name} — ₦{s.amount.toLocaleString()}</option>
                   ))}
                 </select>
-                {invoiceErrors.fee_structure_id && <p className="text-xs text-destructive">{invoiceErrors.fee_structure_id.message}</p>}
+                {invoiceErrors.fee_structure_id && <p className="text-[11px] text-destructive">{invoiceErrors.fee_structure_id.message}</p>}
               </div>
               <div className="flex items-end">
                 <Button type="submit" disabled={invoiceSubmitting || createInvoice.isPending}>
@@ -284,56 +286,56 @@ export default function BillingPage() {
           )}
 
           {balance && (
-            <div className="grid gap-4 rounded-md border p-4 sm:grid-cols-4">
+            <div className="grid gap-3 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-4">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Owed</p>
-                <p className="text-lg font-semibold">₦{balance.total_owed.toLocaleString()}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Owed</p>
+                <p className="mt-0.5 text-lg font-bold">₦{balance.total_owed.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Paid</p>
-                <p className="text-lg font-semibold text-emerald-600">₦{balance.total_paid.toLocaleString()}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Paid</p>
+                <p className="mt-0.5 text-lg font-bold text-success">₦{balance.total_paid.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Unpaid</p>
-                <p className="text-lg font-semibold text-destructive">₦{balance.total_unpaid.toLocaleString()}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Unpaid</p>
+                <p className="mt-0.5 text-lg font-bold text-destructive">₦{balance.total_unpaid.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Current invoice</p>
-                <p className="text-lg font-semibold">₦{balance.current_invoice_total.toLocaleString()}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Current invoice</p>
+                <p className="mt-0.5 text-lg font-bold">₦{balance.current_invoice_total.toLocaleString()}</p>
               </div>
             </div>
           )}
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <th className="pb-2 font-medium">Ref</th>
-                  <th className="pb-2 font-medium">Amount</th>
-                  <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium">Due</th>
-                  <th className="pb-2 font-medium text-right">Record payment</th>
+                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <th className="pb-2.5 font-semibold">Ref</th>
+                  <th className="pb-2.5 font-semibold">Amount</th>
+                  <th className="pb-2.5 font-semibold">Status</th>
+                  <th className="pb-2.5 font-semibold">Due</th>
+                  <th className="pb-2.5 font-semibold text-right">Record payment</th>
                 </tr>
               </thead>
               <tbody>
                 {invoices.length === 0 ? (
-                  <tr><td colSpan={5} className="py-6 text-center text-muted-foreground">
+                  <tr><td colSpan={5} className="py-8 text-center text-[13px] text-muted-foreground/70">
                     No invoices for this student yet.
                   </td></tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b last:border-0 hover:bg-accent/40">
-                      <td className="py-2.5 font-mono text-xs">{inv.reference_number}</td>
-                      <td className="py-2.5">₦{inv.total_amount.toLocaleString()}</td>
-                      <td className="py-2.5">
-                        <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${
-                          inv.status === "paid" ? "bg-emerald-500/15 text-emerald-600" :
-                          inv.status === "partial" ? "bg-amber-500/15 text-amber-600" :
+                    <tr key={inv.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <td className="py-3 font-mono text-[11px] text-muted-foreground">{inv.reference_number}</td>
+                      <td className="py-3 font-medium">₦{inv.total_amount.toLocaleString()}</td>
+                      <td className="py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
+                          inv.status === "paid" ? "bg-success/10 text-success" :
+                          inv.status === "partial" ? "bg-warning/10 text-warning" :
                           "bg-muted text-muted-foreground"
                         }`}>{inv.status}</span>
                       </td>
-                      <td className="py-2.5">{inv.due_date}</td>
-                      <td className="py-2.5 text-right">
+                      <td className="py-3 text-muted-foreground">{inv.due_date}</td>
+                      <td className="py-3 text-right">
                         {inv.status !== "paid" && (
                           <form
                             onSubmit={submitPayment((v) => {
@@ -344,8 +346,8 @@ export default function BillingPage() {
                             })}
                             className="flex flex-wrap items-center justify-end gap-2"
                           >
-                            <Input type="number" step="0.01" placeholder="Amount" className="h-8 w-28" {...regPayment("amount")} />
-                            <select className="h-8 w-32 rounded-md border border-input bg-transparent px-2 text-sm" {...regPayment("payment_method")}>
+                            <Input type="number" step="0.01" placeholder="Amount" className="h-8 w-28 text-[12px]" {...regPayment("amount")} />
+                            <select className="flex h-8 w-32 rounded-lg border border-border/80 bg-background/50 px-2 text-[12px]" {...regPayment("payment_method")}>
                               {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                             </select>
                             <Button type="submit" size="sm" variant="outline" disabled={paymentSubmitting}>
@@ -363,17 +365,17 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Payment status — who has paid and who has not */}
-      <Card>
+      {/* Payment status */}
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle>Payment status</CardTitle>
+          <CardTitle className="text-[15px]">Payment status</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Term</Label>
+              <Label className="text-[11px] text-muted-foreground/60">Term</Label>
               <select
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                 value={statusTermId}
                 onChange={(e) => setStatusTermId(e.target.value)}
               >
@@ -384,9 +386,9 @@ export default function BillingPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Class</Label>
+              <Label className="text-[11px] text-muted-foreground/60">Class</Label>
               <select
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                 value={statusArmId}
                 onChange={(e) => setStatusArmId(e.target.value)}
               >
@@ -397,15 +399,15 @@ export default function BillingPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Owing</Label>
-              <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold text-destructive">
+              <Label className="text-[11px] text-muted-foreground/60">Owing</Label>
+              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 text-[13px] font-semibold text-destructive">
                 <XCircle className="h-4 w-4" />
                 {loadingStatus ? "…" : (feeStatus?.summary.unpaid ?? 0)} unpaid
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Cleared</Label>
-              <div className="flex h-9 items-center gap-2 rounded-md border px-3 text-sm font-semibold text-emerald-600">
+              <Label className="text-[11px] text-muted-foreground/60">Cleared</Label>
+              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 text-[13px] font-semibold text-success">
                 <CheckCircle2 className="h-4 w-4" />
                 {loadingStatus ? "…" : (feeStatus?.summary.paid ?? 0)} paid
               </div>
@@ -415,41 +417,41 @@ export default function BillingPage() {
           {loadingStatus ? (
             <Skeleton className="h-40 w-full" />
           ) : feeStatus?.students.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-[13px] text-muted-foreground/70">
               No students in this scope yet. Create invoices or enroll students to see payment status.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2 font-medium">Student</th>
-                    <th className="pb-2 font-medium">Class</th>
-                    <th className="pb-2 font-medium">Invoiced</th>
-                    <th className="pb-2 font-medium">Paid</th>
-                    <th className="pb-2 font-medium">Balance</th>
-                    <th className="pb-2 font-medium text-right">Status</th>
+                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="pb-2.5 font-semibold">Student</th>
+                    <th className="pb-2.5 font-semibold">Class</th>
+                    <th className="pb-2.5 font-semibold">Invoiced</th>
+                    <th className="pb-2.5 font-semibold">Paid</th>
+                    <th className="pb-2.5 font-semibold">Balance</th>
+                    <th className="pb-2.5 font-semibold text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {feeStatus?.students.map((s) => (
-                    <tr key={s.student_id} className="border-b last:border-0 hover:bg-accent/40">
-                      <td className="py-2.5">
+                    <tr key={s.student_id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <td className="py-3">
                         <p className="font-medium">{s.full_name}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{s.admission_no}</p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{s.admission_no}</p>
                       </td>
-                      <td className="py-2.5">{s.arm_name ?? "—"}</td>
-                      <td className="py-2.5 tabular-nums">{s.invoiced > 0 ? `₦${s.invoiced.toLocaleString()}` : "—"}</td>
-                      <td className="py-2.5 tabular-nums text-emerald-600">
+                      <td className="py-3 text-muted-foreground">{s.arm_name ?? "—"}</td>
+                      <td className="py-3 tabular-nums">{s.invoiced > 0 ? `₦${s.invoiced.toLocaleString()}` : "—"}</td>
+                      <td className="py-3 tabular-nums text-success">
                         {s.paid > 0 ? `₦${s.paid.toLocaleString()}` : "—"}
                       </td>
-                      <td className={`py-2.5 tabular-nums ${s.balance > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
+                      <td className={`py-3 tabular-nums ${s.balance > 0 ? "font-semibold text-destructive" : "text-muted-foreground"}`}>
                         {s.balance > 0 ? `₦${s.balance.toLocaleString()}` : "—"}
                       </td>
-                      <td className="py-2.5 text-right">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                          s.status === "paid" ? "bg-emerald-500/15 text-emerald-600" :
-                          s.status === "partial" ? "bg-amber-500/15 text-amber-600" :
+                      <td className="py-3 text-right">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          s.status === "paid" ? "bg-success/10 text-success" :
+                          s.status === "partial" ? "bg-warning/10 text-warning" :
                           "bg-muted text-muted-foreground"
                         }`}>
                           {s.status === "unpaid" ? "not paid" : s.status}
@@ -465,40 +467,40 @@ export default function BillingPage() {
       </Card>
 
       {/* Payments received + receipts */}
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle>Payments received</CardTitle>
+          <CardTitle className="text-[15px]">Payments received</CardTitle>
         </CardHeader>
         <CardContent>
           {payments.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-[13px] text-muted-foreground/70">
               No payments recorded yet. Record a payment on an invoice above.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="pb-2 font-medium">Receipt no.</th>
-                    <th className="pb-2 font-medium">Date</th>
-                    <th className="pb-2 font-medium">Student</th>
-                    <th className="pb-2 font-medium">Method</th>
-                    <th className="pb-2 font-medium text-right">Amount</th>
-                    <th className="pb-2 text-right font-medium">Receipt</th>
+                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <th className="pb-2.5 font-semibold">Receipt no.</th>
+                    <th className="pb-2.5 font-semibold">Date</th>
+                    <th className="pb-2.5 font-semibold">Student</th>
+                    <th className="pb-2.5 font-semibold">Method</th>
+                    <th className="pb-2.5 font-semibold text-right">Amount</th>
+                    <th className="pb-2.5 text-right font-semibold">Receipt</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payments.map((p) => {
                     const st = students.find((x) => x.id === p.student_id);
                     return (
-                      <tr key={p.id} className="border-b last:border-0 hover:bg-accent/40">
-                        <td className="py-2.5 font-mono text-xs">{p.receipt_number ?? "—"}</td>
-                        <td className="py-2.5">{p.payment_date}</td>
-                        <td className="py-2.5">{st?.full_name ?? "—"}</td>
-                        <td className="py-2.5 capitalize">{p.payment_method}</td>
-                        <td className="py-2.5 text-right tabular-nums">₦{p.amount.toLocaleString()}</td>
-                        <td className="py-2.5 text-right">
-                          <Button size="sm" variant="outline" onClick={() => setReceiptPaymentId(p.id)}>
+                      <tr key={p.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                        <td className="py-3 font-mono text-[11px] text-muted-foreground">{p.receipt_number ?? "—"}</td>
+                        <td className="py-3">{p.payment_date}</td>
+                        <td className="py-3">{st?.full_name ?? "—"}</td>
+                        <td className="py-3 capitalize text-muted-foreground">{p.payment_method}</td>
+                        <td className="py-3 text-right tabular-nums font-medium">₦{p.amount.toLocaleString()}</td>
+                        <td className="py-3 text-right">
+                          <Button size="sm" variant="outline" onClick={() => setReceiptPaymentId(p.id)} className="gap-1">
                             <Printer className="h-3.5 w-3.5" /> View
                           </Button>
                         </td>

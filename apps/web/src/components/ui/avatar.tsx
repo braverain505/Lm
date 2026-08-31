@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const AVATAR_TONES = [
-  "bg-indigo-500/12 text-indigo-600 dark:text-indigo-300",
+  "bg-primary/12 text-primary",
   "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
   "bg-amber-500/14 text-amber-700 dark:text-amber-300",
   "bg-sky-500/12 text-sky-700 dark:text-sky-300",
@@ -15,7 +15,6 @@ const AVATAR_TONES = [
 
 interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   name?: string | null;
-  /** Explicit initials override (defaults to derived initials). */
   initials?: string;
   size?: "sm" | "default" | "lg";
   src?: string | null;
@@ -44,15 +43,14 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
         className={cn(
           "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold",
           size === "sm" && "h-7 w-7 text-[10px]",
-          size === "default" && "h-9 w-9 text-xs",
-          size === "lg" && "h-11 w-11 text-sm",
+          size === "default" && "h-9 w-9 text-[11px]",
+          size === "lg" && "h-11 w-11 text-[13px]",
           !src && deriveTone(name ?? "U"),
           className,
         )}
         {...props}
       >
         {src ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={src} alt={name ?? ""} className="h-full w-full object-cover" />
         ) : (
           text

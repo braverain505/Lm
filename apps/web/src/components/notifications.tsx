@@ -35,7 +35,6 @@ export function Notifications() {
   const { term } = useSessionTerm();
   const { data, isLoading } = useDashboardSummary(term?.id ?? undefined);
 
-  // Lazily read recent activity for the bell preview (real data, tenant-scoped).
   const items = useMemo(() => data?.activity?.slice(0, 6) ?? [], [data]);
   const count = data?.tasks?.reduce((acc, t) => acc + t.count, 0) ?? 0;
 
@@ -43,10 +42,10 @@ export function Notifications() {
     <Dropdown
       contentClassName="w-80"
       trigger={
-        <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-card transition-colors hover:bg-accent/60 hover:text-foreground">
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/50 text-muted-foreground/60 shadow-sm transition-all duration-150 hover:border-border hover:bg-accent hover:text-foreground">
           <Bell className="h-4 w-4" />
           {count > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">
               {count > 99 ? "99+" : count}
             </span>
           )}
@@ -55,18 +54,20 @@ export function Notifications() {
     >
       {(close) => (
         <div>
-          <div className="flex items-center justify-between border-b px-3 py-2.5">
-            <p className="text-sm font-semibold">Notifications</p>
-            {count > 0 && <span className="text-[11px] text-muted-foreground">{count} pending tasks</span>}
+          <div className="flex items-center justify-between border-b border-border/40 px-3 py-2.5">
+            <p className="text-[13px] font-semibold">Notifications</p>
+            {count > 0 && <span className="text-[10.5px] text-muted-foreground/60">{count} pending tasks</span>}
           </div>
           <div className="scrollbar-thin max-h-80 overflow-y-auto p-1.5">
             {isLoading ? (
-              <p className="px-3 py-6 text-center text-sm text-muted-foreground">Loading activity…</p>
+              <p className="px-3 py-6 text-center text-[13px] text-muted-foreground/70">Loading activity…</p>
             ) : items.length === 0 ? (
               <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
-                <CheckCircle2 className="h-6 w-6 text-success" />
-                <p className="text-sm font-medium">You&apos;re all caught up</p>
-                <p className="text-xs text-muted-foreground">Recent actions will appear here.</p>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/10">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-[13px] font-medium">You&apos;re all caught up</p>
+                <p className="text-[11px] text-muted-foreground/60">Recent actions will appear here.</p>
               </div>
             ) : (
               items.map((a) => {
@@ -76,14 +77,14 @@ export function Notifications() {
                     key={a.id}
                     href={a.href ?? "/dashboard"}
                     onClick={close}
-                    className="flex items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent"
+                    className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-accent/60"
                   >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       <Icon className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-medium">{a.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-[11px] text-muted-foreground/70">
                         {a.actor_name} · {relative(a.created_at)}
                       </p>
                     </div>
@@ -92,11 +93,11 @@ export function Notifications() {
               })
             )}
           </div>
-          <div className="border-t p-1.5">
+          <div className="border-t border-border/40 p-1.5">
             <Link
               href="/dashboard"
               onClick={close}
-              className="block rounded-lg px-3 py-2 text-center text-[13px] font-medium text-primary hover:bg-accent"
+              className="block rounded-xl px-3 py-2 text-center text-[12px] font-semibold text-primary transition-colors hover:bg-accent/60"
             >
               View activity
             </Link>
@@ -111,27 +112,27 @@ export function ProfileMenu() {
   const { user, activeSchool } = useAuth();
   return (
     <Dropdown
-      trigger={<Avatar name={user?.full_name} className="h-9 w-9 ring-2 ring-white ring-offset-2 ring-offset-background" />}
+      trigger={<Avatar name={user?.full_name} className="h-8 w-8 ring-2 ring-white/80 ring-offset-2 ring-offset-background" />}
       contentClassName="w-64"
     >
       {(close) => (
         <div>
-          <div className="flex items-center gap-3 border-b px-3 py-3">
+          <div className="flex items-center gap-3 border-b border-border/40 px-3 py-3">
             <Avatar name={user?.full_name} className="h-10 w-10" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{user?.full_name}</p>
-              <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+              <p className="truncate text-[13px] font-semibold">{user?.full_name}</p>
+              <p className="truncate text-[11px] text-muted-foreground/70">{user?.email}</p>
             </div>
           </div>
-          <div className="px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Current role</p>
+          <div className="px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">Current role</p>
             <p className="mt-0.5 text-[13px] font-medium capitalize">
               {activeSchool?.role?.name ?? "Member"}
             </p>
           </div>
-          <div className="border-t" />
-          <Link href="/settings" onClick={close} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium hover:bg-accent">
-            <span className="text-muted-foreground">Account settings</span>
+          <div className="border-t border-border/40" />
+          <Link href="/settings" onClick={close} className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors hover:bg-accent/60">
+            <span className="text-muted-foreground/70">Account settings</span>
           </Link>
         </div>
       )}

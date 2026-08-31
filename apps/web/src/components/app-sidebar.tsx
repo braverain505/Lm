@@ -51,27 +51,29 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
     <aside
       className={cn(
         "flex h-full flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-300 ease-in-out",
-        collapsed ? "w-[76px]" : "w-[260px]",
+        collapsed ? "w-[72px]" : "w-[260px]",
       )}
     >
       {/* Brand */}
-      <div className={cn("flex h-16 shrink-0 items-center border-b border-sidebar-border", collapsed ? "justify-center px-3" : "gap-3 px-5")}>
-        <Link href="/dashboard" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
+      <div className={cn("flex h-[60px] shrink-0 items-center border-b border-white/[0.06]", collapsed ? "justify-center px-3" : "gap-3 px-5")}>
+        <Link href="/dashboard" className="flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           {schoolProfile?.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-11 w-11 shrink-0 rounded-lg bg-white object-contain" />
+            <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain" />
           ) : (
-            <Image src="/logo_lumo.png" alt="Lumo" width={1536} height={1024} priority className="h-11 w-auto shrink-0 rounded-lg object-contain" />
+            <Image src="/logo_lumo.png" alt="Lumo" width={1536} height={1024} priority className="h-9 w-auto shrink-0 rounded-lg object-contain" />
+          )}
+          {!collapsed && (
+            <span className="text-[14px] font-bold tracking-tight text-white/90">Lumo</span>
           )}
         </Link>
       </div>
 
       {/* School context */}
       {!collapsed && activeSchool && (
-        <div className="shrink-0 px-4 pt-4">
-          <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/60 px-3.5 py-3">
-            <p className="truncate text-[13px] font-semibold text-white">{activeSchool.school_name}</p>
-            <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-sidebar-muted">
+        <div className="shrink-0 px-3 pt-3">
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.04] px-3.5 py-2.5">
+            <p className="truncate text-[12px] font-semibold text-white/90">{activeSchool.school_name}</p>
+            <p className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-sidebar-muted">
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
               {session ? session.name : "No active session"}
               {term ? ` · ${term.name}` : ""}
@@ -81,11 +83,11 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
       )}
 
       {/* Nav */}
-      <nav className="scrollbar-thin flex-1 space-y-5 overflow-y-auto px-3 py-4">
+      <nav className="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-3 pt-4 pb-2">
         {sections.map((section) => (
           <div key={section.label}>
             {!collapsed && (
-              <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-sidebar-muted/70">
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-muted/50">
                 {section.label}
               </p>
             )}
@@ -99,18 +101,20 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
                     aria-current={active ? "page" : undefined}
                     title={collapsed ? label : undefined}
                     className={cn(
-                      "group relative flex items-center rounded-lg text-[13px] font-medium transition-colors",
-                      collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2",
+                      "group relative flex items-center rounded-xl text-[13px] font-medium transition-all duration-150",
+                      collapsed ? "justify-center px-2 py-2" : "gap-2.5 px-3 py-2",
                       active
-                        ? "bg-sidebar-active text-white"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-white",
+                        ? "bg-white/[0.1] text-white shadow-sm shadow-black/10"
+                        : "text-sidebar-foreground/70 hover:bg-white/[0.06] hover:text-white/90",
                     )}
                   >
-                    {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-sidebar-primary" />}
+                    {active && (
+                      <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                    )}
                     <Icon
                       className={cn(
-                        "h-4 w-4 shrink-0 transition-colors",
-                        active ? "text-sidebar-primary" : "text-sidebar-muted group-hover:text-sidebar-foreground",
+                        "h-[18px] w-[18px] shrink-0 transition-colors duration-150",
+                        active ? "text-sidebar-primary" : "text-sidebar-muted/60 group-hover:text-sidebar-foreground/80",
                       )}
                     />
                     {!collapsed && <span className="truncate">{label}</span>}
@@ -128,35 +132,35 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
         onClick={onToggle}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         className={cn(
-          "focus-ring mx-3 mb-1 flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-medium text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-white",
+          "mx-3 mb-2 flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted/50 transition-colors hover:bg-white/[0.06] hover:text-white/70",
           collapsed && "justify-center",
         )}
       >
         {collapsed ? <PanelLeft className="h-4 w-4" /> : (
           <>
-            <ChevronLeft className="h-4 w-4" />
-            Collapse
+            <ChevronLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <span>Collapse</span>
           </>
         )}
       </button>
 
       {/* Profile */}
-      <div className="shrink-0 border-t border-sidebar-border p-3">
-        <div className={cn("rounded-xl", collapsed ? "flex justify-center" : "bg-sidebar-accent/60 p-3")}>
-          <div className={cn("flex items-center", collapsed ? "flex-col" : "gap-3")}>
-            <Link href="/settings" className="focus-ring rounded-full" onClick={onNavigate} title={collapsed ? user?.full_name ?? "Profile" : undefined}>
-              <Avatar name={user?.full_name} initials={initials} className="bg-gradient-to-br from-indigo-500 to-indigo-700 text-white ring-2 ring-white/10" />
+      <div className="shrink-0 border-t border-white/[0.06] p-3">
+        <div className={cn("rounded-xl", collapsed ? "flex justify-center" : "bg-white/[0.04] p-2.5")}>
+          <div className={cn("flex items-center", collapsed ? "flex-col" : "gap-2.5")}>
+            <Link href="/settings" className="rounded-full" onClick={onNavigate} title={collapsed ? user?.full_name ?? "Profile" : undefined}>
+              <Avatar name={user?.full_name} initials={initials} className="h-8 w-8 bg-gradient-to-br from-indigo-500 to-indigo-700 text-[11px] text-white ring-2 ring-white/10" />
             </Link>
             {!collapsed && (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-white">{user?.full_name}</p>
-                <p className="truncate text-[11px] text-sidebar-muted capitalize">{activeSchool?.role?.name ?? "Member"}</p>
+                <p className="truncate text-[12px] font-semibold text-white/90">{user?.full_name}</p>
+                <p className="truncate text-[10.5px] text-sidebar-muted capitalize">{activeSchool?.role?.name ?? "Member"}</p>
               </div>
             )}
           </div>
 
-          {!collapsed && memberships.length > 0 && (
-            <div className="mt-3">
+          {!collapsed && memberships.length > 1 && (
+            <div className="mt-2">
               <label htmlFor="school-switcher" className="sr-only">
                 Switch school
               </label>
@@ -167,7 +171,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
                   const m = memberships.find((x) => x.school_id === e.target.value);
                   if (m) setActiveSchool(m);
                 }}
-                className="w-full rounded-lg border border-sidebar-border bg-sidebar px-2.5 py-1.5 text-xs font-medium text-sidebar-foreground outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary"
+                className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary"
               >
                 {memberships.map((m) => (
                   <option key={m.school_id} value={m.school_id} className="bg-sidebar text-white">
@@ -181,7 +185,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
           {!collapsed && (
             <button
               onClick={handleLogout}
-              className="focus-ring mt-2 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-white"
+              className="mt-2 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium text-sidebar-muted/60 transition-colors hover:bg-white/[0.06] hover:text-white/70"
             >
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </button>
@@ -190,7 +194,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
             <button
               onClick={handleLogout}
               title="Sign out"
-              className="focus-ring mt-2 flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-accent hover:text-white"
+              className="mt-2 flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sidebar-muted/60 transition-colors hover:bg-white/[0.06] hover:text-white/70"
             >
               <LogOut className="h-4 w-4" />
             </button>

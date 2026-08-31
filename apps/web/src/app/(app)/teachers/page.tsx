@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { KeyRound, Mail, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
@@ -30,7 +31,7 @@ import {
 
 function ErrorNote({ message }: { message?: string | null }) {
   if (!message) return null;
-  return <p className="text-xs text-destructive">{message}</p>;
+  return <p className="text-[11px] text-destructive">{message}</p>;
 }
 
 const accountCreateSchema = z.object({
@@ -58,7 +59,6 @@ export default function TeachersPage() {
   const queryClient = useQueryClient();
   const { data: staff = [], isLoading } = useStaff();
 
-  // --- Add teacher form ------------------------------------------------------
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({
     staff_no: "",
@@ -70,7 +70,6 @@ export default function TeachersPage() {
   });
   const createStaff = useCreateStaff();
 
-  // --- Account (create or change login, per-row expansion) --------------------
   const [accountFor, setAccountFor] = useState<string | null>(null);
   const [accountMode, setAccountMode] = useState<"create" | "change">("create");
   const [accountEmail, setAccountEmail] = useState("");
@@ -81,7 +80,6 @@ export default function TeachersPage() {
   const updateAccount = useUpdateStaffAccount();
   const { data: roles = [] } = useRoles();
 
-  // --- Assignment (per-row expansion) -----------------------------------------
   const [assignFor, setAssignFor] = useState<string | null>(null);
   const [assignArm, setAssignArm] = useState("");
   const [assignSubject, setAssignSubject] = useState("");
@@ -216,111 +214,90 @@ export default function TeachersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Staff &amp; Teachers</h1>
-          <p className="text-sm text-muted-foreground">
-            {staff.length} staff records · add teachers, create their logins, assign classes &amp; subjects
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Staff &amp; Teachers</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {staff.length} staff records · add teachers, create logins, assign classes &amp; subjects
           </p>
         </div>
-        <Button onClick={() => setAddOpen((v) => !v)}>
+        <Button onClick={() => setAddOpen((v) => !v)} className="gap-1.5">
           <Plus className="h-4 w-4" /> {addOpen ? "Close" : "Add teacher"}
         </Button>
       </div>
 
-      {/* Add teacher form */}
       {addOpen && (
-        <Card>
-          <CardHeader>
-            <CardTitle>New staff member</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={onAddTeacher} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Staff no.</Label>
-                <Input
-                  placeholder="TCH-001"
-                  value={form.staff_no}
-                  onChange={(e) => setForm({ ...form, staff_no: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Full name</Label>
-                <Input
-                  placeholder="Adeola Johnson"
-                  value={form.full_name}
-                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <select
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                  value={form.membership_type}
-                  onChange={(e) => setForm({ ...form, membership_type: e.target.value })}
-                >
-                  <option value="teaching">Teaching</option>
-                  <option value="non-teaching">Non-teaching</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Gender</Label>
-                <select
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                  value={form.gender}
-                  onChange={(e) => setForm({ ...form, gender: e.target.value })}
-                >
-                  <option value="">—</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label>Phone (optional)</Label>
-                <Input
-                  placeholder="0803…"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email (optional)</Label>
-                <Input
-                  type="email"
-                  placeholder="adeola@school.edu"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <Button type="submit" disabled={createStaff.isPending}>
-                  {createStaff.isPending ? "Saving…" : "Create"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-              <ErrorNote message={createStaff.error?.message} />
-            </form>
-          </CardContent>
-        </Card>
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <Card className="premium-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                  <Plus className="h-4 w-4 text-primary" />
+                </span>
+                New staff member
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={onAddTeacher} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label>Staff no.</Label>
+                  <Input placeholder="TCH-001" value={form.staff_no} onChange={(e) => setForm({ ...form, staff_no: e.target.value })} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Full name</Label>
+                  <Input placeholder="Adeola Johnson" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Type</Label>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={form.membership_type} onChange={(e) => setForm({ ...form, membership_type: e.target.value })}>
+                    <option value="teaching">Teaching</option>
+                    <option value="non-teaching">Non-teaching</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Gender</Label>
+                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                    <option value="">—</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone (optional)</Label>
+                  <Input placeholder="0803…" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email (optional)</Label>
+                  <Input type="email" placeholder="adeola@school.edu" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button type="submit" disabled={createStaff.isPending}>
+                    {createStaff.isPending ? "Saving…" : "Create"}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                </div>
+                <ErrorNote message={createStaff.error?.message} />
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Staff table */}
-      <Card>
-        <CardContent className="overflow-x-auto p-4">
-          <table className="w-full text-sm">
+      <Card className="premium-card">
+        <CardContent className="overflow-x-auto p-5">
+          <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="pb-2 font-medium">Staff no.</th>
-                <th className="pb-2 font-medium">Name</th>
-                <th className="pb-2 font-medium">Type</th>
-                <th className="pb-2 font-medium">Status</th>
-                <th className="pb-2 font-medium">Login</th>
-                <th className="pb-2 font-medium text-right">Actions</th>
+              <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <th className="pb-2.5 font-semibold">Staff no.</th>
+                <th className="pb-2.5 font-semibold">Name</th>
+                <th className="pb-2.5 font-semibold">Type</th>
+                <th className="pb-2.5 font-semibold">Status</th>
+                <th className="pb-2.5 font-semibold">Login</th>
+                <th className="pb-2.5 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -330,8 +307,15 @@ export default function TeachersPage() {
                 </tr>
               ) : staff.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
-                    No staff yet. Use “Add teacher” to create your first staff record.
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
+                        <Plus className="h-5 w-5 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-[13px] font-medium text-muted-foreground/70">
+                        No staff yet. Use &ldquo;Add teacher&rdquo; to create your first staff record.
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -439,37 +423,38 @@ function TeacherRow(props: TeacherRowProps) {
 
   return (
     <>
-      <tr className="border-b last:border-0 hover:bg-accent/40">
-        <td className="py-2.5 font-mono text-xs">{staff.staff_no}</td>
-        <td className="py-2.5 font-medium">{staff.full_name}</td>
-        <td className="py-2.5 capitalize">{staff.membership_type.replace("_", " ")}</td>
-        <td className="py-2.5">
+      <tr className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+        <td className="py-3 font-mono text-[11px] text-muted-foreground">{staff.staff_no}</td>
+        <td className="py-3 font-medium">{staff.full_name}</td>
+        <td className="py-3 capitalize text-muted-foreground">{staff.membership_type.replace("_", " ")}</td>
+        <td className="py-3">
           <Badge variant={staff.employment_status === "active" ? "default" : "muted"}>
             {staff.employment_status}
           </Badge>
         </td>
-        <td className="py-2.5">
+        <td className="py-3">
           {staff.has_account ? (
             <Badge variant="outline" className="gap-1.5">
-              <Mail className="h-3 w-3 text-muted-foreground" />
+              <Mail className="h-3 w-3 text-muted-foreground/60" />
               <span className="max-w-[180px] truncate">{staff.account_email ?? "Has login"}</span>
             </Badge>
           ) : (
             <Badge variant="muted">No login</Badge>
           )}
         </td>
-        <td className="py-2.5">
+        <td className="py-3">
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => { setAssignFor(showAssign ? null : staffId); closeAccountForm(); }}>
-              {showAssign ? "Close" : "Assign subjects"}
+              {showAssign ? "Close" : "Assign"}
             </Button>
             <Button
               variant={staff.has_account ? "outline" : "default"}
               size="sm"
               onClick={() => openAccountForm(staff)}
+              className="gap-1"
             >
               <KeyRound className="h-3.5 w-3.5" />
-              {showAccount ? "Close" : staff.has_account ? "Change login" : "Create login"}
+              {showAccount ? "Close" : staff.has_account ? "Login" : "Create login"}
             </Button>
             <Button
               variant="outline"
@@ -487,9 +472,9 @@ function TeacherRow(props: TeacherRowProps) {
 
       {showAccount && (
         <tr>
-          <td colSpan={6} className="border-b bg-muted/30 px-4 py-4">
+          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
             <form onSubmit={onSubmitAccount} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Email (login)</Label>
                 <Input
                   type="email"
@@ -498,9 +483,9 @@ function TeacherRow(props: TeacherRowProps) {
                   onChange={(e) => { setAccountEmail(e.target.value); setAccountErrors({}); }}
                   required
                 />
-                {accountErrors.email && <p className="text-xs text-destructive">{accountErrors.email}</p>}
+                {accountErrors.email && <p className="text-[11px] text-destructive">{accountErrors.email}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Password {accountMode === "change" && "(blank = keep)"}</Label>
                 <Input
                   type="password"
@@ -510,12 +495,12 @@ function TeacherRow(props: TeacherRowProps) {
                   required={accountMode === "create"}
                   minLength={8}
                 />
-                {accountErrors.password && <p className="text-xs text-destructive">{accountErrors.password}</p>}
+                {accountErrors.password && <p className="text-[11px] text-destructive">{accountErrors.password}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Role</Label>
                 <select
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                   value={accountRole}
                   onChange={(e) => { setAccountRole(e.target.value); setAccountErrors({}); }}
                   required
@@ -527,11 +512,11 @@ function TeacherRow(props: TeacherRowProps) {
                     </option>
                   ))}
                 </select>
-                {accountErrors.role && <p className="text-xs text-destructive">{accountErrors.role}</p>}
+                {accountErrors.role && <p className="text-[11px] text-destructive">{accountErrors.role}</p>}
               </div>
               <div className="flex items-end gap-2">
                 <Button type="submit" disabled={accountPending}>
-                  {accountPending ? "Saving…" : accountMode === "change" ? "Save changes" : "Create login"}
+                  {accountPending ? "Saving…" : accountMode === "change" ? "Save" : "Create login"}
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={closeAccountForm}>
                   <X className="h-4 w-4" />
@@ -545,42 +530,38 @@ function TeacherRow(props: TeacherRowProps) {
 
       {showAssign && (
         <tr>
-          <td colSpan={6} className="border-b bg-muted/30 px-4 py-4">
+          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
             <div className="space-y-4">
               <form onSubmit={onAssign} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Class arm</Label>
                   <select
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                     value={assignArm}
                     onChange={(e) => { setAssignArm(e.target.value); setAssignErrors({}); }}
                     required
                   >
                     <option value="">Choose arm…</option>
                     {arms.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.full_name}
-                      </option>
+                      <option key={a.id} value={a.id}>{a.full_name}</option>
                     ))}
                   </select>
-                  {assignErrors.arm && <p className="text-xs text-destructive">{assignErrors.arm}</p>}
+                  {assignErrors.arm && <p className="text-[11px] text-destructive">{assignErrors.arm}</p>}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label>Subject</Label>
                   <select
-                    className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
                     value={assignSubject}
                     onChange={(e) => { setAssignSubject(e.target.value); setAssignErrors({}); }}
                     required
                   >
                     <option value="">Choose subject…</option>
                     {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
+                      <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
-                  {assignErrors.subject && <p className="text-xs text-destructive">{assignErrors.subject}</p>}
+                  {assignErrors.subject && <p className="text-[11px] text-destructive">{assignErrors.subject}</p>}
                 </div>
                 <div className="flex items-end">
                   <Button type="submit" disabled={assignPending}>
@@ -591,22 +572,22 @@ function TeacherRow(props: TeacherRowProps) {
               </form>
 
               <div>
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                   Currently teaching
                 </p>
                 {assignments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No subjects assigned yet.</p>
+                  <p className="text-[13px] text-muted-foreground/70">No subjects assigned yet.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {assignments.map((a) => (
                       <span
                         key={a.assignment_id}
-                        className="inline-flex items-center gap-2 rounded-md border bg-background px-2.5 py-1 text-sm"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-2.5 py-1 text-[12px]"
                       >
                         {a.arm_name} · {a.subject_name}
                         <button
                           onClick={() => onUnassign(a.assignment_id)}
-                          className="text-muted-foreground hover:text-destructive"
+                          className="text-muted-foreground/40 transition-colors hover:text-destructive"
                           aria-label="Remove assignment"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

@@ -4,11 +4,8 @@ import { cn } from "@/lib/utils";
 
 interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   value: number;
-  /** Color of the fill track. */
   indicatorClassName?: string;
-  /** Rendered size: thin / default / lg */
   size?: "sm" | "default" | "lg";
-  /** Show a subtle striped shimmer when in progress. */
   indeterminate?: boolean;
 }
 
@@ -23,10 +20,10 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
         aria-valuemin={0}
         aria-valuemax={100}
         className={cn(
-          "relative w-full overflow-hidden rounded-full bg-muted",
+          "relative w-full overflow-hidden rounded-full bg-muted/60",
           size === "sm" && "h-1",
           size === "default" && "h-1.5",
-          size === "lg" && "h-2.5",
+          size === "lg" && "h-2",
           className,
         )}
         {...props}

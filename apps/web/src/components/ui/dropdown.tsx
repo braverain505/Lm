@@ -12,7 +12,6 @@ interface DropdownProps {
   contentClassName?: string;
 }
 
-/** Lightweight popover menu with outside-click dismissal. */
 export function Dropdown({ trigger, children, align = "end", className, contentClassName }: DropdownProps) {
   const [open, setOpen] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
@@ -40,7 +39,7 @@ export function Dropdown({ trigger, children, align = "end", className, contentC
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="focus-ring rounded-lg outline-none"
+        className="rounded-xl outline-none transition-all duration-150"
       >
         {trigger}
       </button>
@@ -48,7 +47,7 @@ export function Dropdown({ trigger, children, align = "end", className, contentC
         <div
           role="menu"
           className={cn(
-            "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border bg-card p-1.5 shadow-pop animate-scale-in",
+            "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border border-border/60 bg-card p-1.5 shadow-pop animate-scale-in",
             align === "end" ? "right-0" : "left-0",
             contentClassName,
           )}
@@ -86,12 +85,12 @@ export function MenuItem({ className, icon, variant = "default", children, ...pr
 
 export function MenuLabel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <p className={cn("px-3 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground", className)}>
+    <p className={cn("px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60", className)}>
       {children}
     </p>
   );
 }
 
 export function MenuSeparator({ className }: { className?: string }) {
-  return <div className={cn("my-1.5 h-px bg-border", className)} />;
+  return <div className={cn("my-1 h-px bg-border/60", className)} />;
 }

@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "focus-ring inline-flex h-9 items-center justify-between gap-2 whitespace-nowrap rounded-lg border border-input bg-background px-3 text-sm font-medium shadow-card transition-colors hover:bg-accent/60 data-[placeholder]:text-muted-foreground",
+      "inline-flex h-9 items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] font-medium shadow-sm transition-all duration-150 hover:bg-accent hover:border-border focus-visible:outline-none focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/10 data-[placeholder]:text-muted-foreground/50",
       className,
     )}
     {...props}
@@ -26,7 +26,7 @@ const SelectTrigger = React.forwardRef<
       {children}
     </span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -42,7 +42,7 @@ const SelectContent = React.forwardRef<
       position={position}
       sideOffset={6}
       className={cn(
-        "z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-xl border bg-card p-1 shadow-pop animate-scale-in",
+        "z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-xl border border-border/60 bg-card p-1 shadow-pop animate-scale-in",
         position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
         className,
       )}
@@ -63,7 +63,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg py-2 pl-3 pr-8 text-sm outline-none transition-colors data-[disabled]:pointer-events-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg py-2 pl-3 pr-8 text-[13px] outline-none transition-colors data-[disabled]:pointer-events-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:opacity-50",
       className,
     )}
     {...props}

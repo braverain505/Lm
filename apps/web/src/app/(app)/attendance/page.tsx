@@ -80,15 +80,15 @@ export default function AttendancePage() {
       : staff.find((s) => s.id === staffId)?.full_name;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Attendance</h1>
-          <p className="text-sm text-muted-foreground">
-            Mark daily attendance and review monthly summaries.
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-[22px] font-bold tracking-tight text-foreground">Attendance</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Mark daily attendance and review summaries.
           </p>
         </div>
-        <div className="flex rounded-md border border-input p-0.5 text-sm">
+        <div className="flex rounded-xl border border-border/60 bg-muted/40 p-0.5 text-[12px]">
           {(["students", "staff"] as const).map((m) => (
             <button
               key={m}
@@ -96,7 +96,9 @@ export default function AttendancePage() {
                 setMode(m);
                 reset();
               }}
-              className={`rounded px-3 py-1.5 capitalize ${mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              className={`rounded-lg px-3.5 py-1.5 font-medium capitalize transition-all duration-150 ${
+                mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               {m}
             </button>
@@ -104,16 +106,18 @@ export default function AttendancePage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="premium-card">
         <CardHeader>
-          <CardTitle>Mark {mode === "students" ? "student" : "staff"} attendance</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-[15px]">
+            Mark {mode === "students" ? "student" : "staff"} attendance
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>{mode === "students" ? "Student" : "Staff member"}</Label>
               <select
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
                 value={subjectId}
                 onChange={(e) => (mode === "students" ? setStudentId(e.target.value) : setStaffId(e.target.value))}
               >
@@ -132,22 +136,22 @@ export default function AttendancePage() {
           {subjectId && (
             <form
               onSubmit={handleSubmit(mark)}
-              className="grid gap-4 rounded-md border p-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-4"
             >
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Date</Label>
                 <Input type="date" defaultValue={todayISO()} {...register("attendance_date")} />
-                {errors.attendance_date && <p className="text-xs text-destructive">{errors.attendance_date.message}</p>}
+                {errors.attendance_date && <p className="text-[11px] text-destructive">{errors.attendance_date.message}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Status</Label>
-                <select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" {...register("status")}>
+                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...register("status")}>
                   {(["present", "absent", "late", "excused"] as const).map((s) => (
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label>Notes (optional)</Label>
                 <Input placeholder="e.g. medical appointment" {...register("notes")} />
               </div>
@@ -162,41 +166,41 @@ export default function AttendancePage() {
       </Card>
 
       {subjectId && (
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="premium-card lg:col-span-2">
             <CardHeader>
-              <CardTitle>Records — {personName ?? ""}</CardTitle>
+              <CardTitle className="text-[15px]">Records — {personName ?? ""}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="pb-2 font-medium">Date</th>
-                      <th className="pb-2 font-medium">Status</th>
-                      <th className="pb-2 font-medium">Notes</th>
+                    <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      <th className="pb-2.5 font-semibold">Date</th>
+                      <th className="pb-2.5 font-semibold">Status</th>
+                      <th className="pb-2.5 font-semibold">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoading ? (
                       <tr><td colSpan={3}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                     ) : records.length === 0 ? (
-                      <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">
+                      <tr><td colSpan={3} className="py-12 text-center text-[13px] text-muted-foreground/70">
                         No attendance marked yet.
                       </td></tr>
                     ) : (
                       records.map((r) => (
-                        <tr key={r.id} className="border-b last:border-0 hover:bg-accent/40">
-                          <td className="py-2.5">{r.date}</td>
-                          <td className="py-2.5">
-                            <span className={`rounded-full px-2 py-0.5 text-xs capitalize ${
-                              r.status === "present" ? "bg-emerald-500/15 text-emerald-600" :
-                              r.status === "absent" ? "bg-destructive/15 text-destructive" :
-                              r.status === "late" ? "bg-amber-500/15 text-amber-600" :
+                        <tr key={r.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                          <td className="py-3">{r.date}</td>
+                          <td className="py-3">
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
+                              r.status === "present" ? "bg-success/10 text-success" :
+                              r.status === "absent" ? "bg-destructive/10 text-destructive" :
+                              r.status === "late" ? "bg-warning/10 text-warning" :
                               "bg-muted text-muted-foreground"
                             }`}>{STATUS_LABELS[r.status] ?? r.status}</span>
                           </td>
-                          <td className="py-2.5 text-muted-foreground">{r.notes ?? "—"}</td>
+                          <td className="py-3 text-muted-foreground">{r.notes ?? "—"}</td>
                         </tr>
                       ))
                     )}
@@ -207,19 +211,19 @@ export default function AttendancePage() {
           </Card>
 
           {summary && (
-            <Card>
+            <Card className="premium-card">
               <CardHeader>
-                <CardTitle>{mode === "students" ? "Month summary" : "Summary"}</CardTitle>
+                <CardTitle className="text-[15px]">{mode === "students" ? "Month summary" : "Summary"}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-2.5 text-[13px]">
                 <div className="flex justify-between"><span className="text-muted-foreground">Days</span><span className="font-medium">{summary.total_days}</span></div>
-                <div className="flex justify-between"><span className="text-emerald-600">Present</span><span className="font-medium">{summary.present_days}</span></div>
+                <div className="flex justify-between"><span className="text-success">Present</span><span className="font-medium">{summary.present_days}</span></div>
                 <div className="flex justify-between"><span className="text-destructive">Absent</span><span className="font-medium">{summary.absent_days}</span></div>
-                <div className="flex justify-between"><span className="text-amber-600">Late</span><span className="font-medium">{summary.late_days}</span></div>
+                <div className="flex justify-between"><span className="text-warning">Late</span><span className="font-medium">{summary.late_days}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Excused</span><span className="font-medium">{summary.excused_days}</span></div>
-                <div className="mt-2 border-t pt-2 flex justify-between">
-                  <span className="font-medium">Percentage</span>
-                  <span className="font-semibold">{summary.percentage}%</span>
+                <div className="mt-2 border-t border-border/40 pt-2.5 flex justify-between">
+                  <span className="font-semibold">Percentage</span>
+                  <span className="font-bold text-primary">{summary.percentage}%</span>
                 </div>
               </CardContent>
             </Card>

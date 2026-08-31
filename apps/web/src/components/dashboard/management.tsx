@@ -25,18 +25,28 @@ function Greeting() {
   const { term } = useSessionTerm();
   const hour = new Date().getHours();
   const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  const today = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/[0.08] via-cyan-400/[0.06] to-transparent px-5 py-4 sm:px-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-          {part}, {user?.full_name?.split(" ")[0] ?? "there"}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Here&apos;s what&apos;s happening at {activeSchool?.school_name} — {today}.
-        </p>
+    <div className="rounded-2xl border border-primary/[0.08] bg-gradient-to-br from-primary/[0.04] via-primary/[0.02] to-transparent px-6 py-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-[20px] font-bold tracking-tight text-foreground sm:text-[22px]">
+            {part}, {user?.full_name?.split(" ")[0] ?? "there"}
+          </h2>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Here&apos;s what&apos;s happening at {activeSchool?.school_name} — {today}
+          </p>
+        </div>
+        {term && (
+          <span className="rounded-full border border-primary/15 bg-primary/5 px-3 py-1.5 text-[11px] font-semibold text-primary">
+            {term.name}
+          </span>
+        )}
       </div>
-      {term && <span className="rounded-full border border-primary/20 bg-card/80 px-3 py-1.5 text-xs font-semibold text-primary">{term.name}</span>}
     </div>
   );
 }
@@ -56,9 +66,8 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
 
   if (variant === "academic") {
     return (
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Greeting />
-
         <KpiRow data={summary} loading={isLoading} />
 
         <div className="grid gap-4 xl:grid-cols-3">
@@ -86,9 +95,8 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Greeting />
-
       <KpiRow data={summary} loading={isLoading} />
 
       <div className="grid gap-4 xl:grid-cols-3">

@@ -10,7 +10,7 @@ import { SessionTermProvider } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 
 const SIDEBAR_WIDTH = 260;
-const SIDEBAR_WIDTH_COLLAPSED = 76;
+const SIDEBAR_WIDTH_COLLAPSED = 72;
 const COLLAPSE_KEY = "schoolos.sidebar-collapsed";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Mobile drawer */}
         {mobileOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
-            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in-soft" onClick={() => setMobileOpen(false)} />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in-soft" onClick={() => setMobileOpen(false)} />
             <div className="absolute inset-y-0 left-0 w-[280px] shadow-pop animate-slide-in-right">
               <AppSidebar
                 collapsed={false}
@@ -75,15 +75,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           className="flex min-h-screen flex-col transition-[padding] duration-300 ease-in-out print:!pl-0"
           style={{ paddingLeft: isDesktop ? (collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH) : 0 }}
         >
-          {/* Mobile spacer only — header is sticky within the padded column */}
           <div className="lg:hidden" />
           <AppHeader pathname={pathname} onOpenMobileNav={() => setMobileOpen(true)} />
           <motion.main
             key={pathname}
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="mx-auto w-full max-w-[1600px] flex-1 p-5 sm:p-6 lg:p-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6 lg:p-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
           >
             {children}
           </motion.main>

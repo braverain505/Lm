@@ -4,67 +4,86 @@
 
 @layer base {
   :root {
-    --background: 226 22% 97%;
-    --foreground: 224 20% 12%;
+    /* Refined neutral background — slightly warm grey */
+    --background: 220 16% 97%;
+    --foreground: 224 24% 10%;
+
+    /* Pure white cards */
     --card: 0 0% 100%;
-    --card-foreground: 224 20% 12%;
-    --primary: 207 100% 50%;
+    --card-foreground: 224 24% 10%;
+
+    /* Deep indigo primary — premium, trustworthy */
+    --primary: 234 80% 52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 187 100% 48%;
+
+    /* Emerald secondary */
+    --secondary: 160 60% 42%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 16% 96%;
-    --muted-foreground: 221 12% 46%;
-    --accent: 45 100% 50%;
-    --accent-foreground: 224 20% 12%;
+
+    /* Refined muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 44%;
+
+    /* Subtle accent for hovers */
+    --accent: 220 14% 94%;
+    --accent-foreground: 224 24% 10%;
+
+    /* Destructive — restrained red */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 66% 36%;
-    --warning: 34 92% 45%;
-    --info: 187 100% 48%;
-    --border: 220 18% 90%;
-    --input: 220 18% 88%;
-    --ring: 207 100% 50%;
-    --radius: 0.75rem;
 
-    /* Dark sidebar (always dark, indigo-tinted slate) */
-    --sidebar: 207 90% 12%;
-    --sidebar-foreground: 187 100% 85%;
-    --sidebar-muted: 207 50% 55%;
-    --sidebar-accent: 187 100% 48%;
-    --sidebar-active: 207 100% 45%;
-    --sidebar-border: 207 70% 25%;
-    --sidebar-primary: 187 100% 65%;
+    /* Semantic colors */
+    --success: 152 60% 36%;
+    --warning: 34 84% 44%;
+    --info: 210 80% 52%;
 
-    /* Chart palette */
-    --chart-1: 207 100% 50%;
-    --chart-2: 187 100% 48%;
-    --chart-3: 152 66% 36%;
-    --chart-4: 34 92% 45%;
-    --chart-5: 45 100% 50%;
+    /* Refined borders — very subtle */
+    --border: 220 12% 91%;
+    --input: 220 12% 89%;
+    --ring: 234 80% 52%;
+
+    /* Larger radius for premium feel */
+    --radius: 0.875rem;
+
+    /* Sidebar — deep indigo-tinted dark */
+    --sidebar: 230 56% 12%;
+    --sidebar-foreground: 216 40% 80%;
+    --sidebar-muted: 218 34% 56%;
+    --sidebar-accent: 224 50% 22%;
+    --sidebar-active: 234 60% 42%;
+    --sidebar-border: 226 40% 22%;
+    --sidebar-primary: 195 80% 65%;
+
+    /* Chart palette — harmonious */
+    --chart-1: 234 80% 52%;
+    --chart-2: 195 78% 48%;
+    --chart-3: 152 60% 36%;
+    --chart-4: 34 84% 44%;
+    --chart-5: 270 60% 50%;
     --chart-6: 0 72% 51%;
   }
 
   .dark {
-    --background: 207 70% 8%;
-    --foreground: 187 100% 92%;
-    --card: 207 60% 12%;
-    --card-foreground: 187 100% 92%;
-    --primary: 207 100% 58%;
+    --background: 230 30% 8%;
+    --foreground: 210 20% 92%;
+    --card: 228 24% 13%;
+    --card-foreground: 210 20% 92%;
+    --primary: 234 76% 62%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 187 100% 48%;
+    --secondary: 160 50% 48%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 207 50% 25%;
-    --muted-foreground: 207 50% 65%;
-    --accent: 45 100% 58%;
-    --accent-foreground: 207 70% 12%;
+    --muted: 224 20% 22%;
+    --muted-foreground: 218 16% 58%;
+    --accent: 224 20% 18%;
+    --accent-foreground: 210 20% 92%;
     --destructive: 0 66% 52%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 66% 44%;
-    --warning: 34 92% 52%;
-    --info: 187 100% 55%;
-    --border: 207 60% 22%;
-    --input: 207 60% 20%;
-    --ring: 207 100% 58%;
+    --success: 152 55% 44%;
+    --warning: 34 84% 52%;
+    --info: 210 72% 56%;
+    --border: 224 20% 20%;
+    --input: 224 20% 18%;
+    --ring: 234 76% 62%;
   }
 }
 
@@ -79,22 +98,33 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   ::selection {
-    background: hsl(var(--primary) / 0.14);
+    background: hsl(var(--primary) / 0.12);
+  }
+
+  /* Improve focus visibility for accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
 @layer utilities {
+  /* Scrollbar styling */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/25 rounded-full;
+    @apply rounded-full;
+    background: hsl(var(--muted-foreground) / 0.18);
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
+    background: hsl(var(--muted-foreground) / 0.3);
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
@@ -106,45 +136,73 @@
     scrollbar-width: none;
   }
 
+  /* Premium card — subtle shadow, clean border */
   .premium-card {
-    @apply rounded-xl border bg-card shadow-card transition-shadow hover:shadow-card-hover;
+    @apply rounded-2xl border bg-card transition-all;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04);
   }
+  .premium-card:hover {
+    box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  }
+
+  /* Stat card — hover lift */
   .stat-card {
-    @apply rounded-xl border bg-card p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-card-hover;
+    @apply rounded-2xl border bg-card p-5 transition-all;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  }
+  .stat-card:hover {
+    @apply -translate-y-0.5 border-primary/20;
+    box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
   }
   .stat-card:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-1;
+    @apply outline-none ring-2 ring-ring ring-offset-2;
   }
+
+  /* Focus ring utility */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
+
+  /* Text balance */
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Animated sheen that slides across in-progress readiness bars. */
+  /* Animated sheen for readiness bars */
   .readiness-sheen {
     background: linear-gradient(
       100deg,
       transparent 20%,
-      rgba(255, 255, 255, 0.45) 50%,
+      rgba(255, 255, 255, 0.4) 50%,
       transparent 80%
     );
-    animation: readiness-sheen-slide 1.8s ease-in-out infinite;
+    animation: readiness-sheen-slide 2s ease-in-out infinite;
   }
 
   @keyframes readiness-sheen-slide {
-    0% {
-      transform: translateX(-100%);
-    }
-    60%,
-    100% {
-      transform: translateX(100%);
-    }
+    0% { transform: translateX(-100%); }
+    60%, 100% { transform: translateX(100%); }
+  }
+
+  /* Subtle shimmer for loading states */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 }
 
-/* Print only the receipt (and nothing else on the page). */
+/* Print styles */
 @media print {
   body * {
     visibility: hidden;
