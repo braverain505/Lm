@@ -45,14 +45,14 @@
     /* Larger radius for premium feel */
     --radius: 0.875rem;
 
-    /* Sidebar — deep navy dark */
-    --sidebar: 220 50% 10%;
-    --sidebar-foreground: 216 40% 80%;
-    --sidebar-muted: 218 34% 56%;
-    --sidebar-accent: 224 45% 18%;
-    --sidebar-active: 215 70% 40%;
-    --sidebar-border: 224 35% 18%;
-    --sidebar-primary: 195 80% 60%;
+    /* Sidebar — bright vivid blue */
+    --sidebar: 215 90% 55%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-muted: 215 50% 80%;
+    --sidebar-accent: 215 70% 48%;
+    --sidebar-active: 215 90% 45%;
+    --sidebar-border: 215 70% 52%;
+    --sidebar-primary: 195 95% 50%;
 
     /* Chart palette — harmonious */
     --chart-1: 234 80% 52%;
