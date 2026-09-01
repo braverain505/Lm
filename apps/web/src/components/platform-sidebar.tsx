@@ -47,7 +47,7 @@ export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSid
       >
         <Link href="/super-admin" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           <Image
-            src="/clearis.png"
+            src="/clearisbg.png"
             alt="Clearis"
             width={1536}
             height={1024}

@@ -105,7 +105,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <Image
-            src="/clearis.png"
+            src="/clearisbg.png"
             alt="Clearis"
             width={1536}
             height={1024}

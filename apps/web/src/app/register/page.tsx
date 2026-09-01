@@ -168,7 +168,7 @@ export default function RegisterPage() {
         >
           <div className="mb-8 flex flex-col items-center gap-3">
             <Image
-              src="/clearis.png"
+              src="/clearisbg.png"
               alt="Clearis"
               width={1536}
               height={1024}
@@ -251,7 +251,7 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="mb-6 flex flex-col items-center gap-3">
           <Image
-            src="/clearis.png"
+            src="/clearisbg.png"
             alt="Clearis"
             width={1536}
             height={1024}
