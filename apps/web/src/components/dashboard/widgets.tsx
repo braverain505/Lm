@@ -669,7 +669,7 @@ export function InsightsPanel({ items, loading, error, onRetry }: { items?: Insi
     <WidgetCard
       title={
         <span className="flex items-center gap-2">
-          Lumo AI insights
+          Clearis AI insights
           <Badge variant="default" className="gap-1 bg-violet-500/10 text-violet-600 dark:text-violet-300">
             <Bot className="h-3 w-3" /> AI
           </Badge>

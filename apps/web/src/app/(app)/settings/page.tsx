@@ -144,7 +144,7 @@ export default function SettingsPage() {
               </span>
               School profile
             </CardTitle>
-            <CardDescription>Identifiers used across Lumo</CardDescription>
+            <CardDescription>Identifiers used across Clearis</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {isLoading ? (
@@ -345,7 +345,7 @@ export default function SettingsPage() {
             Sign-in credentials
           </CardTitle>
           <CardDescription>
-            Update the login used to access Lumo. Your current password is required to make any change.
+            Update the login used to access Clearis. Your current password is required to make any change.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">

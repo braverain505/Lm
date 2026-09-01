@@ -112,7 +112,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
         <Link
           href="/copilot"
           className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/50 text-muted-foreground/60 transition-all hover:border-border hover:bg-accent hover:text-foreground"
-          title="Lumo AI help"
+          title="Clearis AI help"
           aria-label="Help"
         >
           <HelpCircle className="h-4 w-4" />

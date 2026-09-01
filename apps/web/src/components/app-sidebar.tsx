@@ -60,10 +60,10 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
           {schoolProfile?.logo_url ? (
             <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain" />
           ) : (
-            <Image src="/logo_lumo.png" alt="Lumo" width={1536} height={1024} priority className="h-9 w-auto shrink-0 rounded-lg object-contain" />
+            <Image src="/clearis.png" alt="Clearis" width={1536} height={1024} priority className="h-9 w-auto shrink-0 rounded-lg object-contain" />
           )}
           {!collapsed && (
-            <span className="text-[14px] font-bold tracking-tight text-white/90">Lumo</span>
+            <span className="text-[14px] font-bold tracking-tight text-white/90">Clearis</span>
           )}
         </Link>
       </div>

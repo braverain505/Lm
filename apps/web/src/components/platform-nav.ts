@@ -89,7 +89,7 @@ export function platformMeta(pathname: string): { title: string; breadcrumb: str
     .filter((k) => pathname.startsWith(k))
     .sort((a, b) => b.length - a.length)[0];
   const meta = prefix ? PLATFORM_META[prefix] : undefined;
-  return meta ?? { title: "Lumo Platform", breadcrumb: "Super admin" };
+  return meta ?? { title: "Clearis Platform", breadcrumb: "Super admin" };
 }
 
 export { ShieldCheck };

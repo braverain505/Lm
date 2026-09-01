@@ -212,7 +212,7 @@ export function TeacherDashboard() {
             <WidgetCard
               title={
                 <span className="flex items-center gap-2">
-                  Lumo AI <Bot className="h-4 w-4 text-violet-500" />
+                  Clearis AI <Bot className="h-4 w-4 text-violet-500" />
                 </span>
               }
               icon={null}

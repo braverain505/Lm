@@ -1414,7 +1414,7 @@ export function useDashboardSummary(termId?: string) {
   });
 }
 
-// --- Platform (Lumo admin) -----------------------------------------------------
+// --- Platform (Clearis admin) -----------------------------------------------------
 export function usePlatformSchools() {
   const { user } = useAuth();
   return useQuery({

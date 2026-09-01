@@ -407,7 +407,7 @@ export default function CopilotPage() {
             </form>
             <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
               <Sparkles className="h-3 w-3" />
-              AI copilot · lumo-copilot-v1 · deterministic and data-grounded ·
+              AI copilot · clearis-copilot-v1 · deterministic and data-grounded ·
               every turn metered
             </p>
           </div>

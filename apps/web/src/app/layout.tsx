@@ -11,9 +11,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Lumo — School Management Platform",
-  description: "Multi-tenant school management: academics, results, people, analytics.",
-  icons: { icon: "/favicon.svg" },
+  title: "Clearis — School Management Platform",
+  description: "Everything your school needs. One clear platform.",
+  icons: { icon: "/clearis.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -47,8 +47,8 @@ export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSid
       >
         <Link href="/super-admin" className="focus-ring flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           <Image
-            src="/logo_lumo.png"
-            alt="Lumo"
+            src="/clearis.png"
+            alt="Clearis"
             width={1536}
             height={1024}
             priority
@@ -62,7 +62,7 @@ export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSid
         <div className="shrink-0 px-4 pt-4">
           <div className="rounded-xl border border-sidebar-border bg-sidebar-accent/60 px-3.5 py-3">
             <p className="flex items-center gap-1.5 text-[13px] font-semibold text-white">
-              <ShieldCheck className="h-3.5 w-3.5 text-sidebar-primary" /> Lumo Platform
+              <ShieldCheck className="h-3.5 w-3.5 text-sidebar-primary" /> Clearis Platform
             </p>
             <p className="mt-0.5 text-[11px] text-sidebar-muted">Super admin · every tenant</p>
           </div>

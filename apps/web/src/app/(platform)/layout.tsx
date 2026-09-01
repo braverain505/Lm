@@ -35,7 +35,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             </div>
             <h1 className="text-lg font-semibold">Platform admins only</h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              This area is reserved for Lumo platform administrators. Sign in with
+              This area is reserved for Clearis platform administrators. Sign in with
               a super admin account to access the command center.
             </p>
           </CardContent>

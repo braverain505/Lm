@@ -60,11 +60,11 @@ export default function SuperAdminOverviewPage() {
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/10 blur-xl" />
         <div className="relative space-y-3">
           <Badge className="gap-1 border-white/20 bg-white/10 text-white">
-            <Sparkles className="h-3 w-3" /> Lumo Platform Command Center
+            <Sparkles className="h-3 w-3" /> Clearis Platform Command Center
           </Badge>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Welcome back, {user?.full_name}</h1>
           <p className="max-w-2xl text-sm text-white/85">
-            Every school, subscription and AI credit across Lumo — run the platform from one place.
+            Every school, subscription and AI credit across Clearis — run the platform from one place.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <HeroStat label="Schools" value={fmtNum(k.total_schools)} />

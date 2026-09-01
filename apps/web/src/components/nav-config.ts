@@ -32,7 +32,7 @@ export interface NavItem {
   icon: LucideIcon;
   /** Permission code required to see this item (null = always visible). */
   perm: string | null;
-  /** Only visible to Lumo platform admins (User.is_superadmin). */
+  /** Only visible to Clearis platform admins (User.is_superadmin). */
   platformAdmin?: boolean;
   /** Role codes allowed to see this item. If omitted, all roles with the required perm can see it. */
   roles?: string[];
@@ -100,14 +100,14 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "AI",
     items: [
-      { href: "/copilot", label: "Lumo AI", icon: Bot, perm: "ai.copilot" },
+      { href: "/copilot", label: "Clearis AI", icon: Bot, perm: "ai.copilot" },
       { href: "/lesson-plans", label: "AI Lesson Plans", icon: NotebookPen, perm: "results.comment" },
       { href: "/question-banks", label: "AI Questions", icon: HelpCircle, perm: "results.comment" },
       { href: "/dashboard", label: "AI Insights", icon: Sparkles, perm: "ai.copilot" },
     ],
   },
   {
-    label: "Lumo",
+    label: "Clearis",
      items: [{ href: "/admin", label: "All Schools", icon: Shield, perm: null, platformAdmin: true }],
   },
   {
@@ -162,7 +162,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/library": { title: "Library", breadcrumb: "Administration" },
   "/lesson-plans": { title: "AI Lesson Plans", breadcrumb: "AI" },
   "/question-banks": { title: "AI Questions", breadcrumb: "AI" },
-  "/copilot": { title: "Lumo AI", breadcrumb: "AI" },
+  "/copilot": { title: "Clearis AI", breadcrumb: "AI" },
   "/settings": { title: "Settings", breadcrumb: "Settings" },
 };
 
@@ -171,5 +171,5 @@ export function pageMeta(pathname: string): PageMeta {
     .filter((k) => pathname.startsWith(k))
     .sort((a, b) => b.length - a.length)[0];
   const meta: PageMeta | undefined = prefix ? PAGE_META[prefix] : undefined;
-  return meta ?? { title: "Lumo", breadcrumb: "" };
+  return meta ?? { title: "Clearis", breadcrumb: "" };
 }

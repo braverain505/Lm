@@ -111,8 +111,8 @@ export default function LoginPage() {
           {/* Brand */}
           <div className="flex items-center gap-3">
             <Image
-              src="/logo_lumo.png"
-              alt="Lumo"
+              src="/clearis.png"
+              alt="Clearis"
               width={1536}
               height={1024}
               priority
@@ -166,7 +166,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <p className="text-sm text-white/60">
-            © {new Date().getFullYear()} Lumo. Built for schools that mean business.
+            © {new Date().getFullYear()} Clearis. Built for schools that mean business.
           </p>
         </div>
       </div>
@@ -182,8 +182,8 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="mb-8 flex items-center justify-center gap-2 lg:hidden">
             <Image
-              src="/logo_lumo.png"
-              alt="Lumo"
+              src="/clearis.png"
+              alt="Clearis"
               width={1536}
               height={1024}
               priority
@@ -332,7 +332,7 @@ export default function LoginPage() {
 
             <div className="my-6 flex items-center gap-3">
               <Separator className="flex-1" />
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">New to Lumo?</span>
+              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">New to Clearis?</span>
               <Separator className="flex-1" />
             </div>
 

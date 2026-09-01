@@ -37,21 +37,21 @@ export function PremiumLock({ compact = false }: { compact?: boolean }) {
         <Sparkles className="h-7 w-7 text-amber-600 dark:text-amber-400" />
       </div>
       <Badge variant="warning">Premium</Badge>
-      <h2 className="text-xl font-semibold">Lumo AI is a premium feature</h2>
+      <h2 className="text-xl font-semibold">Clearis AI is a premium feature</h2>
       <p className="max-w-md text-sm text-muted-foreground">
         Your school hasn&apos;t activated the AI plan yet. Once your subscription
-        is confirmed, your Lumo administrator will switch it on and every AI
+        is confirmed, your Clearis administrator will switch it on and every AI
         tool becomes available automatically.
       </p>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Lock className="h-3.5 w-3.5" />
         {isPlatformAdmin
-          ? "Tip: enable it for this school from the Lumo Admin dashboard."
+          ? "Tip: enable it for this school from the Clearis Admin dashboard."
           : "Kindly subscribe — reach out to your school owner."}
       </div>
       {isPlatformAdmin && (
         <Button asChild variant="outline" size="sm" className="mt-1">
-          <a href="/admin">Open Lumo Admin</a>
+          <a href="/admin">Open Clearis Admin</a>
         </Button>
       )}
     </div>

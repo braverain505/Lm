@@ -70,7 +70,7 @@ export function SearchPalette() {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search Lumo…"
+              placeholder="Search Clearis…"
               className="h-10 w-full bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/50"
             />
           </div>

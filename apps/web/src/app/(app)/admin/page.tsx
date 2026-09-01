@@ -234,9 +234,9 @@ export default function AdminPage() {
     return (
       <div className="flex flex-col items-center gap-3 py-24 text-center">
         <ShieldCheck className="h-10 w-10 text-muted-foreground" />
-        <h1 className="text-lg font-semibold">Lumo platform admin only</h1>
+        <h1 className="text-lg font-semibold">Clearis platform admin only</h1>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Only Lumo&apos;s own platform administrators can see every school and
+          Only Clearis&apos;s own platform administrators can see every school and
           manage premium subscriptions.
         </p>
       </div>
@@ -254,14 +254,14 @@ export default function AdminPage() {
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/10 blur-xl" />
         <div className="relative space-y-4">
           <Badge className="gap-1 border-white/20 bg-white/10 text-primary-foreground">
-            <ShieldCheck className="h-3 w-3" /> Lumo Platform
+            <ShieldCheck className="h-3 w-3" /> Clearis Platform
           </Badge>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Command center
             </h1>
             <p className="max-w-2xl text-sm text-primary-foreground/80">
-              Every school on Lumo at a glance — enable premium AI, manage access,
+              Every school on Clearis at a glance — enable premium AI, manage access,
               and support your tenants from one place.
             </p>
           </div>
@@ -308,7 +308,7 @@ export default function AdminPage() {
             blocks every request from that school instantly ({" "}
             <code className="rounded bg-muted px-1">ERR_SCHOOL_SUSPENDED</code> ) — use it for
             unpaid or problematic tenants. <strong className="text-foreground">Create admin</strong>{" "}
-            makes a school super admin whose credentials Lumo can hand over. Teacher passwords
+            makes a school super admin whose credentials Clearis can hand over. Teacher passwords
             are hashed and never shown; view the account list for support and recovery.
           </p>
         </CardContent>

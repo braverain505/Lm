@@ -71,8 +71,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <Badge variant="destructive">School disabled</Badge>
             <h1 className="text-lg font-semibold">{activeSchool.school_name} is disabled</h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              This school has been suspended by Lumo. Access is blocked until it
-              is re-enabled. Contact Lumo support for help.
+              This school has been suspended by Clearis. Access is blocked until it
+              is re-enabled. Contact Clearis support for help.
             </p>
           </CardContent>
         </Card>
