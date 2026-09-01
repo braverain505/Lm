@@ -387,6 +387,7 @@ export default function TeachersPage() {
                     onDeleteStaff={onDeleteStaff}
                     deletePending={deleteStaff.isPending}
                     editFor={editFor}
+                    setEditFor={setEditFor}
                     editForm={editForm}
                     setEditForm={setEditForm}
                     openEdit={openEdit}
@@ -438,6 +439,7 @@ interface TeacherRowProps {
   onDeleteStaff: (s: Staff) => void;
   deletePending: boolean;
   editFor: string | null;
+  setEditFor: (id: string | null) => void;
   editForm: { full_name: string; phone: string; email: string; gender: string };
   setEditForm: (f: { full_name: string; phone: string; email: string; gender: string }) => void;
   openEdit: (s: Staff) => void;
@@ -456,7 +458,7 @@ function TeacherRow(props: TeacherRowProps) {
     assignErrors, setAssignErrors,
     arms, subjects, onAssign, assignError, assignPending, onUnassign,
     onDeleteStaff, deletePending,
-    editFor, editForm, setEditForm, openEdit, saveEdit, updateStaffPending,
+    editFor, setEditFor, editForm, setEditForm, openEdit, saveEdit, updateStaffPending,
   } = props;
 
   const staffId = staff.id;
