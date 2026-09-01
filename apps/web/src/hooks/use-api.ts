@@ -361,6 +361,23 @@ export function useCreateStaffAccount() {
   });
 }
 
+export function useUpdateStaff() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ staffId, data }: { staffId: string; data: Record<string, unknown> }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.schoolFetch(schoolId, `/staff/${staffId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["staff", schoolId] });
+    },
+  });
+}
+
 export function useUpdateStaffAccount() {
   const schoolId = useActiveSchoolId();
   const queryClient = useQueryClient();

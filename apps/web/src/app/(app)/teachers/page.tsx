@@ -26,8 +26,10 @@ import {
   useStaff,
   useStaffAssignments,
   useSubjects,
+  useUpdateStaff,
   useUpdateStaffAccount,
 } from "@/hooks/use-api";
+import { useToast } from "@/components/toast";
 
 function ErrorNote({ message }: { message?: string | null }) {
   if (!message) return null;
@@ -69,6 +71,35 @@ export default function TeachersPage() {
     email: "",
   });
   const createStaff = useCreateStaff();
+  const updateStaff = useUpdateStaff();
+  const { toast } = useToast();
+
+  // --- Edit staff
+  const [editFor, setEditFor] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ full_name: "", phone: "", email: "", gender: "" });
+
+  const openEdit = (s: Staff) => {
+    setEditFor(s.id);
+    setEditForm({
+      full_name: s.full_name,
+      phone: s.phone ?? "",
+      email: s.email ?? "",
+      gender: s.gender ?? "",
+    });
+    setAccountFor(null);
+    setAssignFor(null);
+  };
+
+  const saveEdit = () => {
+    if (!editFor) return;
+    updateStaff.mutate(
+      { staffId: editFor, data: editForm },
+      {
+        onSuccess: () => { toast("Staff updated"); setEditFor(null); },
+        onError: () => toast("Failed to update staff", "error"),
+      },
+    );
+  };
 
   const [accountFor, setAccountFor] = useState<string | null>(null);
   const [accountMode, setAccountMode] = useState<"create" | "change">("create");
@@ -355,6 +386,12 @@ export default function TeachersPage() {
                     onUnassign={onUnassign}
                     onDeleteStaff={onDeleteStaff}
                     deletePending={deleteStaff.isPending}
+                    editFor={editFor}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    openEdit={openEdit}
+                    saveEdit={saveEdit}
+                    updateStaffPending={updateStaff.isPending}
                   />
                 ))
               )}
@@ -400,6 +437,12 @@ interface TeacherRowProps {
   onUnassign: (assignmentId: string) => void;
   onDeleteStaff: (s: Staff) => void;
   deletePending: boolean;
+  editFor: string | null;
+  editForm: { full_name: string; phone: string; email: string; gender: string };
+  setEditForm: (f: { full_name: string; phone: string; email: string; gender: string }) => void;
+  openEdit: (s: Staff) => void;
+  saveEdit: () => void;
+  updateStaffPending: boolean;
 }
 
 function TeacherRow(props: TeacherRowProps) {
@@ -413,6 +456,7 @@ function TeacherRow(props: TeacherRowProps) {
     assignErrors, setAssignErrors,
     arms, subjects, onAssign, assignError, assignPending, onUnassign,
     onDeleteStaff, deletePending,
+    editFor, editForm, setEditForm, openEdit, saveEdit, updateStaffPending,
   } = props;
 
   const staffId = staff.id;
@@ -444,6 +488,9 @@ function TeacherRow(props: TeacherRowProps) {
         </td>
         <td className="py-3">
           <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => openEdit(staff)}>
+              Edit
+            </Button>
             <Button variant="outline" size="sm" onClick={() => { setAssignFor(showAssign ? null : staffId); closeAccountForm(); }}>
               {showAssign ? "Close" : "Assign"}
             </Button>
@@ -469,6 +516,56 @@ function TeacherRow(props: TeacherRowProps) {
           </div>
         </td>
       </tr>
+
+      {accountFor !== staffId && editFor === staffId && (
+        <tr>
+          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-1.5">
+                <Label>Full name</Label>
+                <Input
+                  value={editForm.full_name}
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone</Label>
+                <Input
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Gender</Label>
+                <select
+                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  value={editForm.gender}
+                  onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                >
+                  <option value="">—</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+              <div className="flex items-end gap-2">
+                <Button onClick={saveEdit} disabled={updateStaff.isPending}>
+                  {updateStaff.isPending ? "Saving…" : "Save"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditFor(null)}>Cancel</Button>
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
 
       {showAccount && (
         <tr>
