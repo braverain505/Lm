@@ -66,55 +66,58 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
 
   if (variant === "academic") {
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <Greeting />
         <KpiRow data={summary} loading={isLoading} />
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2">
           <ReadinessPanel termId={term?.id} {...common} />
           <ApprovalQueuePanel termId={term?.id} {...common} />
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2">
           <CompilePanel termId={term?.id} {...common} />
           <PerformancePanel {...common} />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <ClassPerformancePanel {...common} />
           <InsightsPanel items={summary?.insights?.insights} {...common} />
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-3">
-          <ClassPerformancePanel {...common} />
-          <TasksPanel tasks={summary?.tasks} {...common} />
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2">
           <AttendancePanel {...common} />
           <ActivityPanel items={summary?.activity} {...common} />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-3">
+          <TasksPanel tasks={summary?.tasks} {...common} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <Greeting />
       <KpiRow data={summary} loading={isLoading} />
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2">
         <PerformancePanel {...common} />
         <ReadinessPanel termId={term?.id} {...common} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2">
         <AttendancePanel {...common} />
         <EnrollmentPanel {...common} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-2">
         <ClassPerformancePanel {...common} />
         <QuickActions />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-5 lg:grid-cols-3">
         <ActivityPanel items={summary?.activity} {...common} />
         <TasksPanel tasks={summary?.tasks} {...common} />
         <InsightsPanel items={summary?.insights?.insights} {...common} />

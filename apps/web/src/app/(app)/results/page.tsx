@@ -15,6 +15,7 @@ export default function ResultsPage() {
   const role = activeSchool?.role?.code ?? "";
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
   const isHomeroomTeacher = role === "homeroom_teacher";
+  const canComment = role === "principal" || role === "vp_academics" || role === "homeroom_teacher";
   const isSupervisor = !isTeacherRole;
 
   const { data: sessions = [] } = useSessions();
@@ -153,7 +154,7 @@ export default function ResultsPage() {
         </Card>
 
         {/* Homeroom comments card */}
-        {isHomeroomTeacher && (
+        {canComment && (
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-[15px]">Add comments</CardTitle>

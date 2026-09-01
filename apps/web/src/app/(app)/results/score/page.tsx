@@ -242,8 +242,17 @@ function ScoreGrid() {
   const liveGrade = (enrollmentId: string): string | null => {
     const total = liveTotal(enrollmentId);
     if (total === null) return null;
-    const band = gradeBands.find((b) => total >= b.min_score && total <= b.max_score);
-    return band?.letter ?? null;
+    // Try configured grade bands first
+    if (gradeBands.length > 0) {
+      const band = gradeBands.find((b) => total >= b.min_score && total <= b.max_score);
+      if (band) return band.letter;
+    }
+    // Fallback: default grading scale
+    if (total >= 70) return "A";
+    if (total >= 60) return "B";
+    if (total >= 50) return "C";
+    if (total >= 40) return "D";
+    return "F";
   };
 
   const { toast } = useToast();

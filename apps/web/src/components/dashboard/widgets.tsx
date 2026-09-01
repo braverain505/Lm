@@ -194,7 +194,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
       ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       {cards.map((c) => (
         <KpiCard key={c.label} {...c} loading={loading} />
       ))}
@@ -218,7 +218,6 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
       onRetry={onRetry}
       empty={!loading && byTerm.length === 0}
       emptyHint="Once scores are entered, performance trends will appear here."
-      className="lg:col-span-2"
       bodyClassName="pt-4"
     >
       <div className="mb-3 flex items-center gap-4 text-[11px]">
@@ -296,7 +295,7 @@ export function ReadinessPanel({
       onRetry={onRetry}
       empty={!readyLoading && !agg}
       emptyHint="Set up score entry to see readiness here."
-      className="xl:col-span-1"
+
     >
       <div className="flex items-center gap-4">
         <ReadinessRing pct={overall} size="lg" />
@@ -414,7 +413,6 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
       onRetry={onRetry}
       empty={!loading && bars.length === 0}
       emptyHint="Mark attendance to see insights here."
-      className="lg:col-span-2"
       bodyClassName="pt-4"
       actions={<Segmented value={range} options={[{ value: "today", label: "Today" }, { value: "week", label: "Week" }, { value: "month", label: "Month" }]} onChange={setRange} />}
     >

@@ -441,7 +441,11 @@ def _compute_total(
 def _grade_for(
     db: Session, school_id: uuid.UUID, session: AcademicSession, total: float
 ) -> tuple[str | None, float | None, str | None]:
-    """Grade band lookup using the session's grade scale (fallback: school default)."""
+    """Grade band lookup using the session's grade scale (fallback: school default).
+
+    If no grade scale or bands are configured, falls back to a standard
+    grading scale: A (70–100), B (60–69), C (50–59), D (40–49), F (<40).
+    """
     scale_id = session.grade_scale_id
     if scale_id is None:
         scale = db.scalar(
@@ -450,18 +454,26 @@ def _grade_for(
             )
         )
         scale_id = scale.id if scale else None
-    if scale_id is None:
-        return None, None, None
-    band = db.scalar(
-        select(GradeBand).where(
-            GradeBand.grade_scale_id == scale_id,
-            GradeBand.min_score <= total,
-            GradeBand.max_score >= total,
+    if scale_id is not None:
+        band = db.scalar(
+            select(GradeBand).where(
+                GradeBand.grade_scale_id == scale_id,
+                GradeBand.min_score <= total,
+                GradeBand.max_score >= total,
+            )
         )
-    )
-    if band is None:
-        return None, None, None
-    return band.letter, float(band.point), band.remark
+        if band is not None:
+            return band.letter, float(band.point), band.remark
+    # Fallback: standard grading scale
+    if total >= 70:
+        return "A", 4.0, None
+    if total >= 60:
+        return "B", 3.0, None
+    if total >= 50:
+        return "C", 2.0, None
+    if total >= 40:
+        return "D", 1.0, None
+    return "F", 0.0, None
 
 
 def recompute_result(

@@ -119,6 +119,30 @@ export default function TeachersPage() {
   const deleteAssignment = useDeleteAssignment();
   const deleteStaff = useDeleteStaff();
 
+  // --- Assign role
+  const [roleFor, setRoleFor] = useState<string | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState("");
+  const updateAccount = useUpdateStaffAccount();
+
+  const openRoleForm = (s: Staff) => {
+    setRoleFor(s.id);
+    setSelectedRoleId(s.account_role_id ?? "");
+    setEditFor(null);
+    setAccountFor(null);
+    setAssignFor(null);
+  };
+
+  const saveRole = () => {
+    if (!roleFor || !selectedRoleId) return;
+    updateAccount.mutate(
+      { staffId: roleFor, input: { role_id: selectedRoleId } },
+      {
+        onSuccess: () => { toast("Role updated"); setRoleFor(null); },
+        onError: () => toast("Failed to update role", "error"),
+      },
+    );
+  };
+
   const { data: sessions = [] } = useSessions();
   const currentSessionId = sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? null;
   const { data: arms = [] } = useArms(currentSessionId);
@@ -393,6 +417,14 @@ export default function TeachersPage() {
                     openEdit={openEdit}
                     saveEdit={saveEdit}
                     updateStaffPending={updateStaff.isPending}
+                    roleFor={roleFor}
+                    setRoleFor={setRoleFor}
+                    selectedRoleId={selectedRoleId}
+                    setSelectedRoleId={setSelectedRoleId}
+                    roles={roles}
+                    openRoleForm={openRoleForm}
+                    saveRole={saveRole}
+                    rolePending={updateAccount.isPending}
                   />
                 ))
               )}
@@ -445,6 +477,13 @@ interface TeacherRowProps {
   openEdit: (s: Staff) => void;
   saveEdit: () => void;
   updateStaffPending: boolean;
+  roleFor: string | null;
+  setRoleFor: (id: string | null) => void;
+  selectedRoleId: string;
+  setSelectedRoleId: (v: string) => void;
+  openRoleForm: (s: Staff) => void;
+  saveRole: () => void;
+  rolePending: boolean;
 }
 
 function TeacherRow(props: TeacherRowProps) {
@@ -459,6 +498,7 @@ function TeacherRow(props: TeacherRowProps) {
     arms, subjects, onAssign, assignError, assignPending, onUnassign,
     onDeleteStaff, deletePending,
     editFor, setEditFor, editForm, setEditForm, openEdit, saveEdit, updateStaffPending,
+    roleFor, setRoleFor, selectedRoleId, setSelectedRoleId, openRoleForm, saveRole, rolePending,
   } = props;
 
   const staffId = staff.id;
@@ -466,6 +506,7 @@ function TeacherRow(props: TeacherRowProps) {
 
   const showAccount = accountFor === staffId;
   const showAssign = assignFor === staffId;
+  const showRole = roleFor === staffId;
 
   return (
     <>
@@ -493,8 +534,11 @@ function TeacherRow(props: TeacherRowProps) {
             <Button variant="outline" size="sm" onClick={() => openEdit(staff)}>
               Edit
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { setAssignFor(showAssign ? null : staffId); closeAccountForm(); }}>
+            <Button variant="outline" size="sm" onClick={() => { setAssignFor(showAssign ? null : staffId); closeAccountForm(); setRoleFor(null); }}>
               {showAssign ? "Close" : "Assign"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openRoleForm(staff)}>
+              {showRole ? "Close" : "Role"}
             </Button>
             <Button
               variant={staff.has_account ? "outline" : "default"}
@@ -696,6 +740,47 @@ function TeacherRow(props: TeacherRowProps) {
                   </div>
                 )}
               </div>
+            </div>
+          </td>
+        </tr>
+      )}
+
+      {showRole && (
+        <tr>
+          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+            <div className="space-y-4">
+              <div className="flex items-end gap-3">
+                <div className="space-y-1.5">
+                  <Label>Assign role</Label>
+                  <select
+                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                    value={selectedRoleId}
+                    onChange={(e) => setSelectedRoleId(e.target.value)}
+                    required
+                  >
+                    <option value="">Choose role…</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Button onClick={saveRole} disabled={rolePending || !selectedRoleId}>
+                  {rolePending ? "Saving…" : "Save role"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setRoleFor(null)}>Cancel</Button>
+              </div>
+              {staff.has_account && staff.account_role_name && (
+                <p className="text-[12px] text-muted-foreground">
+                  Current role: <span className="font-medium">{staff.account_role_name}</span>
+                </p>
+              )}
+              {!staff.has_account && (
+                <p className="text-[12px] text-warning">
+                  This staff member has no login account. Create one first to assign a role.
+                </p>
+              )}
             </div>
           </td>
         </tr>

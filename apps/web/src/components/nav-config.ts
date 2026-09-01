@@ -75,7 +75,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/readiness", label: "Subject Performance", icon: BarChart3, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/reports/broadsheet", label: "Broadsheet", icon: PieChart, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/reports/cumulative", label: "Cumulative Broadsheet", icon: PieChart, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["principal", "vp_academics", "homeroom_teacher"] },
       { href: "/approvals", label: "Publish Results", icon: ListChecks, perm: "results.verify", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/settings", label: "Result Settings", icon: SlidersHorizontal, perm: "school.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/teachers", label: "Users", icon: UsersRound, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
