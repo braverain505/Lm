@@ -122,7 +122,6 @@ export default function TeachersPage() {
   // --- Assign role
   const [roleFor, setRoleFor] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState("");
-  const updateAccount = useUpdateStaffAccount();
 
   const openRoleForm = (s: Staff) => {
     setRoleFor(s.id);
