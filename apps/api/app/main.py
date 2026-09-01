@@ -1,4 +1,4 @@
-"""Lumo API — FastAPI application entry point.
+"""Clearis API — FastAPI application entry point.
 
 Routers are thin (validate -> call service -> serialize); all business logic
 lives in ``app.services``. Every tenant request is scoped by the membership
@@ -100,7 +100,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Lumo API",
+    title="Clearis API",
     version="0.1.0",
     docs_url="/api/docs" if settings.debug else None,  # Disable docs in production
     openapi_url="/api/openapi.json" if settings.debug else None,
@@ -176,7 +176,7 @@ def health() -> dict:
 
     return {
         "status": status,
-        "service": "lumo-api",
+        "service": "clearis-api",
         "version": "0.1.0",
         "database": db_status,
     }
@@ -184,7 +184,7 @@ def health() -> dict:
 
 @app.get("/", include_in_schema=False)
 def root() -> dict:
-    return {"service": "Lumo API", "docs": "/api/docs", "health": "/api/health"}
+    return {"service": "Clearis API", "docs": "/api/docs", "health": "/api/health"}
 
 
 if __name__ == "__main__":

@@ -1,7 +1,17 @@
 """Application settings — loaded from environment / .env (pydantic-settings)."""
+import json
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_DEFAULT_CORS = [
+    "http://localhost:3000",
+    "https://demolumo.vercel.app",
+    "https://clearis.site",
+    "https://www.clearis.site",
+]
 
 
 class Settings(BaseSettings):
@@ -10,15 +20,32 @@ class Settings(BaseSettings):
     )
 
     # --- Application ---
-    app_name: str = "Lumo API"
+    app_name: str = "Clearis API"
     debug: bool = False
     api_base_path: str = "/api"
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "https://demolumo.vercel.app",
-        "https://clearis.site",
-        "https://www.clearis.site",
-    ]
+    cors_origins: list[str] = _DEFAULT_CORS
+
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Handle CORS_ORIGINS env var that might be a JSON string,
+        a comma-separated string, or empty/invalid."""
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return _DEFAULT_CORS
+            # Try JSON parse first (e.g. ["https://example.com"])
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Fall back to comma-separated
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return _DEFAULT_CORS
 
     # --- Database ---
     database_url: str = (
