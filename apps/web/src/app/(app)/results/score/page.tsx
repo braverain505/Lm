@@ -143,20 +143,48 @@ function componentLabel(name: string): string {
 
 function ScoreGrid() {
   const searchParams = useSearchParams();
-  const armId = searchParams.get("arm_id");
-  const subjectId = searchParams.get("subject_id");
-  const termId = searchParams.get("term_id");
+  const router = useRouter();
+  const initialArmId = searchParams.get("arm_id");
+  const initialSubjectId = searchParams.get("subject_id");
+  const initialTermId = searchParams.get("term_id");
   const schoolId = useActiveSchoolId();
   const queryClient = useQueryClient();
+
+  // Allow switching context from within the grid
+  const [armId, setArmId] = useState(initialArmId);
+  const [subjectId, setSubjectId] = useState(initialSubjectId);
+  const [termId, setTermId] = useState(initialTermId);
+
+  // Sync from URL on first load
+  useEffect(() => {
+    if (initialArmId) setArmId(initialArmId);
+    if (initialSubjectId) setSubjectId(initialSubjectId);
+    if (initialTermId) setTermId(initialTermId);
+  }, [initialArmId, initialSubjectId, initialTermId]);
+
+  const { data: sessions = [] } = useSessions();
+  const currentSession = sessions.find((s) => s.is_current) ?? sessions[0];
+  const { data: terms = [] } = useTerms(currentSession?.id ?? null);
+  const { data: arms = [] } = useArms(currentSession?.id ?? null);
+  const { data: subjects = [] } = useSubjects();
+  const { data: myAssignments = [] } = useMyAssignments();
+  const { activeSchool } = useAuth();
+  const isTeacher = activeSchool?.role?.code === "teacher" || activeSchool?.role?.code === "homeroom_teacher";
+
+  const visibleArms = isTeacher
+    ? arms.filter((arm) => myAssignments.some((item) => item.arm_id === arm.id))
+    : arms;
+  const visibleSubjects = useMemo(() => {
+    const allowed = isTeacher
+      ? new Set(myAssignments.filter((item) => item.arm_id === armId).map((item) => item.subject_id))
+      : null;
+    return subjects.filter((subject) => !allowed || allowed.has(subject.id));
+  }, [armId, isTeacher, myAssignments, subjects]);
 
   const { data: card, isLoading } = useScoreCard(armId, subjectId, termId);
   const { data: components = [] } = useComponents(termId, armId);
   const { data: gradeBands = [] } = useGradeBands(termId);
 
-  // Check if the term is closed
-  const { data: sessions = [] } = useSessions();
-  const currentSession = sessions.find((s) => s.is_current) ?? sessions[0];
-  const { data: terms = [] } = useTerms(currentSession?.id ?? null);
   const activeTerm = terms.find((t) => t.id === termId);
   const isTermClosed = activeTerm?.status === "closed";
 
@@ -168,6 +196,19 @@ function ScoreGrid() {
 
   const setCell = (enrollmentId: string, componentId: string, value: string) => {
     if (isTermClosed) return; // Block edits on closed terms
+    // Score threshold: validate the value doesn't exceed max_score
+    const component = components.find((c) => c.id === componentId);
+    if (component && value !== "") {
+      const num = Number(value);
+      if (!Number.isNaN(num) && num > component.max_score) {
+        toast(`Score cannot exceed ${component.max_score}`, "error");
+        return;
+      }
+      if (!Number.isNaN(num) && num < 0) {
+        toast("Score cannot be negative", "error");
+        return;
+      }
+    }
     setDraft((prev) => ({
       ...prev,
       [enrollmentId]: { ...(prev[enrollmentId] ?? {}), [componentId]: value },
@@ -283,6 +324,24 @@ function ScoreGrid() {
   const gradeBadge = (letter: string | null) =>
     letter ? <Badge variant="default">{letter}</Badge> : <span className="text-muted-foreground">—</span>;
 
+  // Quick-switch handlers
+  const switchSubject = (newSubjectId: string) => {
+    setSubjectId(newSubjectId);
+    setDraft({});
+    router.replace(`/results/score?arm_id=${armId}&subject_id=${newSubjectId}&term_id=${termId}`);
+  };
+
+  const switchArm = (newArmId: string) => {
+    setArmId(newArmId);
+    setSubjectId("");
+    setDraft({});
+  };
+
+  const switchTerm = (newTermId: string) => {
+    setTermId(newTermId);
+    setDraft({});
+  };
+
   return (
     <div className="space-y-6">
       {/* Closed term warning */}
@@ -290,10 +349,50 @@ function ScoreGrid() {
         <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
-            The <strong>{card.term.name}</strong> term is closed. This grid is read-only — score changes are disabled.
+            The <strong>{activeTerm?.name}</strong> term is closed. This grid is read-only — score changes are disabled.
           </span>
         </div>
       )}
+
+      {/* Quick-switch selectors */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Term</label>
+          <select
+            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            value={termId ?? ""}
+            onChange={(e) => switchTerm(e.target.value)}
+          >
+            {terms.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Class</label>
+          <select
+            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            value={armId ?? ""}
+            onChange={(e) => switchArm(e.target.value)}
+          >
+            {visibleArms.map((a) => (
+              <option key={a.id} value={a.id}>{a.full_name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Subject</label>
+          <select
+            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            value={subjectId ?? ""}
+            onChange={(e) => switchSubject(e.target.value)}
+          >
+            {visibleSubjects.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

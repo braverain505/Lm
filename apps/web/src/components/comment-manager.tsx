@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-api";
 import type { ReportCard } from "@schoolos/shared";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/components/toast";
 
 type Source = "manual" | "bank" | "ai";
 
@@ -69,6 +70,7 @@ function AIContentModal({
   const previewGen = usePreviewRoleComment();
   const saveAI = useGenerateRoleComment(studentId, termId);
   const saveManual = useSaveRoleComment(studentId, termId);
+  const { toast } = useToast();
 
   const handlePreview = () => {
     previewGen.mutate(
@@ -88,9 +90,21 @@ function AIContentModal({
     if (!finalBody) return;
     const unchanged = touched === false && preview !== null && draft === preview;
     if (unchanged) {
-      saveAI.mutate({ role, focus: focus || null, tone });
+      saveAI.mutate(
+        { role, focus: focus || null, tone },
+        {
+          onSuccess: () => toast("AI comment saved to report"),
+          onError: () => toast("Failed to save AI comment", "error"),
+        },
+      );
     } else {
-      saveManual.mutate({ role, body: finalBody });
+      saveManual.mutate(
+        { role, body: finalBody },
+        {
+          onSuccess: () => toast("Comment saved to report"),
+          onError: () => toast("Failed to save comment", "error"),
+        },
+      );
     }
     onClose();
   };
@@ -215,6 +229,7 @@ function RoleCommentCard({
   const [showAI, setShowAI] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
   const aiEnabled = useAiEnabled();
+  const { toast } = useToast();
 
   const openAI = () => {
     if (!aiEnabled) {
@@ -228,6 +243,17 @@ function RoleCommentCard({
 
   const { data: bank = [], isLoading: bankLoading } = useCommentBank({ category, sentiment });
   const save = useSaveRoleComment(studentId, termId);
+
+  // Wrap save with toast
+  const handleSave = () => {
+    save.mutate(
+      { role, body: text },
+      {
+        onSuccess: () => toast(`${roleLabel} comment saved`),
+        onError: () => toast("Failed to save comment", "error"),
+      },
+    );
+  };
 
   const filteredBank = useMemo(
     () =>
@@ -300,8 +326,9 @@ function RoleCommentCard({
             )}
             <Button
               size="sm"
-              onClick={() => save.mutate({ role, body: text })}
+              onClick={handleSave}
               disabled={!canComment || !text.trim() || save.isPending}
+              isLoading={save.isPending}
             >
               {save.isPending ? "Saving…" : "Save"}
             </Button>
@@ -416,6 +443,7 @@ function BankCurationPanel({ canEdit }: { canEdit: boolean }) {
   const [category, setCategory] = useState("performance");
   const [sentiment, setSentiment] = useState("positive");
   const [domain, setDomain] = useState("all");
+  const { toast } = useToast();
 
   const { data: bank = [], isLoading } = useCommentBank({});
   const create = useCreateCommentBankEntry();
@@ -476,10 +504,17 @@ function BankCurationPanel({ canEdit }: { canEdit: boolean }) {
           </Select>
           <Button
             size="sm"
-            onClick={() => create.mutate({ comment_text: text, category, sentiment, applicable_domain: domain })}
+            onClick={() => create.mutate(
+              { comment_text: text, category, sentiment, applicable_domain: domain },
+              {
+                onSuccess: () => { setText(""); toast("Comment added to bank"); },
+                onError: () => toast("Failed to add comment", "error"),
+              },
+            )}
             disabled={!text.trim() || create.isPending}
+            isLoading={create.isPending}
           >
-            {create.isPending ? "Adding…" : "Add"}
+            Add
           </Button>
         </div>
 
@@ -508,7 +543,10 @@ function BankCurationPanel({ canEdit }: { canEdit: boolean }) {
                   variant="ghost"
                   size="icon"
                   className="shrink-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => deactivate.mutate(e.id)}
+                  onClick={() => deactivate.mutate(e.id, {
+                    onSuccess: () => toast("Comment removed from bank"),
+                    onError: () => toast("Failed to remove comment", "error"),
+                  })}
                   disabled={deactivate.isPending}
                   title="Remove from bank"
                 >
