@@ -38,14 +38,22 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          muted: "hsl(var(--sidebar-muted))",
-          accent: "hsl(var(--sidebar-accent))",
-          active: "hsl(var(--sidebar-active))",
-          border: "hsl(var(--sidebar-border))",
-          primary: "hsl(var(--sidebar-primary))",
+        rail: {
+          DEFAULT: "hsl(var(--rail))",
+          foreground: "hsl(var(--rail-foreground))",
+          muted: "hsl(var(--rail-muted))",
+          "active-bg": "hsl(var(--rail-active-bg))",
+          "active-fg": "hsl(var(--rail-active-fg))",
+          border: "hsl(var(--rail-border))",
+        },
+        panel: {
+          DEFAULT: "hsl(var(--panel))",
+          foreground: "hsl(var(--panel-foreground))",
+          muted: "hsl(var(--panel-muted))",
+          border: "hsl(var(--panel-border))",
+          hover: "hsl(var(--panel-hover))",
+          "active-bg": "hsl(var(--panel-active-bg))",
+          "active-fg": "hsl(var(--panel-active-fg))",
         },
         chart: {
           1: "hsl(var(--chart-1))",
@@ -67,6 +75,7 @@ const config = {
         "card-hover": "0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04)",
         pop: "0 12px 40px -12px rgb(0 0 0 / 0.18), 0 4px 6px -4px rgb(0 0 0 / 0.06)",
         elevated: "0 8px 24px -4px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)",
+        panel: "4px 0 24px -4px rgb(0 0 0 / 0.08)",
       },
       keyframes: {
         "fade-in": {
@@ -82,7 +91,7 @@ const config = {
           to: { opacity: "1", transform: "scale(1)" },
         },
         "slide-in-right": {
-          from: { opacity: "0", transform: "translateX(12px)" },
+          from: { opacity: "0", transform: "translateX(-8px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
         "slide-in-bottom": {
@@ -94,7 +103,7 @@ const config = {
         "fade-in": "fade-in 0.2s ease-out",
         "fade-in-soft": "fade-in-soft 0.15s ease-out",
         "scale-in": "scale-in 0.12s ease-out",
-        "slide-in-right": "slide-in-right 0.15s cubic-bezier(0.21, 1.02, 0.73, 1)",
+        "slide-in-right": "slide-in-right 0.2s cubic-bezier(0.21, 1.02, 0.73, 1)",
         "slide-in-bottom": "slide-in-bottom 0.15s ease-out",
       },
       fontFamily: {

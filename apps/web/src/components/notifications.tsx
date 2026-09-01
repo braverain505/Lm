@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCircle2, Sparkles } from "lucide-react";
+import { Bell, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -46,7 +46,7 @@ export function Notifications() {
       {(close) => (
         <div>
           <div className="flex items-center justify-between border-b border-border/30 px-3 py-2.5">
-            <p className="text-[13px] font-semibold text-foreground">Notifications</p>
+            <p className="text-[13px] font-semibold">Notifications</p>
             {count > 0 && <span className="text-[10.5px] text-muted-foreground/50">{count} pending</span>}
           </div>
           <div className="scrollbar-thin max-h-80 overflow-y-auto p-1.5">
@@ -66,7 +66,7 @@ export function Notifications() {
                   key={a.id}
                   href={a.href ?? "/dashboard"}
                   onClick={close}
-                  className="flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-colors duration-100 hover:bg-muted/30"
+                  className="flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-muted/30"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
@@ -79,11 +79,7 @@ export function Notifications() {
             )}
           </div>
           <div className="border-t border-border/30 p-1.5">
-            <Link
-              href="/dashboard"
-              onClick={close}
-              className="block rounded-lg px-3 py-2 text-center text-[12px] font-semibold text-primary transition-colors hover:bg-muted/30"
-            >
+            <Link href="/dashboard" onClick={close} className="block rounded-lg px-3 py-2 text-center text-[12px] font-semibold text-primary transition-colors hover:bg-muted/30">
               View activity
             </Link>
           </div>
@@ -98,14 +94,14 @@ export function ProfileMenu() {
   return (
     <Dropdown
       trigger={<Avatar name={user?.full_name} className="h-8 w-8 cursor-pointer" />}
-      contentClassName="w-60"
+      contentClassName="w-56"
     >
       {(close) => (
         <div>
           <div className="flex items-center gap-3 border-b border-border/30 px-3 py-3">
             <Avatar name={user?.full_name} className="h-9 w-9" />
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-semibold text-foreground">{user?.full_name}</p>
+              <p className="truncate text-[13px] font-semibold">{user?.full_name}</p>
               <p className="truncate text-[11px] text-muted-foreground/50">{user?.email}</p>
             </div>
           </div>
@@ -116,7 +112,7 @@ export function ProfileMenu() {
             </p>
           </div>
           <div className="border-t border-border/30" />
-          <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground">
+          <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
             Account settings
           </Link>
         </div>

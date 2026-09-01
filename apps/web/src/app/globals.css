@@ -5,14 +5,14 @@
 @layer base {
   :root {
     /* ─── Backgrounds ─── */
-    --background: 0 0% 98.5%;
+    --background: 0 0% 99%;
     --foreground: 240 10% 3.9%;
 
     /* ─── Surfaces ─── */
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
 
-    /* ─── Brand — deep indigo ─── */
+    /* ─── Brand — refined indigo ─── */
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
@@ -43,16 +43,24 @@
     --ring: 239 84% 67%;
 
     /* ─── Radius ─── */
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
-    /* ─── Sidebar — refined dark ─── */
-    --sidebar: 240 5.9% 10%;
-    --sidebar-foreground: 0 0% 85%;
-    --sidebar-muted: 0 0% 55%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-active: 239 84% 67%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-primary: 239 84% 67%;
+    /* ─── Rail — the slim icon column ─── */
+    --rail: 240 5.9% 10%;
+    --rail-foreground: 0 0% 100%;
+    --rail-muted: 0 0% 50%;
+    --rail-active-bg: 239 84% 67%;
+    --rail-active-fg: 0 0% 100%;
+    --rail-border: 0 0% 16%;
+
+    /* ─── Panel — the expandable nav panel ─── */
+    --panel: 0 0% 100%;
+    --panel-foreground: 240 10% 3.9%;
+    --panel-muted: 240 3.8% 46.1%;
+    --panel-border: 240 5.9% 90%;
+    --panel-hover: 240 4.8% 95.9%;
+    --panel-active-bg: 239 84% 67%;
+    --panel-active-fg: 0 0% 100%;
 
     /* ─── Charts ─── */
     --chart-1: 239 84% 67%;
@@ -93,13 +101,22 @@
     --input: 240 3.7% 15.9%;
     --ring: 239 84% 67%;
 
-    --sidebar: 240 6% 6%;
-    --sidebar-foreground: 0 0% 80%;
-    --sidebar-muted: 0 0% 50%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-active: 239 84% 67%;
-    --sidebar-border: 0 0% 12%;
-    --sidebar-primary: 239 84% 67%;
+    /* ─── Rail dark ─── */
+    --rail: 240 6% 5%;
+    --rail-foreground: 0 0% 100%;
+    --rail-muted: 0 0% 45%;
+    --rail-active-bg: 239 84% 67%;
+    --rail-active-fg: 0 0% 100%;
+    --rail-border: 0 0% 12%;
+
+    /* ─── Panel dark ─── */
+    --panel: 240 10% 6%;
+    --panel-foreground: 0 0% 98%;
+    --panel-muted: 240 5% 55%;
+    --panel-border: 240 3.7% 15.9%;
+    --panel-hover: 240 3.7% 12%;
+    --panel-active-bg: 239 84% 67%;
+    --panel-active-fg: 0 0% 100%;
   }
 }
 
@@ -127,17 +144,16 @@
 }
 
 @layer utilities {
-  /* Scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply rounded-full;
-    background: hsl(var(--muted-foreground) / 0.15);
+    background: hsl(var(--muted-foreground) / 0.12);
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.25);
+    background: hsl(var(--muted-foreground) / 0.22);
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
@@ -148,46 +164,12 @@
   .scrollbar-none {
     scrollbar-width: none;
   }
-
-  /* Shimmer loading */
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.4) 50%,
-      hsl(var(--muted)) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.8s ease-in-out infinite;
-  }
-
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
 }
 
-/* Print styles */
+/* Print */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-  .receipt-print-area,
-  .receipt-print-area *,
-  .rc-sheet,
-  .rc-sheet *,
-  .rc-print-page,
-  .rc-print-page * {
-    visibility: visible;
-  }
-  .receipt-print-area {
-    position: absolute;
-    inset: 0;
-    border: none;
-    box-shadow: none;
-  }
-  .rc-sheet {
-    position: relative;
-    inset: auto;
-  }
+  body * { visibility: hidden; }
+  .receipt-print-area, .receipt-print-area *, .rc-sheet, .rc-sheet *, .rc-print-page, .rc-print-page * { visibility: visible; }
+  .receipt-print-area { position: absolute; inset: 0; border: none; box-shadow: none; }
+  .rc-sheet { position: relative; inset: auto; }
 }
