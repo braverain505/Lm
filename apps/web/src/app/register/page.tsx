@@ -173,7 +173,7 @@ export default function RegisterPage() {
               width={1536}
               height={1024}
               priority
-              className="h-12 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
           <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
@@ -256,7 +256,7 @@ export default function RegisterPage() {
             width={1536}
             height={1024}
             priority
-            className="h-12 w-auto object-contain"
+            className="h-20 w-auto object-contain"
           />
         </div>
 

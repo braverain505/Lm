@@ -81,7 +81,7 @@ function ResetPasswordForm() {
             width={1536}
             height={1024}
             priority
-            className="h-12 w-auto object-contain"
+            className="h-20 w-auto object-contain"
           />
         </div>
 

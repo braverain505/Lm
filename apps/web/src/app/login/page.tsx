@@ -110,18 +110,8 @@ export default function LoginPage() {
             width={1536}
             height={1024}
             priority
-            className="h-12 w-auto object-contain"
+            className="h-20 w-auto object-contain"
           />
-        </div>
-
-        {/* Heading */}
-        <div className="mb-8 text-center">
-          <h1 className="text-[28px] font-bold tracking-tight text-foreground">
-            Welcome back
-          </h1>
-          <p className="mt-2 text-[15px] text-muted-foreground">
-            Sign in to your Clearis workspace
-          </p>
         </div>
 
         {/* Card */}
