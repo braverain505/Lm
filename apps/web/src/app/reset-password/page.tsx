@@ -60,7 +60,7 @@ function ResetPasswordForm() {
           width={1536}
           height={1024}
           priority
-          className="mx-auto h-16 w-auto rounded-lg object-contain"
+          className="mx-auto h-20 w-auto rounded-lg object-contain"
         />
         <h2 className="mt-6 text-[22px] font-bold tracking-tight">Choose a new password</h2>
         <p className="mt-1 text-sm text-muted-foreground">

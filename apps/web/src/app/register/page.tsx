@@ -138,7 +138,7 @@ export default function RegisterPage() {
       <div className="relative hidden w-1/2 overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-cyan-950 lg:block">
         <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_20%,white_1px,transparent_1px)] [background-size:28px_28px]" />
         <div className="relative flex h-full flex-col justify-between p-12 text-primary-foreground">
-          <Image src="/clearis.png" alt="Clearis" width={1536} height={1024} priority className="h-11 w-auto rounded-lg object-contain object-left" />
+          <Image src="/clearis.png" alt="Clearis" width={1536} height={1024} priority className="h-14 w-auto rounded-lg object-contain object-left" />
           <div><h1 className="max-w-md text-4xl font-bold leading-tight">Your school, on one platform.</h1><p className="mt-4 max-w-md text-primary-foreground/80">Build a trusted digital home for your school, from first setup to everyday operations.</p></div>
           <p className="text-sm text-primary-foreground/65">BraveEdge Technology · Built for schools that mean business.</p>
         </div>

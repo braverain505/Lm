@@ -116,7 +116,7 @@ export default function LoginPage() {
               width={1536}
               height={1024}
               priority
-              className="h-16 w-auto shrink-0 rounded-lg object-contain"
+              className="h-20 w-auto shrink-0 rounded-lg object-contain"
             />
           </div>
 
@@ -187,7 +187,7 @@ export default function LoginPage() {
               width={1536}
               height={1024}
               priority
-              className="h-12 w-auto rounded-lg object-contain"
+              className="h-16 w-auto rounded-lg object-contain"
             />
           </div>
 
