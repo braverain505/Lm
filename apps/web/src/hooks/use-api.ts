@@ -291,6 +291,23 @@ export function useChangeStudentClass() {
   });
 }
 
+export function useUpdateStudent() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ studentId, data }: { studentId: string; data: Record<string, unknown> }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.schoolFetch(schoolId, `/students/${studentId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["students"] });
+    },
+  });
+}
+
 export function useDeleteStudent() {
   const schoolId = useActiveSchoolId();
   const queryClient = useQueryClient();

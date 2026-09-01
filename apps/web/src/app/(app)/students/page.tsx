@@ -19,7 +19,9 @@ import {
   usePromoteStudents,
   useSessions,
   useStudents,
+  useUpdateStudent,
 } from "@/hooks/use-api";
+import { useToast } from "@/components/toast";
 
 export default function StudentsPage() {
   const schoolId = useActiveSchoolId();
@@ -62,6 +64,52 @@ export default function StudentsPage() {
   const [promoteResult, setPromoteResult] = useState<string | null>(null);
   const { data: fromArms = [] } = useArms(promoteFrom || null);
   const { data: toArms = [] } = useArms(promoteTo || null);
+
+  // --- Edit student -----------------------------------------------------------
+  const [editFor, setEditFor] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
+  const [editPhotoUploading, setEditPhotoUploading] = useState(false);
+  const editPhotoInputRef = useRef<HTMLInputElement>(null);
+  const updateStudent = useUpdateStudent();
+  const { toast } = useToast();
+
+  const openEdit = (student: typeof data[0]) => {
+    setEditFor(student.id);
+    setEditForm({
+      first_name: student.full_name.split(" ")[0] ?? "",
+      last_name: student.full_name.split(" ").slice(1).join(" ") ?? "",
+      gender: student.gender,
+      state: student.state ?? "",
+      photo_url: student.photo_url ?? "",
+    });
+  };
+
+  const onPickEditPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !schoolId) return;
+    setEditPhotoUploading(true);
+    try {
+      const url = await api.uploadStudentPhoto(schoolId, file);
+      setEditForm((f) => ({ ...f, photo_url: url }));
+    } finally {
+      setEditPhotoUploading(false);
+      if (editPhotoInputRef.current) editPhotoInputRef.current.value = "";
+    }
+  };
+
+  const saveEdit = () => {
+    if (!editFor) return;
+    updateStudent.mutate(
+      { studentId: editFor, data: editForm },
+      {
+        onSuccess: () => {
+          toast("Student updated successfully");
+          setEditFor(null);
+        },
+        onError: () => toast("Failed to update student", "error"),
+      },
+    );
+  };
 
   // --- Portal PIN -------------------------------------------------------------
   const [pinFor, setPinFor] = useState<string | null>(null);
@@ -406,6 +454,90 @@ export default function StudentsPage() {
         </motion.div>
       )}
 
+      {/* Edit student panel */}
+      {editFor && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+          <Card className="premium-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                  <UserPlus className="h-4 w-4 text-primary" />
+                </span>
+                Edit student — {data.find((s) => s.id === editFor)?.full_name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label>First name</Label>
+                  <Input
+                    value={editForm.first_name}
+                    onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Last name</Label>
+                  <Input
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Gender</Label>
+                  <select
+                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>State</Label>
+                  <Input
+                    value={editForm.state}
+                    onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Photo</Label>
+                  <div className="flex items-center gap-3">
+                    {editForm.photo_url ? (
+                      <img
+                        src={editForm.photo_url.startsWith("http") ? editForm.photo_url : `${(process.env.NEXT_PUBLIC_API_URL ?? "https://schoolos-api-5066.onrender.com/api").replace(/\/api$/, "")}${editForm.photo_url}`}
+                        alt="Student preview"
+                        className="h-14 w-14 rounded-full border object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/40 text-muted-foreground/40">
+                        <UserPlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <input
+                      ref={editPhotoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={onPickEditPhoto}
+                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
+                    />
+                  </div>
+                  {editPhotoUploading && <p className="text-[11px] text-muted-foreground/60">Uploading photo…</p>}
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button onClick={saveEdit} disabled={updateStudent.isPending}>
+                    {updateStudent.isPending ? "Saving…" : "Save changes"}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setEditFor(null)}>Cancel</Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Table */}
       <Card className="premium-card">
         <CardContent className="p-5">
@@ -454,11 +586,14 @@ export default function StudentsPage() {
                       <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
                       <td className="py-3">
                         <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
+                            Edit
+                          </Button>
                           <Button variant="outline" size="sm" onClick={() => setPinFor(s.id)}>
-                            {pinFor === s.id ? "Close" : "Portal PIN"}
+                            PIN
                           </Button>
                           <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
-                            {enrollFor === s.id ? "Close" : "Enroll"}
+                            Enroll
                           </Button>
                         </div>
                       </td>
