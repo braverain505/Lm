@@ -58,9 +58,9 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
       <div className={cn("flex h-[60px] shrink-0 items-center border-b border-white/[0.06]", collapsed ? "justify-center px-3" : "gap-3 px-5")}>
         <Link href="/dashboard" className="flex items-center gap-3 rounded-lg" onClick={onNavigate}>
           {schoolProfile?.logo_url ? (
-            <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain" />
+            <img src={schoolProfile.logo_url} alt={activeSchool?.school_name ?? "School"} className="h-11 w-11 shrink-0 rounded-lg bg-white object-contain" />
           ) : (
-            <Image src="/clearis.png" alt="Clearis" width={1536} height={1024} priority className="h-9 w-auto shrink-0 rounded-lg object-contain" />
+            <Image src="/clearis.png" alt="Clearis" width={1536} height={1024} priority className="h-11 w-auto shrink-0 rounded-lg object-contain" />
           )}
           {!collapsed && (
             <span className="text-[14px] font-bold tracking-tight text-white/90">Clearis</span>

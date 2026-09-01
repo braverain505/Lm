@@ -52,7 +52,7 @@ export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSid
             width={1536}
             height={1024}
             priority
-            className="h-11 w-auto shrink-0 rounded-lg object-contain"
+            className="h-14 w-auto shrink-0 rounded-lg object-contain"
           />
         </Link>
       </div>
