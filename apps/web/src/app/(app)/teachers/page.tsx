@@ -420,7 +420,6 @@ export default function TeachersPage() {
                     setRoleFor={setRoleFor}
                     selectedRoleId={selectedRoleId}
                     setSelectedRoleId={setSelectedRoleId}
-                    roles={roles}
                     openRoleForm={openRoleForm}
                     saveRole={saveRole}
                     rolePending={updateAccount.isPending}
