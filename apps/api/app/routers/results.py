@@ -522,7 +522,6 @@ def list_comment_bank(
     sentiment: str | None = None,
     search: str | None = None,
     ctx=Depends(require_permission(RESULTS_VIEW)),
-    _ai=Depends(ensure_ai),
 ):
     """Search the school's comment bank by category, sentiment or text."""
     rows = comment_bank_service.list_comment_bank(
@@ -540,7 +539,6 @@ def create_comment_bank_entry(
     payload: CommentBankCreate,
     db: DbSession,
     ctx=Depends(require_permission(RESULTS_COMMENT)),
-    _ai=Depends(ensure_ai),
 ):
     """Add a reusable phrase to the school's comment bank."""
     row = comment_bank_service.create_comment_bank_entry(
@@ -562,7 +560,6 @@ def update_comment_bank_entry(
     payload: CommentBankUpdate,
     db: DbSession,
     ctx=Depends(require_permission(RESULTS_COMMENT)),
-    _ai=Depends(ensure_ai),
 ):
     """Edit a bank entry, or deactivate it (``is_active=false``)."""
     row = comment_bank_service.update_comment_bank_entry(
@@ -584,7 +581,6 @@ def deactivate_comment_bank_entry(
     entry_id: uuid.UUID,
     db: DbSession,
     ctx=Depends(require_permission(RESULTS_COMMENT)),
-    _ai=Depends(ensure_ai),
 ):
     """Soft-delete a bank entry so it stops appearing in searches."""
     row = comment_bank_service.update_comment_bank_entry(

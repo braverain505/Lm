@@ -2,6 +2,20 @@
 
 import type { ReportCard } from "@schoolos/shared";
 
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL ??
+  "https://schoolos-api-5066.onrender.com/api"
+).replace(/\/$/, "");
+
+/** Resolve relative API URLs to absolute URLs for cross-origin image loading. */
+function resolveUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("http")) return url;
+  // Relative path like /api/uploads/... → prepend API base without /api suffix
+  const base = API_BASE.replace(/\/api$/, "");
+  return `${base}${url}`;
+}
+
 /* ---- date/ordinal helpers (pure, small) ---- */
 
 function ordinal(n: number): string {
@@ -46,11 +60,12 @@ function initials(name: string): string {
 /* ------------------------------------------------------------------ */
 
 function PhotoFrame({ src, fallback }: { src?: string | null; fallback: string }) {
+  const resolvedSrc = resolveUrl(src);
   return (
     <div className="rc-photo">
-      {src ? (
+      {resolvedSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="Student" />
+        <img src={resolvedSrc} alt="Student" crossOrigin="anonymous" />
       ) : (
         <span className="rc-photo-fallback">{fallback}</span>
       )}
@@ -59,11 +74,12 @@ function PhotoFrame({ src, fallback }: { src?: string | null; fallback: string }
 }
 
 function LogoFrame({ src, fallback }: { src?: string | null; fallback: string }) {
+  const resolvedSrc = resolveUrl(src);
   return (
     <div className="rc-logo">
-      {src ? (
+      {resolvedSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="School crest" />
+        <img src={resolvedSrc} alt="School crest" crossOrigin="anonymous" />
       ) : (
         <span className="rc-logo-fallback">{fallback}</span>
       )}
