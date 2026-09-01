@@ -72,11 +72,11 @@ export function TeacherDashboard() {
   const busy = summaryLoading || assignmentsLoading || readinessLoading;
 
   const toolShortcuts = [
-    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, tone: "bg-primary/10 text-primary", always: true },
-    { label: "Attendance", desc: "Mark today's register", href: "/attendance", icon: CalendarCheck, tone: "bg-emerald-500/10 text-emerald-700", permission: "attendance.mark" },
-    { label: "Timetable", desc: "Weekly schedule", href: "/timetable", icon: LayoutGrid, tone: "bg-amber-500/10 text-amber-700", permission: "timetable.view" },
-    { label: "Lesson plans", desc: "Generate with AI", href: "/lesson-plans", icon: NotebookPen, tone: "bg-rose-500/10 text-rose-700", permission: "results.comment" },
-    { label: "Comments", desc: "Add comments for homeroom class", href: "/results", icon: FileText, tone: "bg-teal-500/10 text-teal-700", permission: "results.comment", condition: isHomeroomTeacher },
+    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, always: true },
+    { label: "Attendance", desc: "Mark today's register", href: "/attendance", icon: CalendarCheck, permission: "attendance.mark" },
+    { label: "Timetable", desc: "Weekly schedule", href: "/timetable", icon: LayoutGrid, permission: "timetable.view" },
+    { label: "Lesson plans", desc: "Generate with AI", href: "/lesson-plans", icon: NotebookPen, permission: "results.comment" },
+    { label: "Comments", desc: "Add comments for homeroom class", href: "/results", icon: FileText, permission: "results.comment", condition: isHomeroomTeacher },
   ].filter(
     (shortcut) =>
       shortcut.always ||
@@ -84,295 +84,188 @@ export function TeacherDashboard() {
         (!shortcut.condition || shortcut.condition))
   );
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   return (
-    <div className="space-y-5">
-      {/* Greeting */}
-      <div className="rounded-2xl border border-primary/[0.08] bg-gradient-to-br from-primary/[0.04] via-primary/[0.02] to-transparent px-6 py-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h2 className="text-[20px] font-bold tracking-tight text-foreground sm:text-[22px]">
-              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"},{" "}
-              {user?.full_name?.split(" ")[0] ?? "there"}
-            </h2>
-            <p className="mt-1 text-[13px] text-muted-foreground">Here&apos;s what you need to do today.</p>
+    <div className="space-y-8">
+      {/* Greeting — clean, no card */}
+      <div>
+        <h2 className="text-[22px] font-bold tracking-tight text-foreground">
+          {greeting}, {user?.full_name?.split(" ")[0] ?? "there"}.
+        </h2>
+        <p className="mt-1 text-[14px] text-muted-foreground">
+          Here&apos;s what&apos;s happening across your classes today.
+        </p>
+        {term && (
+          <p className="mt-1 text-[13px] font-medium text-muted-foreground/70">{term.name}</p>
+        )}
+      </div>
+
+      {/* Quick actions — compact inline */}
+      {toolShortcuts.length > 0 && (
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Quick actions</p>
+          <div className="flex flex-wrap gap-2">
+            {toolShortcuts.map((shortcut) => (
+              <Link
+                key={shortcut.label}
+                href={shortcut.href}
+                className="inline-flex items-center gap-2 rounded-lg border border-border/40 bg-card px-3 py-2 text-[12px] font-medium text-foreground/80 shadow-xs transition-all hover:border-border/60 hover:shadow-sm hover:text-foreground"
+              >
+                <shortcut.icon className="h-3.5 w-3.5 text-muted-foreground/50" />
+                {shortcut.label}
+              </Link>
+            ))}
           </div>
-          {term && (
-            <Badge variant="outline" className="text-[12px]">
-              {term.name}
-            </Badge>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Tool shortcuts */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {toolShortcuts.map((shortcut) => (
-          <Link key={shortcut.label} href={shortcut.href} className="stat-card group flex items-center gap-3">
-            <span className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", shortcut.tone)}>
-              <shortcut.icon className="h-5 w-5" />
+      {/* Key metrics — clean inline */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-border/40 bg-card px-4 py-3.5 shadow-xs">
+          <p className="text-[11px] font-medium text-muted-foreground/60">My subjects</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-[24px] font-bold tracking-tight">{busy ? <Skeleton className="inline-block h-6 w-10" /> : assignments.length}</span>
+            <span className="text-[12px] text-muted-foreground/50">{byArm.length} class{byArm.length === 1 ? "" : "es"}</span>
+          </div>
+        </div>
+        <div className="rounded-xl border border-border/40 bg-card px-4 py-3.5 shadow-xs">
+          <p className="text-[11px] font-medium text-muted-foreground/60">Scores entered</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className={cn("text-[24px] font-bold tracking-tight", totals.entered > 0 ? "text-success" : "text-muted-foreground")}>
+              {busy ? <Skeleton className="inline-block h-6 w-10" /> : `${totals.entered}/${totals.students}`}
             </span>
-            <span className="min-w-0">
-              <span className="block text-[13px] font-semibold leading-tight">{shortcut.label}</span>
-              <span className="block truncate text-[11.5px] text-muted-foreground/70">{shortcut.desc}</span>
-            </span>
-            <ArrowUpRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/20 transition-colors duration-150 group-hover:text-primary" />
-          </Link>
-        ))}
-      </div>
-
-      {/* Overview strip */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <div className="stat-card">
-          <p className="text-[12px] text-muted-foreground/70">My subjects</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight">{assignments.length}</p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
-          {!busy && assignments.length > 0 && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
-                <span>Subjects with scores</span>
-                <span>{myRows.filter((r) => r.entered > 0).length}/{assignments.length}</span>
-              </div>
-              <Progress
-                value={assignments.length > 0 ? (myRows.filter((r) => r.entered > 0).length / assignments.length) * 100 : 0}
-                size="sm"
-                className="h-1.5"
-                indicatorClassName="bg-primary"
-              />
+          </div>
+          {totals.students > 0 && !busy && (
+            <div className="mt-2">
+              <Progress value={(totals.entered / totals.students) * 100} size="sm" className="h-1" indicatorClassName={totals.entered >= totals.students ? "bg-success" : "bg-primary"} />
             </div>
           )}
         </div>
-        <div className="stat-card">
-          <p className="text-[12px] text-muted-foreground/70">Scores entered</p>
-          <p className={cn("mt-1 text-2xl font-bold tracking-tight", totals.entered > 0 ? "text-success" : "text-muted-foreground")}>
-            {busy ? <Skeleton className="h-7 w-10" /> : `${totals.entered}/${totals.students}`}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground/60">
-            {totals.students} students
-          </p>
-          {!busy && totals.students > 0 && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
-                <span>Students completed</span>
-                <span>{totals.entered}/{totals.students}</span>
-              </div>
-              <Progress
-                value={totals.students > 0 ? (totals.entered / totals.students) * 100 : 0}
-                size="sm"
-                className="h-1.5"
-                indicatorClassName={totals.entered >= totals.students ? "bg-success" : "bg-primary"}
-              />
-            </div>
-          )}
-        </div>
-        <div className="stat-card">
-          <p className="text-[12px] text-muted-foreground/70">Pending submissions</p>
-          <p className={cn("mt-1 text-2xl font-bold tracking-tight", totals.pending > 0 ? "text-warning" : "text-success")}>
-            {busy ? <Skeleton className="h-7 w-10" /> : totals.pending}
-          </p>
-          <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+        <div className="rounded-xl border border-border/40 bg-card px-4 py-3.5 shadow-xs">
+          <p className="text-[11px] font-medium text-muted-foreground/60">Pending submissions</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className={cn("text-[24px] font-bold tracking-tight", totals.pending > 0 ? "text-warning" : "text-success")}>
+              {busy ? <Skeleton className="inline-block h-6 w-10" /> : totals.pending}
+            </span>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground/50">
             {totals.submitted > 0 ? `${totals.submitted} already submitted` : "Nothing submitted yet"}
           </p>
-          {!busy && totals.students > 0 && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
-                <span>Submission progress</span>
-                <span>{totals.submitted}/{totals.students}</span>
-              </div>
-              <Progress
-                value={totals.students > 0 ? (totals.submitted / totals.students) * 100 : 0}
-                size="sm"
-                className="h-1.5"
-                indicatorClassName="bg-emerald-500"
-              />
-            </div>
-          )}
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        {/* My responsibilities */}
-        <WidgetCard
-          title="My responsibilities"
-          icon={<ListChecks className="h-4 w-4 text-primary" />}
-          subtitle="Score entry status for your classes"
-          loading={busy}
-          error={isError}
-          onRetry={refetch}
-          empty={!busy && myRows.length === 0}
-          emptyHint="Your assigned classes and subjects will appear here."
-          className="xl:col-span-2"
-          bodyClassName="pt-4"
-        >
-          <ul className="space-y-2">
-            {myRows.map((r) => {
-              const pct = r.student_count ? Math.round((r.entered / r.student_count) * 100) : 0;
-              const done = r.pending === 0 && r.student_count > 0;
-              const status = r.submitted > 0 && r.submitted >= r.student_count
-                ? { label: "Submitted", tone: "success" as const }
-                : done
-                  ? { label: "Ready to submit", tone: "info" as const }
-                  : r.entered > 0
-                    ? { label: "In progress", tone: "warning" as const }
-                    : { label: "Not started", tone: "muted" as const };
-              return (
-                <li key={`${r.arm_id}-${r.subject_id}`}>
-                  <Link
-                    href={`/results/score?arm_id=${r.arm_id}&subject_id=${r.subject_id}&term_id=${term?.id ?? ""}`}
-                    className="group block rounded-xl border border-border/40 p-4 transition-all duration-150 hover:border-primary/20 hover:bg-accent/40"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-[13px] font-semibold">
-                        {r.subject_name}
-                        <span className="font-normal text-muted-foreground"> — {r.arm_name}</span>
-                      </p>
-                      <Badge variant={status.tone}>{status.label}</Badge>
-                    </div>
-                    <div className="mt-2.5 flex items-center gap-3">
-                      <Progress
-                        value={pct}
-                        size="sm"
-                        className="flex-1"
-                        indicatorClassName={done ? "bg-success" : "bg-primary"}
-                      />
-                      <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                        {r.entered}/{r.student_count} entered
-                      </span>
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground/60">
-                      {r.pending > 0 ? `${r.pending} students still need scores` : `${r.submitted} submitted for review`}
-                    </p>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </WidgetCard>
-
-        {/* Right column: AI + my classes */}
-        <div className="space-y-4">
-          {hasPermission("ai.copilot") && (
-            <WidgetCard
-              title={
-                <span className="flex items-center gap-2">
-                  Clearis AI <Bot className="h-4 w-4 text-violet-500" />
-                </span>
-              }
-              icon={null}
-              subtitle="Your AI teaching tools"
-              bodyClassName="pt-4"
-            >
-              <div className="space-y-2">
-                <Link href="/lesson-plans" className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
-                    <NotebookPen className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold">Generate a lesson plan</p>
-                    <p className="truncate text-[11px] text-muted-foreground/70">AI drafts objectives, procedure & homework</p>
-                  </div>
-                </Link>
-                <Link href="/question-banks" className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300">
-                    <Sparkles className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-semibold">Create questions</p>
-                    <p className="truncate text-[11px] text-muted-foreground/70">Strand questions with answers & rationale</p>
-                  </div>
-                </Link>
+      {/* Main content — 2 column */}
+      <div className="grid gap-6 xl:grid-cols-3">
+        {/* Left — Responsibilities */}
+        <div className="xl:col-span-2">
+          <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">Your responsibilities</h3>
+          <div className="rounded-xl border border-border/40 bg-card shadow-xs">
+            {busy ? (
+              <div className="p-4 space-y-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-            </WidgetCard>
-          )}
-
-          <WidgetCard
-            title="My classes"
-            icon={<GraduationCap className="h-4 w-4 text-primary" />}
-            subtitle="Classes you teach this session"
-            loading={assignmentsLoading}
-            bodyClassName="pt-4"
-          >
-            {byArm.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No classes assigned yet.</p>
+            ) : myRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+                <p className="text-[13px] font-medium text-foreground/60">No classes assigned yet</p>
+                <p className="mt-1 text-[12px] text-muted-foreground/50">Your assigned classes and subjects will appear here.</p>
+              </div>
             ) : (
-              <ul className="space-y-2">
-                {byArm.map((arm) => (
-                  <li key={arm.arm_name} className="flex items-center justify-between rounded-xl border border-border/40 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-semibold">{arm.arm_name}</p>
-                      <p className="truncate text-[11px] text-muted-foreground/70">{arm.subjects.join(" · ")}</p>
-                    </div>
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">
-                      {arm.subjects.length}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </WidgetCard>
-        </div>
-      </div>
-
-      {/* Recent activity + today's attendance + Quick entry */}
-      <div className="grid gap-4 xl:grid-cols-3">
-        <ActivityPanel items={summary?.activity} loading={summaryLoading} error={isError} onRetry={refetch} />
-        <WidgetCard
-          title="Today's attendance"
-          icon={<CalendarCheck className="h-4 w-4 text-primary" />}
-          subtitle="School-wide register today"
-          loading={summaryLoading}
-          error={isError}
-          onRetry={refetch}
-          bodyClassName="pt-4"
-        >
-          {summary?.attendance?.today?.total ? (
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: "Present", value: summary.attendance.today.present, color: "text-success" },
-                { label: "Absent", value: summary.attendance.today.absent, color: "text-destructive" },
-                { label: "Late", value: summary.attendance.today.late, color: "text-warning" },
-              ].map((s) => (
-                <div key={s.label} className="rounded-xl border border-border/40 bg-muted/30 p-4 text-center">
-                  <p className={cn("text-2xl font-bold tracking-tight", s.color)}>{s.value}</p>
-                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{s.label}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="flex items-center gap-2 text-[13px] text-muted-foreground/70">
-              <Clock className="h-4 w-4" /> No attendance recorded today yet.
-            </p>
-          )}
-        </WidgetCard>
-        {hasPermission("results.enter") && (
-          <WidgetCard
-            title="Quick entry"
-            icon={<ClipboardCheck className="h-4 w-4 text-primary" />}
-            subtitle="Open a score grid"
-            loading={assignmentsLoading}
-            bodyClassName="pt-4"
-          >
-            {assignments.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">No assignments yet.</p>
-            ) : (
-              <ul className="space-y-0.5">
-                {assignments.map((a) => (
-                  <li key={a.assignment_id}>
+              <div className="divide-y divide-border/30">
+                {myRows.map((r) => {
+                  const pct = r.student_count ? Math.round((r.entered / r.student_count) * 100) : 0;
+                  const done = r.pending === 0 && r.student_count > 0;
+                  const status = r.submitted > 0 && r.submitted >= r.student_count
+                    ? { label: "Submitted", variant: "success" as const }
+                    : done
+                      ? { label: "Ready", variant: "info" as const }
+                      : r.entered > 0
+                        ? { label: "In progress", variant: "warning" as const }
+                        : { label: "Not started", variant: "muted" as const };
+                  return (
                     <Link
-                      href={`/results/score?arm_id=${a.arm_id}&subject_id=${a.subject_id}&term_id=${term?.id ?? ""}`}
-                      className="group flex items-center justify-between rounded-lg px-3 py-2.5 text-[13px] transition-colors duration-150 hover:bg-accent/60"
+                      key={`${r.arm_id}-${r.subject_id}`}
+                      href={`/results/score?arm_id=${r.arm_id}&subject_id=${r.subject_id}&term_id=${term?.id ?? ""}`}
+                      className="group flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/30"
                     >
-                      <span className="truncate">
-                        <span className="font-medium">{a.arm_name}</span>
-                        <span className="text-muted-foreground"> · {a.subject_name}</span>
-                      </span>
-                      <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-primary" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[13px] font-medium text-foreground">{r.subject_name}</p>
+                          <span className="text-[12px] text-muted-foreground/50">· {r.arm_name}</span>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-3">
+                          <Progress value={pct} size="sm" className="h-1 flex-1" indicatorClassName={done ? "bg-success" : "bg-primary"} />
+                          <span className="shrink-0 text-[11px] text-muted-foreground/50">
+                            {r.entered}/{r.student_count}
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant={status.variant}>{status.label}</Badge>
                     </Link>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
             )}
-          </WidgetCard>
-        )}
+          </div>
+        </div>
+
+        {/* Right — My classes + AI */}
+        <div className="space-y-6">
+          <div>
+            <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">My classes</h3>
+            <div className="rounded-xl border border-border/40 bg-card shadow-xs">
+              {byArm.length === 0 ? (
+                <p className="px-4 py-4 text-[13px] text-muted-foreground/60">No classes assigned yet.</p>
+              ) : (
+                <div className="divide-y divide-border/30">
+                  {byArm.map((arm) => (
+                    <div key={arm.arm_name} className="flex items-center justify-between px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium text-foreground">{arm.arm_name}</p>
+                        <p className="truncate text-[11px] text-muted-foreground/50">{arm.subjects.join(" · ")}</p>
+                      </div>
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-md bg-muted/50 px-1.5 text-[11px] font-semibold text-muted-foreground">
+                        {arm.subjects.length}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {hasPermission("ai.copilot") && (
+            <div>
+              <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">AI tools</h3>
+              <div className="rounded-xl border border-border/40 bg-card shadow-xs divide-y divide-border/30">
+                <Link href="/lesson-plans" className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30">
+                  <NotebookPen className="h-4 w-4 text-muted-foreground/40" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-foreground">Generate a lesson plan</p>
+                    <p className="truncate text-[11px] text-muted-foreground/50">AI drafts objectives & procedure</p>
+                  </div>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 group-hover:text-primary" />
+                </Link>
+                <Link href="/question-banks" className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/30">
+                  <Sparkles className="h-4 w-4 text-muted-foreground/40" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-foreground">Create questions</p>
+                    <p className="truncate text-[11px] text-muted-foreground/50">Strand questions with answers</p>
+                  </div>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 group-hover:text-primary" />
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom — Activity */}
+      <div>
+        <ActivityPanel items={summary?.activity} loading={summaryLoading} error={isError} onRetry={refetch} />
       </div>
     </div>
   );

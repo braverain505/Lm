@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, GraduationCap, HelpCircle, Lock, Menu } from "lucide-react";
+import { Lock, Menu } from "lucide-react";
 import Link from "next/link";
 
 import { pageMeta } from "@/components/nav-config";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
-import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   pathname: string;
@@ -28,18 +27,18 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
   const meta = pageMeta(pathname);
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:px-6 print:hidden">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl sm:px-6 print:hidden">
       <button
         onClick={onOpenMobileNav}
-        className="-ml-1 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+        className="-ml-1 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
         aria-label="Open navigation"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-4 w-4" />
       </button>
 
-      {/* Page title */}
+      {/* Breadcrumb / page context */}
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground/70">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
           <span>{activeSchool?.role?.name ?? "Workspace"}</span>
           {meta.breadcrumb && (
             <>
@@ -48,15 +47,15 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
             </>
           )}
         </div>
-        <h1 className="mt-0.5 truncate text-[15px] font-semibold tracking-tight">{meta.title}</h1>
+        <h1 className="mt-px truncate text-[14px] font-semibold tracking-tight">{meta.title}</h1>
       </div>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto flex items-center gap-2">
         {/* Closed term indicator */}
         {isTermClosed && (
-          <span className="hidden items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-semibold text-warning sm:inline-flex">
+          <span className="hidden items-center gap-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-[11px] font-medium text-warning sm:inline-flex">
             <Lock className="h-3 w-3" />
-            Term closed — read only
+            Term closed
           </span>
         )}
 
@@ -66,7 +65,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
             const s = sessions.find((x) => x.id === v);
             if (s) setSession(s);
           }}>
-            <SelectTrigger icon={<CalendarDays className="h-3.5 w-3.5 text-muted-foreground/60" />} className="hidden h-8 w-auto text-[12.5px] md:inline-flex">
+            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/50 bg-transparent text-[12px] font-medium md:inline-flex">
               <SelectValue placeholder="Session" />
             </SelectTrigger>
             <SelectContent>
@@ -86,7 +85,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
             const t = terms.find((x) => x.id === v);
             if (t) setTerm(t);
           }}>
-            <SelectTrigger icon={<GraduationCap className="h-3.5 w-3.5 text-muted-foreground/60" />} className="hidden h-8 w-auto text-[12.5px] sm:inline-flex">
+            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/50 bg-transparent text-[12px] font-medium sm:inline-flex">
               <SelectValue placeholder="Term" />
             </SelectTrigger>
             <SelectContent>
@@ -101,27 +100,17 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
           </Select>
         )}
 
-        <span className="hidden h-5 w-px bg-border/60 sm:block" />
+        <span className="hidden h-4 w-px bg-border/50 sm:block" />
 
         {/* Search */}
         <div className="hidden sm:block">
           <SearchPalette />
         </div>
 
-        {/* Help */}
-        <Link
-          href="/copilot"
-          className="flex h-8 w-8 items-center justify-center rounded-xl border border-border/60 bg-background/50 text-muted-foreground/60 transition-all hover:border-border hover:bg-accent hover:text-foreground"
-          title="Clearis AI help"
-          aria-label="Help"
-        >
-          <HelpCircle className="h-4 w-4" />
-        </Link>
-
         {/* Notifications */}
         <Notifications />
 
-        <span className="hidden h-5 w-px bg-border/60 sm:block" />
+        <span className="hidden h-4 w-px bg-border/50 sm:block" />
 
         {/* Profile */}
         <ProfileMenu />

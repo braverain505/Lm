@@ -4,86 +4,102 @@
 
 @layer base {
   :root {
-    /* Refined neutral background — slightly warm grey */
-    --background: 220 16% 97%;
-    --foreground: 224 24% 10%;
+    /* ─── Backgrounds ─── */
+    --background: 0 0% 98.5%;
+    --foreground: 240 10% 3.9%;
 
-    /* Pure white cards */
+    /* ─── Surfaces ─── */
     --card: 0 0% 100%;
-    --card-foreground: 224 24% 10%;
+    --card-foreground: 240 10% 3.9%;
 
-    /* Clearis Blue — premium, trustworthy, clear */
-    --primary: 215 85% 50%;
+    /* ─── Brand — deep indigo ─── */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    /* Emerald secondary */
-    --secondary: 160 60% 42%;
-    --secondary-foreground: 0 0% 100%;
+    /* ─── Secondary ─── */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-    /* Refined muted */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 44%;
+    /* ─── Muted ─── */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
 
-    /* Subtle accent for hovers */
-    --accent: 220 14% 94%;
-    --accent-foreground: 224 24% 10%;
+    /* ─── Accent ─── */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
 
-    /* Destructive — restrained red */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    /* ─── Destructive ─── */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
 
-    /* Semantic colors */
-    --success: 152 60% 36%;
-    --warning: 34 84% 44%;
-    --info: 210 80% 52%;
+    /* ─── Semantic ─── */
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
 
-    /* Refined borders — very subtle */
-    --border: 220 12% 91%;
-    --input: 220 12% 89%;
-    --ring: 215 85% 50%;
+    /* ─── Borders & Inputs ─── */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 239 84% 67%;
 
-    /* Larger radius for premium feel */
-    --radius: 0.875rem;
+    /* ─── Radius ─── */
+    --radius: 0.625rem;
 
-    /* Sidebar — premium white */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 224 24% 10%;
-    --sidebar-muted: 220 10% 50%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-active: 215 85% 50%;
-    --sidebar-border: 220 12% 93%;
-    --sidebar-primary: 215 85% 50%;
+    /* ─── Sidebar — refined dark ─── */
+    --sidebar: 240 5.9% 10%;
+    --sidebar-foreground: 0 0% 85%;
+    --sidebar-muted: 0 0% 55%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-active: 239 84% 67%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-primary: 239 84% 67%;
 
-    /* Chart palette — harmonious */
-    --chart-1: 234 80% 52%;
-    --chart-2: 195 78% 48%;
-    --chart-3: 152 60% 36%;
-    --chart-4: 34 84% 44%;
-    --chart-5: 270 60% 50%;
-    --chart-6: 0 72% 51%;
+    /* ─── Charts ─── */
+    --chart-1: 239 84% 67%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 346 77% 50%;
+    --chart-5: 280 65% 60%;
+    --chart-6: 199 89% 48%;
   }
 
   .dark {
-    --background: 222 40% 7%;
-    --foreground: 210 20% 92%;
-    --card: 220 35% 12%;
-    --card-foreground: 210 20% 92%;
-    --primary: 215 78% 58%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 160 50% 48%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 25% 18%;
-    --muted-foreground: 218 16% 58%;
-    --accent: 220 25% 15%;
-    --accent-foreground: 210 20% 92%;
-    --destructive: 0 66% 52%;
-    --destructive-foreground: 0 0% 100%;
-    --success: 152 55% 44%;
-    --warning: 34 84% 52%;
-    --info: 195 80% 55%;
-    --border: 220 25% 17%;
-    --input: 220 25% 15%;
-    --ring: 215 78% 58%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 239 84% 67%;
+
+    --sidebar: 240 6% 6%;
+    --sidebar-foreground: 0 0% 80%;
+    --sidebar-muted: 0 0% 50%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-active: 239 84% 67%;
+    --sidebar-border: 0 0% 12%;
+    --sidebar-primary: 239 84% 67%;
   }
 }
 
@@ -93,19 +109,16 @@
   }
   html {
     scroll-behavior: smooth;
-  }
-  body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
-    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  ::selection {
-    background: hsl(var(--primary) / 0.12);
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
-
-  /* Improve focus visibility for accessibility */
+  ::selection {
+    background: hsl(var(--primary) / 0.15);
+  }
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
@@ -114,17 +127,17 @@
 }
 
 @layer utilities {
-  /* Scrollbar styling */
+  /* Scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
     width: 5px;
     height: 5px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply rounded-full;
-    background: hsl(var(--muted-foreground) / 0.18);
+    background: hsl(var(--muted-foreground) / 0.15);
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.3);
+    background: hsl(var(--muted-foreground) / 0.25);
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
@@ -136,60 +149,12 @@
     scrollbar-width: none;
   }
 
-  /* Premium card — subtle shadow, clean border */
-  .premium-card {
-    @apply rounded-2xl border bg-card transition-all;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  }
-  .premium-card:hover {
-    box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  }
-
-  /* Stat card — hover lift */
-  .stat-card {
-    @apply rounded-2xl border bg-card p-5 transition-all;
-    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03), 0 1px 3px 0 rgb(0 0 0 / 0.04);
-  }
-  .stat-card:hover {
-    @apply -translate-y-0.5 border-primary/20;
-    box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  }
-  .stat-card:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2;
-  }
-
-  /* Focus ring utility */
-  .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
-  }
-
-  /* Text balance */
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  /* Animated sheen for readiness bars */
-  .readiness-sheen {
-    background: linear-gradient(
-      100deg,
-      transparent 20%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 80%
-    );
-    animation: readiness-sheen-slide 2s ease-in-out infinite;
-  }
-
-  @keyframes readiness-sheen-slide {
-    0% { transform: translateX(-100%); }
-    60%, 100% { transform: translateX(100%); }
-  }
-
-  /* Subtle shimmer for loading states */
+  /* Shimmer loading */
   .shimmer {
     background: linear-gradient(
       90deg,
       hsl(var(--muted)) 0%,
-      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted) / 0.4) 50%,
       hsl(var(--muted)) 100%
     );
     background-size: 200% 100%;

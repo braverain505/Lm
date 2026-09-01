@@ -3,14 +3,14 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const AVATAR_TONES = [
-  "bg-primary/12 text-primary",
-  "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
-  "bg-amber-500/14 text-amber-700 dark:text-amber-300",
-  "bg-sky-500/12 text-sky-700 dark:text-sky-300",
-  "bg-rose-500/12 text-rose-700 dark:text-rose-300",
-  "bg-violet-500/12 text-violet-700 dark:text-violet-300",
-  "bg-teal-500/12 text-teal-700 dark:text-teal-300",
-  "bg-fuchsia-500/12 text-fuchsia-700 dark:text-fuchsia-300",
+  "bg-primary/10 text-primary",
+  "bg-success/10 text-success",
+  "bg-warning/10 text-warning",
+  "bg-info/10 text-info",
+  "bg-destructive/10 text-destructive",
+  "bg-violet-500/10 text-violet-600 dark:text-violet-300",
+  "bg-teal-500/10 text-teal-600 dark:text-teal-300",
+  "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300",
 ];
 
 interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {

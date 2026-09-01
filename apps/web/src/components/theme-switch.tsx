@@ -16,7 +16,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 p-1 backdrop-blur-sm",
+        "inline-flex items-center gap-0.5 rounded-lg border border-border/40 bg-transparent p-0.5",
         className,
       )}
     >
@@ -27,9 +27,9 @@ export function ThemeSwitch({ className }: { className?: string }) {
           aria-label={label}
           title={label}
           className={cn(
-            "flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground transition-all duration-150",
+            "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/40 transition-all duration-100",
             theme === value
-              ? "bg-primary/10 text-primary shadow-sm"
+              ? "bg-muted text-foreground shadow-xs"
               : "hover:text-foreground",
           )}
         >

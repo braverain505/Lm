@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   FileText,
   GraduationCap,
-  HelpCircle,
   LayoutDashboard,
   ListChecks,
   MessageSquareText,
@@ -30,11 +29,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Permission code required to see this item (null = always visible). */
   perm: string | null;
-  /** Only visible to Clearis platform admins (User.is_superadmin). */
   platformAdmin?: boolean;
-  /** Role codes allowed to see this item. If omitted, all roles with the required perm can see it. */
   roles?: string[];
 }
 
@@ -49,43 +45,38 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: null }],
   },
   {
-    label: "Academic",
+    label: "Academics",
     items: [
-      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
-      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
-      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
       { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
-      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-      { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
-      { href: "/reports", label: "Generate Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
       { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
+      { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/timetable", label: "Timetable", icon: CalendarCheck, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
     ],
   },
   {
-    label: "Result Generation",
+    label: "AI Tools",
     items: [
-      { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/question-banks", label: "CBT", icon: MonitorPlay, perm: "results.comment", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports?view=term", label: "Term Report", icon: FileText, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports?view=session", label: "Session Report", icon: FileText, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports?view=student", label: "Student Report", icon: FileText, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports?view=early-years", label: "Early Years Report", icon: FileText, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/readiness", label: "Subject Performance", icon: BarChart3, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports/broadsheet", label: "Broadsheet", icon: PieChart, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/reports/cumulative", label: "Cumulative Broadsheet", icon: PieChart, perm: "results.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
+      { href: "/lesson-plans", label: "Lesson Plans", icon: NotebookPen, perm: "results.comment" },
+      { href: "/question-banks", label: "AI Questions", icon: MonitorPlay, perm: "results.comment" },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
       { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["principal", "vp_academics", "homeroom_teacher"] },
-      { href: "/approvals", label: "Publish Results", icon: ListChecks, perm: "results.verify", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/settings", label: "Result Settings", icon: SlidersHorizontal, perm: "school.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/teachers", label: "Users", icon: UsersRound, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
     ],
   },
   {
     label: "Administration",
     items: [
-      { href: "/teachers", label: "Staff", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
-      { href: "/students", label: "Admissions", icon: UserPlus, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
+      { href: "/copilot", label: "Clearis AI", icon: Bot, perm: "ai.copilot" },
       { href: "/inventory", label: "Inventory", icon: Package, perm: "inventory.view" },
       { href: "/library", label: "Library", icon: BookCopy, perm: "library.view" },
     ],
@@ -98,24 +89,8 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: "AI",
-    items: [
-      { href: "/copilot", label: "Clearis AI", icon: Bot, perm: "ai.copilot" },
-      { href: "/lesson-plans", label: "AI Lesson Plans", icon: NotebookPen, perm: "results.comment" },
-      { href: "/question-banks", label: "AI Questions", icon: HelpCircle, perm: "results.comment" },
-      { href: "/dashboard", label: "AI Insights", icon: Sparkles, perm: "ai.copilot" },
-    ],
-  },
-  {
-    label: "Clearis",
-     items: [{ href: "/admin", label: "All Schools", icon: Shield, perm: null, platformAdmin: true }],
-  },
-  {
-    label: "Reports",
-    items: [
-      { href: "/reports", label: "Academic Reports", icon: PieChart, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-      { href: "/attendance", label: "Attendance Reports", icon: CalendarCheck, perm: "attendance.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
-    ],
+    label: "Platform",
+    items: [{ href: "/admin", label: "All Schools", icon: Shield, perm: null, platformAdmin: true }],
   },
   {
     label: "Settings",

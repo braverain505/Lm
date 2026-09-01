@@ -71,15 +71,15 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-xl border border-border/60 bg-muted/40 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-border/40 bg-muted/30 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all duration-150",
+            "rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-100",
             value === o.value
-              ? "bg-card text-foreground shadow-sm"
+              ? "bg-card text-foreground shadow-xs"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -111,7 +111,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Wallet,
           sub: feeCount != null ? `${feeCount} students with balances` : "No balances yet",
           href: "/billing",
-          iconClass: "bg-primary/10 text-primary",
         },
         {
           label: "Students",
@@ -119,7 +118,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Users,
           sub: `${data?.distribution?.total ?? 0} enrolled`,
           href: "/students",
-          iconClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         },
         {
           label: "Classes",
@@ -127,7 +125,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: LayoutGrid,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
-          iconClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
         },
         {
           label: "Attendance rate",
@@ -137,7 +134,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           deltaLabel: "vs this week",
           sub: "All recorded sessions",
           href: "/attendance",
-          iconClass: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
         },
         {
           label: "Payroll",
@@ -145,7 +141,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Wallet,
           sub: "View pay runs",
           href: "/payroll",
-          iconClass: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
         },
       ]
     : [
@@ -155,7 +150,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: Users,
           sub: `${data?.distribution?.total ?? 0} enrolled`,
           href: "/students",
-          iconClass: "bg-primary/10 text-primary",
         },
         {
           label: "Teachers",
@@ -163,7 +157,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: GraduationCap,
           sub: `${k?.staff ?? 0} total staff`,
           href: "/teachers",
-          iconClass: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
         },
         {
           label: "Classes",
@@ -171,7 +164,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: LayoutGrid,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
-          iconClass: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
         },
         {
           label: "Attendance",
@@ -181,7 +173,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           deltaLabel: "vs this week",
           sub: attDelta != null ? `${attDelta >= 0 ? "above" : "below"} weekly rate` : "All sessions",
           href: "/attendance",
-          iconClass: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
         },
         {
           label: "Result readiness",
@@ -189,7 +180,6 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           icon: BarChart3,
           sub: `${k?.readiness_pending ?? 0} scores still pending`,
           href: "/readiness",
-          iconClass: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
         },
       ];
 
@@ -211,21 +201,21 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
   return (
     <WidgetCard
       title="Academic performance"
-      icon={<TrendingUp className="h-4 w-4 text-primary" />}
+      icon={<TrendingUp className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Average score and pass rate by term"
       loading={loading}
       error={error}
       onRetry={onRetry}
       empty={!loading && byTerm.length === 0}
       emptyHint="Once scores are entered, performance trends will appear here."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
       <div className="mb-3 flex items-center gap-4 text-[11px]">
-        <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-primary" /> Average
+        <span className="flex items-center gap-1.5 text-muted-foreground/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Average
         </span>
-        <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pass rate
+        <span className="flex items-center gap-1.5 text-muted-foreground/60">
+          <span className="h-1.5 w-1.5 rounded-full bg-success" /> Pass rate
         </span>
       </div>
       <PerformanceChart data={byTerm} />
@@ -234,7 +224,7 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
 }
 
 // ---------------------------------------------------------------------------
-// Result readiness (core SchoolOS widget)
+// Result readiness
 // ---------------------------------------------------------------------------
 
 export function ReadinessPanel({
@@ -280,57 +270,53 @@ export function ReadinessPanel({
   const inProgress = agg ? agg.totals.entered - agg.totals.submitted : 0;
 
   const statuses = [
-    { label: "Submitted", value: submitted, color: "bg-primary", icon: ClipboardCheck },
-    { label: "In progress", value: inProgress, color: "bg-amber-500", icon: Clock },
-    { label: "Pending", value: pending, color: "bg-muted-foreground/40", icon: AlertTriangle },
+    { label: "Submitted", value: submitted, color: "bg-primary" },
+    { label: "In progress", value: inProgress, color: "bg-warning" },
+    { label: "Pending", value: pending, color: "bg-muted-foreground/30" },
   ];
 
   return (
     <WidgetCard
       title="Result readiness"
-      icon={<BarChart3 className="h-4 w-4 text-primary" />}
+      icon={<BarChart3 className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="What's blocking report cards"
       loading={readyLoading}
       error={error}
       onRetry={onRetry}
       empty={!readyLoading && !agg}
       emptyHint="Set up score entry to see readiness here."
-
     >
       <div className="flex items-center gap-4">
         <ReadinessRing pct={overall} size="lg" />
         <div className="flex-1 space-y-2">
-          {statuses.map(({ label, value, color, icon: Icon }) => (
+          {statuses.map(({ label, value, color }) => (
             <div key={label} className="flex items-center justify-between text-[13px]">
-              <span className="flex items-center gap-1.5 text-muted-foreground">
+              <span className="flex items-center gap-2 text-muted-foreground/60">
                 <span className={cn("h-2 w-2 rounded-full", color)} />
-                <Icon className="h-3.5 w-3.5" />
                 {label}
               </span>
-              <span className="font-semibold">{value}</span>
+              <span className="font-semibold text-foreground">{value}</span>
             </div>
           ))}
         </div>
       </div>
 
       {agg && agg.list.length > 0 && (
-        <div className="mt-5 space-y-3 border-t border-border/40 pt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            By subject
-          </p>
+        <div className="mt-5 space-y-2.5 border-t border-border/30 pt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">By subject</p>
           {agg.list.slice(0, 6).map((row) => {
             const pct = row.total ? Math.round((row.entered / row.total) * 100) : 0;
             const done = pct >= 100;
             return (
               <div key={row.subject}>
                 <div className="flex items-center justify-between text-[13px]">
-                  <span className="font-medium">{row.subject}</span>
+                  <span className="font-medium text-foreground/80">{row.subject}</span>
                   <span className="flex items-center gap-1.5">
                     {done && <Check className="h-3.5 w-3.5 text-success" />}
-                    <span className={cn("font-semibold", done ? "text-success" : "text-foreground")}>{pct}%</span>
+                    <span className={cn("font-semibold text-[12px]", done ? "text-success" : "text-foreground/70")}>{pct}%</span>
                   </span>
                 </div>
-                <ReadinessBar value={pct} size="sm" sheen={!done} className="mt-1.5" />
+                <ReadinessBar value={pct} size="sm" sheen={!done} className="mt-1" />
               </div>
             );
           })}
@@ -339,9 +325,9 @@ export function ReadinessPanel({
 
       <Link
         href="/readiness"
-        className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] font-semibold text-foreground transition-all hover:bg-accent hover:border-border"
+        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-[12px] font-semibold text-foreground/80 transition-all hover:bg-muted/40"
       >
-        View Result Readiness <ArrowRight className="h-3.5 w-3.5" />
+        View readiness <ArrowRight className="h-3.5 w-3.5" />
       </Link>
     </WidgetCard>
   );
@@ -356,25 +342,25 @@ export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: Dash
   return (
     <WidgetCard
       title="Enrollment"
-      icon={<Users className="h-4 w-4 text-primary" />}
+      icon={<Users className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Students by class level"
       loading={loading}
       error={error}
       onRetry={onRetry}
       empty={!loading && slices.length === 0}
       emptyHint="Enroll students to see the distribution."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
       <DistributionDonut data={slices} total={data?.distribution?.total} />
       <ul className="mt-3 space-y-1.5">
         {slices.slice(0, 6).map((s) => (
           <li key={s.level_code} className="flex items-center justify-between text-[13px]">
-            <span className="flex items-center gap-2 text-muted-foreground">
-              <span className="h-2 w-2 rounded-full bg-primary" />
+            <span className="flex items-center gap-2 text-muted-foreground/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {s.level_name}
             </span>
-            <span className="font-medium">
-              {s.count} <span className="text-muted-foreground">· {s.pct}%</span>
+            <span className="font-medium text-foreground/80">
+              {s.count} <span className="text-muted-foreground/40">· {s.pct}%</span>
             </span>
           </li>
         ))}
@@ -405,32 +391,32 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
 
   return (
     <WidgetCard
-      title="Attendance overview"
-      icon={<CalendarCheck className="h-4 w-4 text-primary" />}
+      title="Attendance"
+      icon={<CalendarCheck className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Student attendance across the school"
       loading={loading}
       error={error}
       onRetry={onRetry}
       empty={!loading && bars.length === 0}
       emptyHint="Mark attendance to see insights here."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
       actions={<Segmented value={range} options={[{ value: "today", label: "Today" }, { value: "week", label: "Week" }, { value: "month", label: "Month" }]} onChange={setRange} />}
     >
       <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
         <div className="min-w-0">
           {bars.length > 0 ? (
-            <AttendanceBars data={bars} height={190} />
+            <AttendanceBars data={bars} height={180} />
           ) : (
-            <div className="flex h-[190px] items-center justify-center text-[13px] text-muted-foreground">
+            <div className="flex h-[180px] items-center justify-center text-[13px] text-muted-foreground/50">
               No attendance recorded yet.
             </div>
           )}
         </div>
         {ov && (
           <div className="flex flex-col justify-center gap-2">
-            <div className="rounded-xl border border-border/40 bg-muted/30 px-4 py-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Rate</p>
-              <p className="text-2xl font-bold">{ov.rate == null ? "—" : `${Math.round(ov.rate)}%`}</p>
+            <div className="rounded-lg bg-muted/30 px-4 py-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">Rate</p>
+              <p className="text-[22px] font-bold tracking-tight">{ov.rate == null ? "—" : `${Math.round(ov.rate)}%`}</p>
             </div>
             <div className="grid grid-cols-1 gap-1 text-[12px]">
               {[
@@ -438,11 +424,11 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
                 { label: "Absent", value: ov.absent, color: "bg-destructive" },
                 { label: "Late", value: ov.late, color: "bg-warning" },
               ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-6 rounded-lg border border-border/40 px-3 py-1.5">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                <div key={s.label} className="flex items-center justify-between gap-6 rounded-md border border-border/30 px-3 py-1.5">
+                  <span className="flex items-center gap-1.5 text-muted-foreground/60">
                     <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} /> {s.label}
                   </span>
-                  <span className="font-semibold">{s.value}</span>
+                  <span className="font-semibold text-foreground/80">{s.value}</span>
                 </div>
               ))}
             </div>
@@ -462,23 +448,23 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
   return (
     <WidgetCard
       title="Class performance"
-      icon={<LayoutGrid className="h-4 w-4 text-primary" />}
+      icon={<LayoutGrid className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Average score for the selected term"
       loading={loading}
       error={error}
       onRetry={onRetry}
       empty={!loading && byClass.length === 0}
       emptyHint="Class averages appear once results are entered."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
       <ClassPerformanceBar data={byClass} />
-      <ul className="mt-3 space-y-1.5 border-t border-border/40 pt-3">
+      <ul className="mt-3 space-y-1.5 border-t border-border/30 pt-3">
         {byClass.slice(0, 6).map((c) => (
           <li key={c.arm_name} className="flex items-center justify-between text-[13px]">
-            <span className="text-muted-foreground">{c.arm_name}</span>
+            <span className="text-muted-foreground/60">{c.arm_name}</span>
             <span className="flex items-center gap-3">
-              <span className="font-medium">{c.avg_score == null ? "—" : `${c.avg_score}%`}</span>
-              <span className="w-14 text-right text-[11px] text-muted-foreground">{c.count} results</span>
+              <span className="font-medium text-foreground/80">{c.avg_score == null ? "—" : `${c.avg_score}%`}</span>
+              <span className="w-14 text-right text-[11px] text-muted-foreground/40">{c.count} results</span>
             </span>
           </li>
         ))}
@@ -491,15 +477,15 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
 // Quick actions
 // ---------------------------------------------------------------------------
 
-const ALL_ACTIONS: { label: string; desc: string; href: string; icon: React.ElementType; perm: string; tone: string }[] = [
-  { label: "Add student", desc: "Enroll into a class", href: "/students", icon: UserPlus, perm: "students.create", tone: "bg-primary/10 text-primary" },
-  { label: "Add teacher", desc: "Create a staff record", href: "/teachers", icon: GraduationCap, perm: "staff.create", tone: "bg-emerald-500/10 text-emerald-700" },
-  { label: "Create class", desc: "Arms & offerings", href: "/classes", icon: LayoutGrid, perm: "academics.manage", tone: "bg-amber-500/10 text-amber-700" },
-  { label: "Enter result", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, perm: "results.enter", tone: "bg-rose-500/10 text-rose-700" },
-  { label: "Mark attendance", desc: "Today's register", href: "/attendance", icon: CalendarCheck, perm: "attendance.mark", tone: "bg-sky-500/10 text-sky-700" },
-  { label: "Review approvals", desc: "Verify & publish", href: "/approvals", icon: ListChecks, perm: "results.verify", tone: "bg-violet-500/10 text-violet-700" },
-  { label: "Generate report", desc: "Report cards", href: "/reports", icon: FileText, perm: "results.view", tone: "bg-teal-500/10 text-teal-700" },
-  { label: "AI lesson plan", desc: "Plan a topic", href: "/lesson-plans", icon: NotebookPen, perm: "results.comment", tone: "bg-fuchsia-500/10 text-fuchsia-700" },
+const ALL_ACTIONS: { label: string; desc: string; href: string; icon: React.ElementType; perm: string }[] = [
+  { label: "Add student", desc: "Enroll into a class", href: "/students", icon: UserPlus, perm: "students.create" },
+  { label: "Add teacher", desc: "Create a staff record", href: "/teachers", icon: GraduationCap, perm: "staff.create" },
+  { label: "Create class", desc: "Arms & offerings", href: "/classes", icon: LayoutGrid, perm: "academics.manage" },
+  { label: "Enter result", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, perm: "results.enter" },
+  { label: "Mark attendance", desc: "Today's register", href: "/attendance", icon: CalendarCheck, perm: "attendance.mark" },
+  { label: "Review approvals", desc: "Verify & publish", href: "/approvals", icon: ListChecks, perm: "results.verify" },
+  { label: "Generate report", desc: "Report cards", href: "/reports", icon: FileText, perm: "results.view" },
+  { label: "AI lesson plan", desc: "Plan a topic", href: "/lesson-plans", icon: NotebookPen, perm: "results.comment" },
 ];
 
 export function QuickActions() {
@@ -510,23 +496,21 @@ export function QuickActions() {
   return (
     <WidgetCard
       title="Quick actions"
-      icon={<Sparkles className="h-4 w-4 text-primary" />}
+      icon={<Sparkles className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Jump straight into what matters"
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
       <div className="grid gap-2 sm:grid-cols-2">
         {actions.map((a) => (
           <Link
             key={a.label}
             href={a.href}
-            className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50"
+            className="group flex items-center gap-3 rounded-lg border border-border/30 px-3 py-2.5 transition-all duration-100 hover:border-border/50 hover:bg-muted/20"
           >
-            <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", a.tone)}>
-              <a.icon className="h-4 w-4" />
-            </span>
+            <a.icon className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/60" />
             <span className="min-w-0">
-              <span className="block text-[13px] font-semibold leading-tight">{a.label}</span>
-              <span className="block truncate text-[11px] text-muted-foreground/70">{a.desc}</span>
+              <span className="block text-[12px] font-medium text-foreground/80 leading-tight">{a.label}</span>
+              <span className="block truncate text-[11px] text-muted-foreground/40">{a.desc}</span>
             </span>
           </Link>
         ))}
@@ -539,22 +523,12 @@ export function QuickActions() {
 // Recent activity
 // ---------------------------------------------------------------------------
 
-const ACTIVITY_META: Record<string, { icon: React.ElementType; tone: string }> = {
-  result: { icon: ClipboardCheck, tone: "bg-primary/10 text-primary" },
-  student: { icon: UserPlus, tone: "bg-emerald-500/10 text-emerald-700" },
-  staff: { icon: GraduationCap, tone: "bg-amber-500/10 text-amber-700" },
-  payment: { icon: Wallet, tone: "bg-sky-500/10 text-sky-700" },
-  ai: { icon: Bot, tone: "bg-violet-500/10 text-violet-700" },
-  attendance: { icon: CalendarCheck, tone: "bg-rose-500/10 text-rose-700" },
-  other: { icon: Clock, tone: "bg-muted text-muted-foreground" },
-};
-
 export function ActivityPanel({ items, loading, error, onRetry, className }: { items?: ActivityItem[]; loading: boolean; error?: boolean; onRetry?: () => void; className?: string }) {
   const list = items ?? [];
   return (
     <WidgetCard
       title="Recent activity"
-      icon={<Clock className="h-4 w-4 text-primary" />}
+      icon={<Clock className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Latest changes across the school"
       loading={loading}
       error={error}
@@ -562,33 +536,25 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
       empty={!loading && list.length === 0}
       emptyHint="Actions across the school will show up here."
       className={className}
-      bodyClassName="pt-3"
+      bodyClassName="pt-2"
     >
-      <ul className="space-y-0.5">
-        {list.slice(0, 8).map((a) => {
-          const meta = ACTIVITY_META[a.kind] ?? ACTIVITY_META.other;
-          const Icon = meta.icon;
-          return (
-            <li key={a.id}>
-              <Link
-                href={a.href ?? "#"}
-                className="group flex items-start gap-3 rounded-xl px-2 py-2 transition-colors duration-150 hover:bg-accent/60"
-              >
-                <span className={cn("mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", meta.tone)}>
-                  <Icon className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium">{a.title}</p>
-                  <p className="truncate text-[11.5px] text-muted-foreground/70">
-                    {a.detail ? `${a.detail} · ` : ""}{a.actor_name}
-                  </p>
-                </div>
-                <span className="shrink-0 text-[10.5px] text-muted-foreground/50">{relativeTime(a.created_at)}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="divide-y divide-border/20">
+        {list.slice(0, 8).map((a) => (
+          <Link
+            key={a.id}
+            href={a.href ?? "#"}
+            className="group flex items-start gap-3 px-1 py-2.5 transition-colors duration-100 hover:bg-muted/20"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
+              <p className="truncate text-[11px] text-muted-foreground/40">
+                {a.detail ? `${a.detail} · ` : ""}{a.actor_name}
+              </p>
+            </div>
+            <span className="shrink-0 text-[10px] text-muted-foreground/30">{relativeTime(a.created_at)}</span>
+          </Link>
+        ))}
+      </div>
     </WidgetCard>
   );
 }
@@ -597,55 +563,40 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
 // Pending tasks
 // ---------------------------------------------------------------------------
 
-const TASK_META: Record<string, { icon: React.ElementType; tone: string }> = {
-  results: { icon: ClipboardCheck, tone: "bg-primary/10 text-primary" },
-  finance: { icon: Wallet, tone: "bg-sky-500/10 text-sky-700" },
-  students: { icon: UserPlus, tone: "bg-emerald-500/10 text-emerald-700" },
-  attendance: { icon: CalendarCheck, tone: "bg-rose-500/10 text-rose-700" },
-};
-
 export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskItem[]; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const list = tasks ?? [];
   return (
     <WidgetCard
       title="Pending tasks"
-      icon={<ListChecks className="h-4 w-4 text-primary" />}
+      icon={<ListChecks className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Things that need attention"
       loading={loading}
       error={error}
       onRetry={onRetry}
-      bodyClassName="pt-3"
+      bodyClassName="pt-2"
     >
       {!loading && !error && list.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-[13px]">
-          <CheckCircle2 className="h-4 w-4 text-success" /> All caught up — nothing pending.
+        <div className="flex items-center gap-2 rounded-lg border border-success/15 bg-success/5 px-3 py-2.5 text-[12px] text-success">
+          <CheckCircle2 className="h-3.5 w-3.5" /> All caught up
         </div>
       ) : (
-        <ul className="space-y-1">
-          {list.map((t) => {
-            const meta = TASK_META[t.kind] ?? TASK_META.results;
-            const Icon = meta.icon;
-            return (
-              <li key={t.id}>
-                <Link
-                  href={t.href}
-                  className="group flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 transition-all duration-150 hover:border-primary/20 hover:bg-accent/50"
-                >
-                  <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl", meta.tone)}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-medium">{t.title}</p>
-                    <p className="truncate text-[11.5px] text-muted-foreground/70">{t.detail}</p>
-                  </div>
-                  <span className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[11px] font-bold text-primary">
-                    {t.count}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="divide-y divide-border/20">
+          {list.map((t) => (
+            <Link
+              key={t.id}
+              href={t.href}
+              className="group flex items-center gap-3 px-1 py-2.5 transition-colors duration-100 hover:bg-muted/20"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[12px] font-medium text-foreground/80">{t.title}</p>
+                <p className="truncate text-[11px] text-muted-foreground/40">{t.detail}</p>
+              </div>
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-muted/50 px-1.5 text-[10px] font-semibold text-muted-foreground/60">
+                {t.count}
+              </span>
+            </Link>
+          ))}
+        </div>
       )}
     </WidgetCard>
   );
@@ -655,22 +606,14 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
 // AI insights
 // ---------------------------------------------------------------------------
 
-const INSIGHT_META: Record<string, { icon: React.ElementType; tone: string; dot: string }> = {
-  positive: { icon: TrendingUp, tone: "border-success/20 bg-success/[0.03]", dot: "bg-success" },
-  warning: { icon: AlertTriangle, tone: "border-warning/20 bg-warning/[0.03]", dot: "bg-warning" },
-  info: { icon: Lightbulb, tone: "border-border/40 bg-muted/20", dot: "bg-primary" },
-};
-
 export function InsightsPanel({ items, loading, error, onRetry }: { items?: InsightItem[]; loading: boolean; error?: boolean; onRetry?: () => void }) {
   const list = items ?? [];
   return (
     <WidgetCard
       title={
         <span className="flex items-center gap-2">
-          Clearis AI insights
-          <Badge variant="default" className="gap-1 bg-violet-500/10 text-violet-600 dark:text-violet-300">
-            <Bot className="h-3 w-3" /> AI
-          </Badge>
+          AI insights
+          <Badge variant="default" className="gap-1 text-[10px]">AI</Badge>
         </span>
       }
       icon={null}
@@ -680,45 +623,32 @@ export function InsightsPanel({ items, loading, error, onRetry }: { items?: Insi
       onRetry={onRetry}
       empty={!loading && list.length === 0}
       emptyHint="AI insights appear once there's enough data."
-      bodyClassName="pt-3"
+      bodyClassName="pt-2"
     >
-      <ul className="space-y-2">
-        {list.map((i) => {
-          const meta = INSIGHT_META[i.tone] ?? INSIGHT_META.info;
-          const Icon = meta.icon;
-          return (
-            <li key={i.id} className={cn("rounded-xl border p-3.5", meta.tone)}>
-              <div className="flex items-start justify-between gap-3">
-                <p className="flex items-center gap-2 text-[13px] font-semibold">
-                  <Icon className="h-4 w-4 shrink-0 text-primary" />
-                  {i.title}
-                </p>
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-violet-500/20 bg-violet-500/10">
-                  <Bot className="h-3 w-3 text-violet-600 dark:text-violet-300" />
-                </span>
-              </div>
-              <p className="mt-1.5 text-[12px] leading-relaxed text-muted-foreground">{i.body}</p>
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/20" />
-                  <span className="text-[10.5px] text-muted-foreground/60">Confidence {Math.round(i.confidence * 100)}%</span>
-                </div>
-                {i.href && (
-                  <Link href={i.href} className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-primary hover:underline">
-                    View details <ArrowRight className="h-3 w-3" />
-                  </Link>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="space-y-2">
+        {list.map((i) => (
+          <div key={i.id} className="rounded-lg border border-border/30 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[12px] font-semibold text-foreground/80">{i.title}</p>
+              {i.href && (
+                <Link href={i.href} className="shrink-0 text-[10px] font-semibold text-primary hover:underline">
+                  View
+                </Link>
+              )}
+            </div>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground/50">{i.body}</p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[10px] text-muted-foreground/30">Confidence {Math.round(i.confidence * 100)}%</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </WidgetCard>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Approval queue (VP academics / principal focus)
+// Approval queue
 // ---------------------------------------------------------------------------
 
 export function ApprovalQueuePanel({
@@ -757,9 +687,9 @@ export function ApprovalQueuePanel({
     .slice(0, 5);
 
   const funnel = [
-    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/30" },
+    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/20" },
     { label: "Submitted", value: totals.submitted, color: "bg-primary" },
-    { label: "Verified", value: totals.verified, color: "bg-amber-500" },
+    { label: "Verified", value: totals.verified, color: "bg-warning" },
     { label: "Approved", value: totals.approved, color: "bg-success" },
     { label: "Returned", value: totals.rejected, color: "bg-destructive" },
   ];
@@ -768,50 +698,44 @@ export function ApprovalQueuePanel({
   return (
     <WidgetCard
       title="Result approval queue"
-      icon={<ListChecks className="h-4 w-4 text-primary" />}
+      icon={<ListChecks className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="Teacher submissions awaiting review"
       loading={busy}
       error={error}
       onRetry={onRetry}
       empty={!busy && queue.length === 0}
       emptyHint="Submissions will appear once teachers enter scores."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {funnel.map((f) => (
           <div key={f.label} className="flex items-center gap-3">
-            <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{f.label}</span>
-            <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-muted/50">
+            <span className="w-20 shrink-0 text-[12px] text-muted-foreground/60">{f.label}</span>
+            <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted/40">
               <div className={cn("h-full rounded-full transition-all duration-500", f.color)} style={{ width: `${(f.value / maxStage) * 100}%` }} />
             </div>
-            <span className="w-8 shrink-0 text-right text-[13px] font-semibold">{f.value}</span>
+            <span className="w-8 shrink-0 text-right text-[12px] font-semibold text-foreground/70">{f.value}</span>
           </div>
         ))}
       </div>
 
       {needsReview.length > 0 && (
-        <div className="mt-5 border-t border-border/40 pt-4">
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-            Needs attention
-          </p>
-          <ul className="space-y-1">
+        <div className="mt-4 border-t border-border/30 pt-3">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">Needs attention</p>
+          <div className="space-y-0.5">
             {needsReview.map((r) => (
-              <li key={`${r.arm_id}-${r.subject_id}`}>
-                <Link
-                  href="/approvals"
-                  className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[13px] transition-colors hover:bg-accent/60"
-                >
-                  <span className="truncate">
-                    <span className="font-medium">{r.arm_name}</span>
-                    <span className="text-muted-foreground"> · {r.subject_name}</span>
-                  </span>
-                  <span className="shrink-0 font-semibold text-primary">
-                    {(r.submitted + r.verified).toLocaleString()}
-                  </span>
-                </Link>
-              </li>
+              <Link
+                key={`${r.arm_id}-${r.subject_id}`}
+                href="/approvals"
+                className="flex items-center justify-between rounded-md px-2 py-1.5 text-[12px] transition-colors hover:bg-muted/20"
+              >
+                <span className="truncate text-foreground/70">
+                  <span className="font-medium text-foreground/80">{r.arm_name}</span> · {r.subject_name}
+                </span>
+                <span className="shrink-0 font-semibold text-primary">{(r.submitted + r.verified).toLocaleString()}</span>
+              </Link>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </WidgetCard>
@@ -819,7 +743,7 @@ export function ApprovalQueuePanel({
 }
 
 // ---------------------------------------------------------------------------
-// Compile panel — admin one-click finalize
+// Compile panel
 // ---------------------------------------------------------------------------
 
 export function CompilePanel({
@@ -849,27 +773,26 @@ export function CompilePanel({
   return (
     <WidgetCard
       title="Compile results"
-      icon={<Zap className="h-4 w-4 text-primary" />}
+      icon={<Zap className="h-4 w-4 text-muted-foreground/50" />}
       subtitle="One-click finalize scores into report cards"
       loading={busy}
       error={error}
       onRetry={onRetry}
       empty={!busy && compilable.length === 0}
       emptyHint="Scores entered by teachers will appear here for compilation."
-      bodyClassName="pt-4"
+      bodyClassName="pt-3"
     >
       {compilable.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-primary/15 bg-primary/[0.04] px-3 py-2.5">
-          <Zap className="h-4 w-4 text-primary" />
-          <span className="text-[12px] text-muted-foreground">
-            <span className="font-semibold text-foreground">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready to compile
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/10 bg-primary/[0.03] px-3 py-2">
+          <span className="text-[12px] text-muted-foreground/60">
+            <span className="font-semibold text-foreground/80">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready
             {totalDrafts > 0 && <span> · <span className="font-medium">{totalDrafts}</span> draft</span>}
             {totalSubmitted > 0 && <span> · <span className="font-medium">{totalSubmitted}</span> submitted</span>}
           </span>
         </div>
       )}
 
-      <ul className="space-y-2">
+      <div className="space-y-1.5">
         {compilable.map((r) => {
           const key = `${r.arm_id}:${r.subject_id}`;
           const cell = {
@@ -879,16 +802,15 @@ export function CompilePanel({
           };
           const isCompiling = compileMutation.isPending;
           return (
-            <li
+            <div
               key={key}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-border/40 bg-card/50 px-3 py-2.5"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-border/30 px-3 py-2.5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">
-                  {r.subject_name}
-                  <span className="font-normal text-muted-foreground"> · {r.arm_name}</span>
+                <p className="truncate text-[12px] font-medium text-foreground/80">
+                  {r.subject_name} <span className="font-normal text-muted-foreground/50">· {r.arm_name}</span>
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                <p className="mt-0.5 text-[11px] text-muted-foreground/40">
                   {r.entered}/{r.enrolled} scores entered
                   {r.submitted > 0 && <> · {r.submitted} submitted</>}
                 </p>
@@ -897,7 +819,7 @@ export function CompilePanel({
                 size="sm"
                 disabled={isCompiling}
                 onClick={() => compileMutation.mutate(cell)}
-                className="gap-1.5"
+                className="gap-1"
               >
                 {isCompiling ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -906,28 +828,28 @@ export function CompilePanel({
                 )}
                 Compile
               </Button>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
 
       {compileMutation.isSuccess && (
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-success/20 bg-success/5 px-3 py-2 text-[13px] text-success">
-          <CheckCircle2 className="h-4 w-4" /> Results compiled and report cards generated!
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-success/15 bg-success/5 px-3 py-2 text-[12px] text-success">
+          <CheckCircle2 className="h-3.5 w-3.5" /> Results compiled
         </div>
       )}
 
       {compileMutation.isError && (
-        <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-[13px] text-destructive">
+        <div className="mt-3 rounded-lg border border-destructive/15 bg-destructive/5 px-3 py-2 text-[12px] text-destructive">
           {compileMutation.error?.message ?? "Compilation failed. Please try again."}
         </div>
       )}
 
       <Link
         href="/approvals"
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-border/60 bg-muted/30 px-3 py-2 text-[12px] font-semibold text-foreground transition-all hover:bg-accent hover:border-border"
+        className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-[12px] font-semibold text-foreground/80 transition-all hover:bg-muted/40"
       >
-        View full approval queue <ArrowRight className="h-3.5 w-3.5" />
+        View approval queue <ArrowRight className="h-3.5 w-3.5" />
       </Link>
     </WidgetCard>
   );

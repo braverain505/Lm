@@ -9,8 +9,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SessionTermProvider } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 
-const SIDEBAR_WIDTH = 260;
-const SIDEBAR_WIDTH_COLLAPSED = 72;
+const SIDEBAR_WIDTH = 240;
+const SIDEBAR_WIDTH_COLLAPSED = 68;
 const COLLAPSE_KEY = "schoolos.sidebar-collapsed";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {mobileOpen && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in-soft" onClick={() => setMobileOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-[280px] shadow-pop animate-slide-in-right">
+            <div className="absolute inset-y-0 left-0 w-[260px] shadow-elevated animate-slide-in-right">
               <AppSidebar
                 collapsed={false}
                 onToggle={() => undefined}
@@ -72,17 +72,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <div
-          className="flex min-h-screen flex-col transition-[padding] duration-300 ease-in-out print:!pl-0"
+          className="flex min-h-screen flex-col transition-[padding] duration-200 ease-out print:!pl-0"
           style={{ paddingLeft: isDesktop ? (collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH) : 0 }}
         >
           <div className="lg:hidden" />
           <AppHeader pathname={pathname} onOpenMobileNav={() => setMobileOpen(true)} />
           <motion.main
             key={pathname}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="mx-auto w-full max-w-[1440px] flex-1 p-4 sm:p-6 lg:p-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
+            transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
           >
             {children}
           </motion.main>
