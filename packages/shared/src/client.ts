@@ -1697,6 +1697,7 @@ export const api = {
   uploadSchoolLogo,
   activateSession,
   activateTerm,
+  closeTerm,
   fetchEnrollmentHistory,
   fetchDashboardSummary,
 };
