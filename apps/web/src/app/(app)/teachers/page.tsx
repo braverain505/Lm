@@ -557,8 +557,8 @@ function TeacherRow(props: TeacherRowProps) {
                 </select>
               </div>
               <div className="flex items-end gap-2">
-                <Button onClick={saveEdit} disabled={updateStaff.isPending}>
-                  {updateStaff.isPending ? "Saving…" : "Save"}
+                <Button onClick={saveEdit} disabled={updateStaffPending}>
+                  {updateStaffPending ? "Saving…" : "Save"}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setEditFor(null)}>Cancel</Button>
               </div>
