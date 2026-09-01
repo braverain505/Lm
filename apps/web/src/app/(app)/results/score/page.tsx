@@ -24,6 +24,7 @@ import {
   useTerms,
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
+import { useToast } from "@/components/toast";
 
 function ScoreContextPicker() {
   const router = useRouter();
@@ -204,6 +205,8 @@ function ScoreGrid() {
     return band?.letter ?? null;
   };
 
+  const { toast } = useToast();
+
   const save = useMutation({
     mutationFn: async () => {
       if (!schoolId || !armId || !subjectId || !termId) throw new Error("Missing grid params");
@@ -226,6 +229,10 @@ function ScoreGrid() {
       setDraft({});
       void queryClient.invalidateQueries({ queryKey: ["scorecard"] });
       void queryClient.invalidateQueries({ queryKey: ["readiness"] });
+      toast("Scores saved successfully");
+    },
+    onError: () => {
+      toast("Failed to save scores", "error");
     },
   });
 
@@ -241,6 +248,10 @@ function ScoreGrid() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["scorecard"] });
       void queryClient.invalidateQueries({ queryKey: ["readiness"] });
+      toast("Results submitted for review");
+    },
+    onError: () => {
+      toast("Failed to submit results", "error");
     },
   });
 
@@ -296,12 +307,14 @@ function ScoreGrid() {
             variant="outline"
             onClick={() => submit.mutate()}
             disabled={submit.isPending || isTermClosed}
+            isLoading={submit.isPending}
           >
             {submit.isPending ? "Submitting…" : "Submit verified"}
           </Button>
           <Button
             onClick={() => save.mutate()}
             disabled={dirtyCount === 0 || save.isPending || isTermClosed}
+            isLoading={save.isPending}
           >
             Save {dirtyCount > 0 ? `(${dirtyCount})` : ""}
           </Button>

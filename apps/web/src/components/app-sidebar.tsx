@@ -63,7 +63,9 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
             <Image src="/clearisbg.png" alt="Clearis" width={1536} height={1024} priority className="h-11 w-auto shrink-0 rounded-lg object-contain" />
           )}
           {!collapsed && (
-            <span className="text-[14px] font-bold tracking-tight text-white/90">Clearis</span>
+            <span className="text-[14px] font-bold tracking-tight text-white/90">
+              {schoolProfile?.name || activeSchool?.school_name || "Clearis"}
+            </span>
           )}
         </Link>
       </div>

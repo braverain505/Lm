@@ -18,6 +18,7 @@ import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, use
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { Avatar } from "@/components/ui/avatar";
+import { useToast } from "@/components/toast";
 
 export default function SettingsPage() {
   const { user, activeSchool } = useAuth();
@@ -70,10 +71,11 @@ export default function SettingsPage() {
     defaultValues: { current_password: "", new_password: "", confirm_password: "" },
   });
 
+  const { toast } = useToast();
   const changePasswordMutation = useMutation({
     mutationFn: api.changePassword,
-    onSuccess: () => { cpReset(); alert("Password changed successfully"); },
-    onError: (error: any) => { alert(error?.response?.data?.message ?? "Failed to change password"); },
+    onSuccess: () => { cpReset(); toast("Password changed successfully"); },
+    onError: (error: any) => { toast(error?.response?.data?.message ?? "Failed to change password", "error"); },
   });
 
   const onCpSubmit = (data: z.infer<typeof changePasswordSchema>) => {
@@ -97,8 +99,8 @@ export default function SettingsPage() {
 
   const changeEmailMutation = useMutation({
     mutationFn: api.changeEmail,
-    onSuccess: () => { ceReset(); alert("Email changed successfully"); },
-    onError: (error: any) => { alert(error?.response?.data?.message ?? "Failed to change email"); },
+    onSuccess: () => { ceReset(); toast("Email changed successfully"); },
+    onError: (error: any) => { toast(error?.response?.data?.message ?? "Failed to change email", "error"); },
   });
 
   const onCeSubmit = (data: z.infer<typeof changeEmailSchema>) => {
@@ -118,8 +120,9 @@ export default function SettingsPage() {
     try {
       await closeTerm.mutateAsync(termId);
       void queryClient.invalidateQueries({ queryKey: ["terms"] });
+      toast("Term closed successfully");
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to close term");
+      toast(e instanceof Error ? e.message : "Failed to close term", "error");
     }
   };
 
@@ -389,7 +392,7 @@ export default function SettingsPage() {
                 <p className="text-[11px] text-destructive">{cpErrors.confirm_password.message}</p>
               )}
             </div>
-            <Button type="submit" disabled={!cpIsValid} className="w-full">
+            <Button type="submit" disabled={!cpIsValid} className="w-full" isLoading={changePasswordMutation.isPending}>
               Change Password
             </Button>
           </form>
@@ -421,7 +424,7 @@ export default function SettingsPage() {
                 <p className="text-[11px] text-destructive">{ceErrors.current_password.message}</p>
               )}
             </div>
-            <Button type="submit" disabled={Object.keys(ceErrors).length > 0} className="w-full">
+            <Button type="submit" disabled={Object.keys(ceErrors).length > 0} className="w-full" isLoading={changeEmailMutation.isPending}>
               Change Email
             </Button>
           </form>

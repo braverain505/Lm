@@ -126,6 +126,20 @@ export function TeacherDashboard() {
           <p className="text-[12px] text-muted-foreground/70">My subjects</p>
           <p className="mt-1 text-2xl font-bold tracking-tight">{assignments.length}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
+          {!busy && assignments.length > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
+                <span>Subjects with scores</span>
+                <span>{myRows.filter((r) => r.entered > 0).length}/{assignments.length}</span>
+              </div>
+              <Progress
+                value={assignments.length > 0 ? (myRows.filter((r) => r.entered > 0).length / assignments.length) * 100 : 0}
+                size="sm"
+                className="h-1.5"
+                indicatorClassName="bg-primary"
+              />
+            </div>
+          )}
         </div>
         <div className="stat-card">
           <p className="text-[12px] text-muted-foreground/70">Scores entered</p>
@@ -135,6 +149,20 @@ export function TeacherDashboard() {
           <p className="mt-0.5 text-[11px] text-muted-foreground/60">
             {totals.students} students
           </p>
+          {!busy && totals.students > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
+                <span>Students completed</span>
+                <span>{totals.entered}/{totals.students}</span>
+              </div>
+              <Progress
+                value={totals.students > 0 ? (totals.entered / totals.students) * 100 : 0}
+                size="sm"
+                className="h-1.5"
+                indicatorClassName={totals.entered >= totals.students ? "bg-success" : "bg-primary"}
+              />
+            </div>
+          )}
         </div>
         <div className="stat-card">
           <p className="text-[12px] text-muted-foreground/70">Pending submissions</p>
@@ -144,6 +172,20 @@ export function TeacherDashboard() {
           <p className="mt-0.5 text-[11px] text-muted-foreground/60">
             {totals.submitted > 0 ? `${totals.submitted} already submitted` : "Nothing submitted yet"}
           </p>
+          {!busy && totals.students > 0 && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground/60 mb-1">
+                <span>Submission progress</span>
+                <span>{totals.submitted}/{totals.students}</span>
+              </div>
+              <Progress
+                value={totals.students > 0 ? (totals.submitted / totals.students) * 100 : 0}
+                size="sm"
+                className="h-1.5"
+                indicatorClassName="bg-emerald-500"
+              />
+            </div>
+          )}
         </div>
       </div>
 
