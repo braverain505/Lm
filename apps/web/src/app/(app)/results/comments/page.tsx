@@ -24,9 +24,11 @@ import type { ReportCard } from "@schoolos/shared";
 function StudentCommentRow({
   card,
   defaultOpen,
+  userRole,
 }: {
   card: ReportCard;
   defaultOpen?: boolean;
+  userRole?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? false);
   const hasComment = Boolean(card.comments.homeroom);
@@ -63,7 +65,7 @@ function StudentCommentRow({
       </button>
       {open && (
         <div className="border-t px-4 pb-4 pt-3">
-          <CommentManager card={card} />
+          <CommentManager card={card} userRole={userRole} />
         </div>
       )}
     </div>
@@ -205,7 +207,7 @@ function CommentsContent() {
       ) : (
         <div className="space-y-2">
           {cards.map((card) => (
-            <StudentCommentRow key={card.enrollment_id} card={card} />
+            <StudentCommentRow key={card.enrollment_id} card={card} userRole={role} />
           ))}
         </div>
       )}

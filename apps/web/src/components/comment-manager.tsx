@@ -561,21 +561,34 @@ function BankCurationPanel({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-export function CommentManager({ card }: { card: ReportCard }) {
+export function CommentManager({ card, userRole }: { card: ReportCard; userRole?: string }) {
   const { student_id: studentId } = card.student;
+
+  // Filter comment roles based on the user's role.
+  // Homeroom teachers can only write homeroom comments.
+  // Principal / VP academics can write principal and vice_principal comments.
+  const visibleRoles = COMMENT_ROLES.filter((r) => {
+    if (!userRole) return true; // no role info = show all (backwards compat)
+    if (userRole === "homeroom_teacher") return r.key === "homeroom";
+    if (userRole === "principal") return r.key === "principal";
+    if (userRole === "vp_academics") return r.key === "vice_principal";
+    return true; // admin / super_admin etc. see everything
+  });
+
+  const gridCols = visibleRoles.length <= 1 ? "lg:grid-cols-1" : visibleRoles.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3";
 
   return (
     <div className="space-y-4 print:hidden">
       <div>
         <h3 className="text-sm font-semibold text-muted-foreground">Comments on this report</h3>
         <p className="text-xs text-muted-foreground">
-          Three roles, three voices. Write manually, pull from the school&apos;s comment bank, or
+          Write manually, pull from the school&apos;s comment bank, or
           compose with AI — always review before saving.
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {COMMENT_ROLES.map((r) => (
+      <div className={`grid gap-4 ${gridCols}`}>
+        {visibleRoles.map((r) => (
           <RoleCommentCard
             key={r.key}
             role={r.key}
