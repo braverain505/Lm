@@ -587,11 +587,25 @@
   html,
   body {
     background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide everything except report card */
+  body > *:not(.rc-print-page):not(.rc-sheet) {
+    display: none !important;
+  }
+
+  .print\:hidden,
+  [data-print-hidden] {
+    display: none !important;
   }
 
   .rc-print-page {
     break-after: page;
     margin: 0;
+    display: block !important;
   }
 
   .rc-print-page:last-child {
@@ -600,11 +614,12 @@
 
   .rc-sheet {
     max-width: none;
-    width: auto;
+    width: 100% !important;
     box-shadow: none;
     border: none;
     border-radius: 0;
     margin: 0;
+    display: block !important;
   }
 
   .rc-sheet::before {

@@ -1,7 +1,7 @@
 "use client";
 
-import { Files, Printer, X } from "lucide-react";
-import { useState } from "react";
+import { Download, Files, Printer, X } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { PsychomotorEditor } from "@/components/psychomotor-editor";
 import { ReportCardDocument } from "@/components/report-card-document";
 import { useArms, useReportCard, useReportCards, useReportIndex, useSessions, useTerms } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
+import { downloadPdf, downloadBulkPdf } from "@/lib/pdf";
+import { useToast } from "@/components/toast";
 import "@/app/report-card.css";
 
 export default function ReportsPage() {
@@ -34,6 +36,32 @@ export default function ReportsPage() {
     isLoading: bulkLoading,
     isFetching: bulkFetching,
   } = useReportCards(bulkOpen ? armId : null, bulkOpen ? term?.id ?? null : null);
+
+  const { toast } = useToast();
+  const reportCardRef = useRef<HTMLDivElement>(null);
+  const bulkRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  const handleDownloadSingle = useCallback(async () => {
+    const el = reportCardRef.current;
+    if (!el || !card) return;
+    try {
+      await downloadPdf(el, `report-card-${card.student.admission_no}.pdf`);
+      toast("Report card downloaded");
+    } catch {
+      toast("Failed to generate PDF", "error");
+    }
+  }, [card, toast]);
+
+  const handleDownloadBulk = useCallback(async () => {
+    const els = Array.from(bulkRefs.current.values());
+    if (els.length === 0) return;
+    try {
+      await downloadBulkPdf(els, `report-cards-${armId}.pdf`);
+      toast(`${els.length} report cards downloaded`);
+    } catch {
+      toast("Failed to generate PDF", "error");
+    }
+  }, [armId, toast]);
 
   return (
     <div className="space-y-6 print:space-y-0">
@@ -69,9 +97,14 @@ export default function ReportsPage() {
                   </Button>
                 )}
                 {card && (
-                  <Button variant="outline" onClick={() => window.print()}>
-                    <Printer className="h-4 w-4" /> Print / PDF
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={() => window.print()}>
+                      <Printer className="h-4 w-4" /> Print
+                    </Button>
+                    <Button onClick={handleDownloadSingle}>
+                      <Download className="h-4 w-4" /> Download PDF
+                    </Button>
+                  </>
                 )}
               </>
             )}
@@ -176,13 +209,21 @@ export default function ReportsPage() {
                       : `${bulkCards.length} card${bulkCards.length === 1 ? "" : "s"} ready · prints one card per page`}
                   </p>
                 </div>
-                <Button
-                  variant="default"
-                  disabled={bulkCards.length === 0 || bulkLoading}
-                  onClick={() => window.print()}
-                >
-                  <Printer className="h-4 w-4" /> Print all ({bulkCards.length})
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    disabled={bulkCards.length === 0 || bulkLoading}
+                    onClick={() => window.print()}
+                  >
+                    <Printer className="h-4 w-4" /> Print all ({bulkCards.length})
+                  </Button>
+                  <Button
+                    disabled={bulkCards.length === 0 || bulkLoading}
+                    onClick={handleDownloadBulk}
+                  >
+                    <Download className="h-4 w-4" /> Download PDF
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -197,7 +238,13 @@ export default function ReportsPage() {
           ) : (
             <div className="space-y-8">
               {bulkCards.map((c) => (
-                <div key={c.enrollment_id} className="rc-print-page">
+                <div
+                  key={c.enrollment_id}
+                  className="rc-print-page"
+                  ref={(el) => {
+                    if (el) bulkRefs.current.set(c.enrollment_id, el);
+                  }}
+                >
                   <ReportCardDocument card={c} />
                 </div>
               ))}
@@ -220,7 +267,9 @@ export default function ReportsPage() {
             <PsychomotorEditor studentId={studentId} termId={term.id} />
           )}
           <CommentManager card={card} />
-          <ReportCardDocument card={card} />
+          <div ref={reportCardRef}>
+            <ReportCardDocument card={card} />
+          </div>
         </div>
       )}
     </div>

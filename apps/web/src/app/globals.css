@@ -208,7 +208,11 @@
     visibility: hidden;
   }
   .receipt-print-area,
-  .receipt-print-area * {
+  .receipt-print-area *,
+  .rc-sheet,
+  .rc-sheet *,
+  .rc-print-page,
+  .rc-print-page * {
     visibility: visible;
   }
   .receipt-print-area {
@@ -216,5 +220,9 @@
     inset: 0;
     border: none;
     box-shadow: none;
+  }
+  .rc-sheet {
+    position: relative;
+    inset: auto;
   }
 }
