@@ -335,14 +335,14 @@ export default function RegisterPage() {
                 {step === 0 && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="School name" error={errors.school_name?.message}>
+                      <Field label="School name" required error={errors.school_name?.message}>
                         <Input
                           placeholder="Brightfield Academy"
                           {...register("school_name")}
                           className="h-11 text-[14px]"
                         />
                       </Field>
-                      <Field label="School type" error={errors.school_type?.message}>
+                      <Field label="School type" required error={errors.school_type?.message}>
                         <Input
                           placeholder="Primary or Secondary"
                           {...register("school_type")}
@@ -445,6 +445,7 @@ export default function RegisterPage() {
                   <>
                     <Field
                       label="Your full name"
+                      required
                       error={errors.admin_full_name?.message}
                     >
                       <Input
@@ -455,6 +456,7 @@ export default function RegisterPage() {
                     </Field>
                     <Field
                       label="Work email"
+                      required
                       error={errors.admin_email?.message}
                     >
                       <Input
@@ -467,6 +469,7 @@ export default function RegisterPage() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field
                         label="Password"
+                        required
                         error={errors.password?.message}
                       >
                         <Input
@@ -478,6 +481,7 @@ export default function RegisterPage() {
                       </Field>
                       <Field
                         label="Confirm password"
+                        required
                         error={errors.confirm?.message}
                       >
                         <Input
@@ -633,16 +637,21 @@ export default function RegisterPage() {
 
 function Field({
   label,
+  required,
   error,
   children,
 }: {
   label: string;
+  required?: boolean;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[13px] font-medium">{label}</Label>
+      <Label className="text-[13px] font-medium">
+        {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
+      </Label>
       {children}
       {error && <p className="text-[12px] text-destructive">{error}</p>}
     </div>
