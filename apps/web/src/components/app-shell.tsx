@@ -20,13 +20,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
-    const update = () => setIsDesktop(mq.matches);
+    const desktopMq = window.matchMedia("(min-width: 1024px)");
+    const tabletMq = window.matchMedia("(min-width: 768px) and (max-width: 1023px)");
+
+    const update = () => {
+      setIsDesktop(desktopMq.matches);
+      setIsTablet(tabletMq.matches);
+    };
+
     update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    desktopMq.addEventListener("change", update);
+    tabletMq.addEventListener("change", update);
+
+    return () => {
+      desktopMq.removeEventListener("change", update);
+      tabletMq.removeEventListener("change", update);
+    };
   }, []);
 
   // Restore panel state
@@ -50,32 +62,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Close mobile nav on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  const contentPaddingLeft = 0;
+  const contentPaddingLeft = isDesktop ? PANEL_WIDTH : isTablet ? 240 : 0;
 
   return (
     <SessionTermProvider>
       <div className="min-h-screen bg-background text-foreground">
-        {/* ─── Desktop: Rail ─── */}
-        <div className="fixed inset-y-0 left-0 z-40 hidden print:hidden" style={{ width: RAIL_WIDTH }}>
+        {/* ─── Desktop: Rail (hidden on tablets) ─── */}
+        <div className="fixed inset-y-0 left-0 z-40 hidden lg:block print:hidden" style={{ width: RAIL_WIDTH }}>
           <NavigationRail onTogglePanel={togglePanel} panelOpen={panelOpen} />
         </div>
 
-        {/* ─── Desktop: Expandable panel (hidden with rail) ─── */}
-        <motion.div
-          className="fixed inset-y-0 z-30 hidden print:hidden overflow-hidden"
-          style={{ left: RAIL_WIDTH }}
-          initial={false}
-          animate={{
-            width: panelOpen ? PANEL_WIDTH : 0,
-            opacity: panelOpen ? 1 : 0,
-          }}
-          transition={{
-            duration: 0.22,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          }}
+        {/* ─── Desktop & Tablet: Sidebar panel (always visible) ─── */}
+        <div
+          className="fixed inset-y-0 left-0 z-30 hidden md:block print:hidden"
+          style={{ width: isTablet ? 240 : PANEL_WIDTH }}
         >
-          <NavigationPanel open={panelOpen} />
-        </motion.div>
+          <NavigationPanel open={true} isTablet={isTablet} />
+        </div>
 
         {/* ─── Mobile: Full-screen drawer ─── */}
         {mobileOpen && (
@@ -94,13 +97,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               onClick={closeMobile}
             />
             <motion.div
-              className="absolute inset-y-0 left-0 flex shadow-elevated"
-              initial={{ x: -280 }}
+              className="absolute inset-y-0 left-0 shadow-elevated"
+              style={{ width: isTablet ? 240 : 260 }}
+              initial={{ x: isTablet ? -260 : -280 }}
               animate={{ x: 0 }}
               transition={{ duration: 0.25, ease: [0.21, 1.02, 0.73, 1] }}
             >
-              <NavigationRail onTogglePanel={closeMobile} panelOpen={false} />
-              <NavigationPanel open={true} onNavigate={closeMobile} />
+              <NavigationPanel open={true} onNavigate={closeMobile} isTablet={isTablet} />
             </motion.div>
           </motion.div>
         )}
@@ -118,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
+            className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 md:px-7 lg:px-8 md:py-7 lg:py-8 print:!max-w-none print:!p-0 print:!opacity-100 print:!translate-y-0"
           >
             {children}
           </motion.main>

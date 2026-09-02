@@ -59,7 +59,7 @@ export function AccountantDashboard() {
       <KpiRow data={data} loading={isLoading} accountant />
 
       {/* Financial summary — 2 column */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {/* Outstanding fees */}
         <motion.div
           className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
@@ -95,7 +95,7 @@ export function AccountantDashboard() {
       </div>
 
       {/* Recent payments + activity */}
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
         <WidgetCard
           title="Recent payments"
           icon={<Wallet className="h-4 w-4 text-muted-foreground/40" />}
@@ -132,7 +132,7 @@ export function AccountantDashboard() {
       {/* Quick reports */}
       <div>
         <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">Financial reports</h3>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
           {[
             { href: "/billing", label: "Fee statement", desc: "Per-student balances" },
             { href: "/payroll", label: "Payroll runs", desc: "Gross, tax & net" },

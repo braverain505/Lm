@@ -98,6 +98,19 @@
     --chart-4: 346 77% 50%;
     --chart-5: 280 65% 60%;
     --chart-6: 199 89% 48%;
+
+    /* ─── Light Mode Shadows — Subtle for elevation ─── */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 40px -12px rgba(0, 0, 0, 0.18), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+    --shadow-xl: 0 20px 64px -8px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.12);
+
+    /* ─── Component-specific light mode shadows ─── */
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    --shadow-card-hover: 0 4px 12px -2px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+    --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.18), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+    --shadow-elevated: 0 8px 24px -4px rgba(0, 0, 0, 0.12), 0 2px 4px -2px rgba(0, 0, 0, 0.08);
+    --shadow-panel: 4px 0 24px -4px rgba(0, 0, 0, 0.12);
   }
 
   .dark {
@@ -110,6 +123,19 @@
     --foreground-secondary: 240 8% 70%;
     --foreground-tertiary: 240 6% 55%;
     --foreground-muted: 240 5% 40%;
+
+    /* ─── Dark Mode Shadows — Stronger for same elevation perception ─── */
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.35), 0 2px 4px -2px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 12px 40px -12px rgba(0, 0, 0, 0.45), 0 4px 6px -4px rgba(0, 0, 0, 0.25);
+    --shadow-xl: 0 20px 64px -8px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(0, 0, 0, 0.3);
+
+    /* ─── Component-specific dark mode shadows ─── */
+    --shadow-card: 0 2px 6px 0 rgba(0, 0, 0, 0.25), 0 1px 3px -1px rgba(0, 0, 0, 0.25);
+    --shadow-card-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.4), 0 4px 8px -4px rgba(0, 0, 0, 0.25);
+    --shadow-pop: 0 16px 48px -12px rgba(0, 0, 0, 0.55), 0 6px 12px -6px rgba(0, 0, 0, 0.25);
+    --shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.45), 0 4px 8px -4px rgba(0, 0, 0, 0.25);
+    --shadow-panel: 4px 0 32px -4px rgba(0, 0, 0, 0.4);
 
     --card: 240 10% 13%;
     --card-foreground: 240 10% 98%;

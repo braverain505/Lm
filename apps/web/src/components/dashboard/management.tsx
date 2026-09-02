@@ -70,22 +70,22 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
         <Greeting />
         <KpiRow data={summary} loading={isLoading} />
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           <ReadinessPanel termId={term?.id} {...common} />
           <ApprovalQueuePanel termId={term?.id} {...common} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           <CompilePanel termId={term?.id} {...common} />
           <PerformancePanel {...common} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           <ClassPerformancePanel {...common} />
           <InsightsPanel items={summary?.insights?.insights} {...common} />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           <AttendancePanel {...common} />
           <ActivityPanel items={summary?.activity} {...common} />
         </div>
@@ -100,17 +100,17 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       <Greeting />
       <KpiRow data={summary} loading={isLoading} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <PerformancePanel {...common} />
         <ReadinessPanel termId={term?.id} {...common} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <AttendancePanel {...common} />
         <EnrollmentPanel {...common} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <ClassPerformancePanel {...common} />
         <ActivityPanel items={summary?.activity} {...common} />
       </div>

@@ -18,9 +18,10 @@ import { cn } from "@/lib/utils";
 interface NavigationPanelProps {
   open: boolean;
   onNavigate?: () => void;
+  isTablet?: boolean;
 }
 
-export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
+export function NavigationPanel({ open, onNavigate, isTablet = false }: NavigationPanelProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, activeSchool, memberships, setActiveSchool, clear } = useAuth();
@@ -50,11 +51,14 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
   if (!open) return null;
 
   return (
-    <aside className="flex h-full w-[260px] flex-col border-r border-panel-border bg-panel shadow-panel">
+    <aside className={cn(
+      "flex h-full flex-col border-r border-panel-border bg-panel shadow-panel",
+      isTablet ? "w-[240px]" : "w-[260px]"
+    )}>
       {/* Premium Brand Header */}
       <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-panel-border px-5">
         <Link href="/dashboard" className="flex items-center gap-3" onClick={onNavigate}>
-          <span className="text-[15px] font-bold tracking-tight text-panel-foreground">
+          <span className="font-bold tracking-tight text-panel-foreground text-[14px] md:text-[15px]">
             {activeSchool?.school_name || "Clearis"}
           </span>
         </Link>
@@ -68,8 +72,10 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, delay: 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
-          <p className="truncate text-[13px] font-semibold text-panel-foreground">{activeSchool.school_name}</p>
-          <p className="mt-1 flex items-center gap-2 text-[11px] text-panel-muted">
+          <p className="truncate font-semibold text-panel-foreground text-[12px] md:text-[13px]">
+            {activeSchool.school_name}
+          </p>
+          <p className="mt-1 flex items-center gap-2 text-panel-muted text-[10px] md:text-[11px]">
             <motion.span
               className="inline-block h-1.5 w-1.5 rounded-full bg-success"
               animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
@@ -90,7 +96,7 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.08 + sectionIndex * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <p className="mb-2 px-3 text-[10.5px] font-semibold uppercase tracking-wider text-panel-muted/60">
+            <p className="mb-2 px-3 font-semibold uppercase tracking-wider text-panel-muted/60 text-[9.5px] md:text-[10.5px]">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -103,13 +109,16 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 font-medium transition-all duration-200 text-[12px] md:text-[13px]",
                       active
                         ? "bg-panel-active-bg text-panel-active-fg shadow-sm"
                         : "text-panel-foreground/70 hover:bg-panel-hover hover:text-panel-foreground hover:translate-x-1",
                     )}
                   >
-                    <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-all duration-200", active ? "text-panel-active-fg" : "text-panel-muted/60 group-hover:text-panel-foreground/80")} />
+                    <Icon className={cn(
+                      "shrink-0 transition-all duration-200 h-[16px] w-[16px] md:h-[18px] md:w-[18px]",
+                      active ? "text-panel-active-fg" : "text-panel-muted/60 group-hover:text-panel-foreground/80"
+                    )} />
                     <span className="truncate">{label}</span>
                   </Link>
                 );
@@ -130,8 +139,12 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
                 className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-xs font-semibold text-white ring-2 ring-panel-border"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-semibold text-panel-foreground">{user?.full_name}</p>
-                <p className="truncate text-[11px] text-panel-muted capitalize">{activeSchool?.role?.name ?? "Member"}</p>
+                <p className="truncate font-semibold text-panel-foreground text-[12px] md:text-[13px]">
+                  {user?.full_name}
+                </p>
+                <p className="truncate text-panel-muted capitalize text-[10px] md:text-[11px]">
+                  {activeSchool?.role?.name ?? "Member"}
+                </p>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-panel-muted/50 transition-transform group-hover:translate-x-0.5" />
             </button>

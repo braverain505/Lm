@@ -147,7 +147,7 @@ export function TeacherDashboard() {
       )}
 
       {/* Key metrics */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <motion.div
           className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
           initial={{ opacity: 0, y: 8 }}
@@ -197,7 +197,7 @@ export function TeacherDashboard() {
       </div>
 
       {/* Main content — 2 column */}
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
         {/* Left — Responsibilities */}
         <div className="xl:col-span-2">
           <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">Your responsibilities</h3>

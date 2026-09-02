@@ -183,7 +183,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
       ];
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
       {cards.map((c, idx) => (
         <motion.div
           key={c.label}

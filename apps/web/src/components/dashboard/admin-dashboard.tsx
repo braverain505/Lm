@@ -86,7 +86,7 @@ export function AdminDashboard() {
       </motion.div>
 
       {/* KPI Cards - 4 columns */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
@@ -124,7 +124,7 @@ export function AdminDashboard() {
         <h3 className="text-[15px] font-semibold text-foreground mb-1">Quick Actions</h3>
         <p className="text-[13px] text-muted-foreground/60 mb-6">Frequently used tasks</p>
 
-        <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
           {quickActions.map((action, idx) => {
             const Icon = action.icon;
             return (
@@ -144,7 +144,7 @@ export function AdminDashboard() {
       </motion.div>
 
       {/* Charts Section - Weekly Attendance + Upcoming Events */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {/* Weekly Attendance */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
