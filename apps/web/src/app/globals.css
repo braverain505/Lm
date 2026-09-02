@@ -18,9 +18,9 @@
     --card-foreground: 240 12% 12%;
 
     /* ─── Brand — Strategic Lumo Blue ─── */
-    --primary: 221 83% 53%;
+    --primary: 221 83% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 221 83% 48%;
+    --primary-hover: 221 83% 45%;
     --primary-subtle: 221 83% 96%;
     --primary-border: 221 83% 88%;
 
@@ -57,7 +57,7 @@
     --warning-subtle: 38 92% 96%;
     --warning-border: 38 92% 88%;
 
-    --error: 0 84% 60%;
+    --error: 0 84% 55%;
     --error-foreground: 0 0% 100%;
     --error-subtle: 0 84% 96%;
     --error-border: 0 84% 88%;

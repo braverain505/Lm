@@ -55,29 +55,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SessionTermProvider>
       <div className="min-h-screen bg-background text-foreground">
-        {/* ─── Desktop: Rail (always visible) ─── */}
+        {/* ─── Desktop: Rail ─── */}
         <div className="fixed inset-y-0 left-0 z-40 hidden lg:block print:hidden" style={{ width: RAIL_WIDTH }}>
           <NavigationRail onTogglePanel={togglePanel} panelOpen={panelOpen} />
         </div>
 
         {/* ─── Desktop: Expandable panel ─── */}
-        {isDesktop && (
-          <motion.div
-            className="fixed inset-y-0 z-30 hidden lg:block print:hidden overflow-hidden"
-            style={{ left: RAIL_WIDTH }}
-            initial={false}
-            animate={{
-              width: panelOpen ? PANEL_WIDTH : 0,
-              opacity: panelOpen ? 1 : 0,
-            }}
-            transition={{
-              duration: 0.22,
-              ease: [0.25, 0.46, 0.45, 0.94],
-            }}
-          >
-            <NavigationPanel open={panelOpen} />
-          </motion.div>
-        )}
+        <motion.div
+          className="fixed inset-y-0 z-30 hidden lg:block print:hidden overflow-hidden"
+          style={{ left: RAIL_WIDTH }}
+          initial={false}
+          animate={{
+            width: panelOpen ? PANEL_WIDTH : 0,
+            opacity: panelOpen ? 1 : 0,
+          }}
+          transition={{
+            duration: 0.22,
+            ease: [0.25, 0.46, 0.45, 0.94],
+          }}
+        >
+          <NavigationPanel open={panelOpen} />
+        </motion.div>
 
         {/* ─── Mobile: Full-screen drawer ─── */}
         {mobileOpen && (

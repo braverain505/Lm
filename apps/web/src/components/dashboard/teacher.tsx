@@ -3,22 +3,26 @@
 import {
   ArrowUpRight,
   Bot,
+  Calendar,
   CalendarCheck,
   ClipboardCheck,
   Clock,
+  Download,
   FileText,
   GraduationCap,
   LayoutGrid,
   ListChecks,
+  Mail,
   NotebookPen,
   Sparkles,
+  UserPlus,
+  Bell,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
 
 import { ActivityPanel } from "@/components/dashboard/widgets";
-import { WidgetCard } from "@/components/dashboard/shared";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,6 +93,16 @@ export function TeacherDashboard() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  // Quick actions matching design template colors
+  const quickActions = [
+    { label: "Add Student", icon: UserPlus, href: "/students", color: "bg-[#0066FF]" },
+    { label: "Create Report", icon: FileText, href: "/reports", color: "bg-[#7C3AED]" },
+    { label: "Schedule Event", icon: Calendar, href: "/schedule", color: "bg-[#EC4899]" },
+    { label: "Send Notice", icon: Bell, href: "/notices", color: "bg-[#10B981]" },
+    { label: "Email Parents", icon: Mail, href: "/communications", color: "bg-[#F97316]" },
+    { label: "Export Data", icon: Download, href: "/exports", color: "bg-[#06B6D4]" },
+  ];
 
   return (
     <div className="space-y-8">
