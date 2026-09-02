@@ -54,7 +54,7 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
       <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-panel-border px-5">
         <Link href="/dashboard" className="flex items-center gap-3" onClick={onNavigate}>
           <span className="text-[15px] font-bold tracking-tight text-panel-foreground">
-            {schoolProfile?.school_name || activeSchool?.school_name || "Clearis"}
+            {activeSchool?.school_name || "Clearis"}
           </span>
         </Link>
       </div>

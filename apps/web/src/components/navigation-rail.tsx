@@ -52,7 +52,7 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
         )}
         {/* Premium Tooltip */}
         <span className="pointer-events-none absolute left-full ml-3 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-elevated opacity-0 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-1 whitespace-nowrap z-50">
-          {schoolProfile?.name || activeSchool?.school_name || "Clearis"}
+          {activeSchool?.school_name || "Clearis"}
         </span>
       </motion.button>
 
