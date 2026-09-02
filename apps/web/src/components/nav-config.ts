@@ -183,5 +183,5 @@ export function pageMeta(pathname: string): PageMeta {
     .filter((k) => pathname.startsWith(k))
     .sort((a, b) => b.length - a.length)[0];
   const meta: PageMeta | undefined = prefix ? PAGE_META[prefix] : undefined;
-  return meta ?? { title: "Lumo", breadcrumb: "" };
+  return meta ?? { title: "Clearis", breadcrumb: "" };
 }

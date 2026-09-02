@@ -160,7 +160,7 @@ export function TeacherDashboard() {
           </div>
           {totals.students > 0 && !busy && (
             <div className="mt-2.5">
-              <Progress value={(totals.entered / totals.students) * 100} size="sm" className="h-1" indicatorClassName={totals.entered >= totals.students ? "bg-success" : "bg-primary"} />
+              <Progress value={(totals.entered / totals.students) * 100} size="sm" className="h-1" indicatorClassName={totals.entered >= totals.students ? "bg-primary" : "bg-primary"} />
             </div>
           )}
         </motion.div>
