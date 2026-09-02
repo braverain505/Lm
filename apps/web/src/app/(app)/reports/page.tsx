@@ -1,7 +1,10 @@
 "use client";
 
 import { Download, Files, Printer, X } from "lucide-react";
+import { motion } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
+
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,10 +70,15 @@ export default function ReportsPage() {
     <div className="space-y-6 print:space-y-0">
       {/* Toolbar (hidden on print) */}
       <div className="print:hidden">
-        <div className="flex items-start justify-between gap-4">
+        <motion.div
+          className="flex items-start justify-between gap-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.04, ease }}
+        >
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Report cards</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground/50">
               Premium printable term reports built from published results — totals are frozen at
               publish, so cards never drift.
             </p>
@@ -92,7 +100,7 @@ export default function ReportsPage() {
                   >
                     <Files className="h-4 w-4" /> All report cards
                     {!indexLoading && index.length > 0 && (
-                      <span className="text-muted-foreground">({index.filter((r) => r.subjects_published > 0).length})</span>
+                      <span className="text-muted-foreground/50">({index.filter((r) => r.subjects_published > 0).length})</span>
                     )}
                   </Button>
                 )}
@@ -109,22 +117,27 @@ export default function ReportsPage() {
               </>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Term + arm filters */}
-        <div className="mt-4 flex flex-wrap items-center gap-4">
+        <motion.div
+          className="mt-4 flex flex-wrap items-center gap-4"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.08, ease }}
+        >
           {terms.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground">Term</span>
+              <span className="text-sm text-muted-foreground/50">Term</span>
               {terms.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setActiveTermId(t.id)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
+                    "rounded-md border px-3 py-1.5 text-sm font-medium transition-all duration-200",
                     t.id === term?.id
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-input text-muted-foreground hover:bg-accent",
+                      : "border-input text-muted-foreground/50 hover:bg-accent",
                   )}
                 >
                   {t.name}
@@ -152,58 +165,72 @@ export default function ReportsPage() {
               ))}
             </select>
           </div>
-        </div>
+        </motion.div>
 
         {/* Arm index: students + publish coverage */}
         {armId && term && (
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Students in this arm</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {indexLoading ? (
-                <Skeleton className="h-32 w-full" />
-              ) : index.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No enrollments in this arm.</p>
-              ) : (
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {index.map((row) => (
-                    <button
-                      key={row.student_id}
-                      onClick={() => setStudentId(row.student_id)}
-                      className={cn(
-                        "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                        row.student_id === studentId
-                          ? "border-primary bg-primary/10"
-                          : "border-input hover:bg-accent",
-                      )}
-                    >
-                      <span className="font-medium">{row.full_name}</span>
-                      {row.subjects_published > 0 ? (
-                        <Badge variant="success">
-                          {row.subjects_published} subject{row.subjects_published === 1 ? "" : "s"} ready
-                        </Badge>
-                      ) : (
-                        <Badge variant="muted">pending</Badge>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.12, ease }}
+          >
+            <Card className="mt-4 transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Students in this arm</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {indexLoading ? (
+                  <Skeleton className="h-32 w-full" />
+                ) : index.length === 0 ? (
+                  <p className="text-sm text-muted-foreground/50">No enrollments in this arm.</p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {index.map((row, idx) => (
+                      <motion.button
+                        key={row.student_id}
+                        onClick={() => setStudentId(row.student_id)}
+                        className={cn(
+                          "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all duration-200",
+                          row.student_id === studentId
+                            ? "border-primary bg-primary/10"
+                            : "border-input hover:bg-accent hover:-translate-y-[1px]",
+                        )}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35, delay: 0.16 + idx * 0.04, ease }}
+                      >
+                        <span className="font-medium">{row.full_name}</span>
+                        {row.subjects_published > 0 ? (
+                          <Badge variant="success">
+                            {row.subjects_published} subject{row.subjects_published === 1 ? "" : "s"} ready
+                          </Badge>
+                        ) : (
+                          <Badge variant="muted">pending</Badge>
+                        )}
+                      </motion.button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
 
       {/* The premium card */}
       {bulkOpen ? (
         <div className="space-y-6 print:space-y-0">
-          <div className="print:hidden">
-            <Card>
+          <motion.div
+            className="print:hidden"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.04, ease }}
+          >
+            <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div>
                   <p className="text-sm font-medium">All report cards — {armId ? arms.find((a) => a.id === armId)?.full_name ?? "this arm" : ""}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground/50">
                     {bulkLoading || bulkFetching
                       ? "Loading…"
                       : `${bulkCards.length} card${bulkCards.length === 1 ? "" : "s"} ready · prints one card per page`}
@@ -215,26 +242,38 @@ export default function ReportsPage() {
                     disabled={bulkCards.length === 0 || bulkLoading}
                     onClick={() => window.print()}
                   >
-                    <Printer className="h-4 w-4" /> Print all ({bulkCards.length})
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl">
+                      <Printer className="h-4 w-4" />
+                    </span>
+                    Print all ({bulkCards.length})
                   </Button>
                   <Button
                     disabled={bulkCards.length === 0 || bulkLoading}
                     onClick={handleDownloadBulk}
                   >
-                    <Download className="h-4 w-4" /> Download PDF
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl">
+                      <Download className="h-4 w-4" />
+                    </span>
+                    Download PDF
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
           {bulkLoading && bulkCards.length === 0 ? (
             <Skeleton className="h-64 w-full" />
           ) : bulkCards.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                No published report cards for this arm this term yet.
-              </CardContent>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.08, ease }}
+            >
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground/50">
+                  No published report cards for this arm this term yet.
+                </CardContent>
+              </Card>
+            </motion.div>
           ) : (
             <div className="space-y-8">
               {bulkCards.map((c) => (
@@ -254,15 +293,26 @@ export default function ReportsPage() {
       ) : cardLoading ? (
         <Skeleton className="h-64 w-full" />
       ) : error || !card ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            {studentId
-              ? "No published results for this student in this term yet."
-              : "Pick a student to view their report card."}
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.04, ease }}
+        >
+          <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
+            <CardContent className="py-12 text-center text-muted-foreground/50">
+              {studentId
+                ? "No published results for this student in this term yet."
+                : "Pick a student to view their report card."}
+            </CardContent>
+          </Card>
+        </motion.div>
       ) : (
-        <div className="report-card-stage">
+        <motion.div
+          className="report-card-stage"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.04, ease }}
+        >
           {studentId && term && (
             <PsychomotorEditor studentId={studentId} termId={term.id} />
           )}
@@ -270,7 +320,7 @@ export default function ReportsPage() {
           <div ref={reportCardRef}>
             <ReportCardDocument card={card} />
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

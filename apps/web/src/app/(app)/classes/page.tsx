@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Plus, Power, Star } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -14,6 +15,8 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveSchoolId, useArms, useOfferings, useSessions, useSubjects, useTerms } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
+
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
 export default function ClassesPage() {
   const schoolId = useActiveSchoolId();
@@ -181,21 +184,29 @@ export default function ClassesPage() {
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {arms.map((arm) => (
-              <Link
+            {arms.map((arm, idx) => (
+              <motion.div
                 key={arm.id}
-                href={`/classes/${arm.id}`}
-                className="group flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/50 hover:bg-accent/40"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
               >
-                <div className="flex min-w-0 items-center gap-3">
-                  <BookOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="truncate font-medium">{arm.full_name}</p>
-                    <p className="text-xs text-muted-foreground">{currentSession?.name}</p>
+                <Link
+                  href={`/classes/${arm.id}`}
+                  className="group flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-card hover:border-primary/50"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="truncate font-medium">{arm.full_name}</p>
+                      <p className="text-xs text-muted-foreground/50">{currentSession?.name}</p>
+                    </div>
                   </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-              </Link>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}
@@ -203,20 +214,25 @@ export default function ClassesPage() {
 
       {/* Academic setup */}
       <div className="pt-2">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground/50">
           Academic setup
         </h2>
         <div className="grid gap-4 lg:grid-cols-3">
           {/* Sessions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Academic sessions</CardTitle>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.08, ease }}
+          >
+            <Card className="transition-all hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Academic sessions</CardTitle>
+              </CardHeader>
             <CardContent className="space-y-3">
               {loadingSessions ? (
                 <Skeleton className="h-8 w-full" />
               ) : sessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No sessions yet — create your first.</p>
+                <p className="text-sm text-muted-foreground/50">No sessions yet — create your first.</p>
               ) : (
                 sessions.map((s) => (
                   <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
@@ -249,24 +265,30 @@ export default function ClassesPage() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Terms */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Terms</CardTitle>
-              <CardDescription className="text-xs">
-                {manageSessionId ? (
-                  sessions.find((s) => s.id === manageSessionId)?.name ?? "Session"
-                ) : (
-                  "No session yet"
-                )}
-              </CardDescription>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.12, ease }}
+          >
+            <Card className="transition-all hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Terms</CardTitle>
+                <CardDescription className="text-xs">
+                  {manageSessionId ? (
+                    sessions.find((s) => s.id === manageSessionId)?.name ?? "Session"
+                  ) : (
+                    "No session yet"
+                  )}
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-3">
               {loadingTerms ? (
                 <Skeleton className="h-8 w-full" />
               ) : terms.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No terms in this session yet.</p>
+                <p className="text-sm text-muted-foreground/50">No terms in this session yet.</p>
               ) : (
                 terms.map((t) => (
                   <div key={t.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
@@ -316,21 +338,27 @@ export default function ClassesPage() {
                   </Button>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Create a session first.</p>
+                <p className="text-xs text-muted-foreground/50">Create a session first.</p>
               )}
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Add a class */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Add a class</CardTitle>
-              <CardDescription className="text-xs">
-                {manageSessionId
-                  ? sessions.find((s) => s.id === manageSessionId)?.name ?? "Session"
-                  : "Create a session first"}
-              </CardDescription>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.16, ease }}
+          >
+            <Card className="transition-all hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Add a class</CardTitle>
+                <CardDescription className="text-xs">
+                  {manageSessionId
+                    ? sessions.find((s) => s.id === manageSessionId)?.name ?? "Session"
+                    : "Create a session first"}
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-3">
               <Input
                 placeholder="Full class name (e.g. JSS 1 A)"
@@ -348,15 +376,21 @@ export default function ClassesPage() {
               </Button>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Offerings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Class subjects</CardTitle>
-              <CardDescription className="text-xs">
-                Choose a class to add or remove the subjects it offers.
-              </CardDescription>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.08, ease }}
+          >
+            <Card className="transition-all hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Class subjects</CardTitle>
+                <CardDescription className="text-xs">
+                  Choose a class to add or remove the subjects it offers.
+                </CardDescription>
+              </CardHeader>
             <CardContent className="space-y-3">
               <select
                 className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -373,10 +407,16 @@ export default function ClassesPage() {
                   <p className="text-xs font-medium text-muted-foreground">
                     Offered in {arm?.full_name}
                   </p>
-                  {subjects.map((s) => {
+                  {subjects.map((s, idx) => {
                     const isOffered = offeringSubjectIds.has(s.id);
                     return (
-                      <div key={s.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                      <motion.div
+                        key={s.id}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: idx * 0.04, ease }}
+                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                      >
                         <span className="truncate font-medium">{s.name}</span>
                         <Button
                           size="sm"
@@ -397,25 +437,37 @@ export default function ClassesPage() {
                         >
                           {isOffered ? "Remove" : "Add"}
                         </Button>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
               )}
               {arms.length === 0 && (
-                <p className="text-xs text-muted-foreground">Add a class first.</p>
+                <p className="text-xs text-muted-foreground/50">Add a class first.</p>
               )}
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* Subjects */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Subjects</CardTitle>
-            </CardHeader>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.12, ease }}
+          >
+            <Card className="transition-all hover:-translate-y-[1px] hover:shadow-card">
+              <CardHeader className="px-5 py-3.5">
+                <CardTitle>Subjects</CardTitle>
+              </CardHeader>
             <CardContent className="space-y-3">
-              {subjects.map((s) => (
-                <div key={s.id} className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+              {subjects.map((s, idx) => (
+                <motion.div
+                  key={s.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: idx * 0.04, ease }}
+                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                >
                   <div className="flex min-w-0 items-center gap-2">
                     <button
                       onClick={() => toggleCore.mutate({ subjectId: s.id, isCore: !s.is_core })}
@@ -431,8 +483,8 @@ export default function ClassesPage() {
                     <span className="truncate font-medium">{s.name}</span>
                     {s.is_core && <Badge variant="warning">core</Badge>}
                   </div>
-                  <span className="font-mono text-xs text-muted-foreground">{s.code}</span>
-                </div>
+                  <span className="font-mono text-xs text-muted-foreground/50">{s.code}</span>
+                </motion.div>
               ))}
               <div className="grid grid-cols-2 gap-2 pt-2">
                 <Input placeholder="Mathematics" value={subjectName} onChange={(e) => setSubjectName(e.target.value)} />
@@ -443,6 +495,7 @@ export default function ClassesPage() {
               </Button>
             </CardContent>
           </Card>
+          </motion.div>
         </div>
       </div>
     </div>

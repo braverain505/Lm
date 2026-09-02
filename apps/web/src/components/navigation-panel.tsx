@@ -34,6 +34,7 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
 
   const permissions = activeSchool?.permissions ?? [];
   const sections = visiblePanel(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
+  const canManageSchool = permissions.includes("school.manage");
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
 
@@ -126,7 +127,7 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
               <Avatar
                 name={user?.full_name}
                 initials={initials}
-                className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-[11px] font-medium text-white ring-2 ring-panel-border"
+                className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-xs font-semibold text-white ring-2 ring-panel-border"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[13px] font-semibold text-panel-foreground">{user?.full_name}</p>
@@ -164,12 +165,16 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
               )}
 
               <div className="px-1 py-1">
-                <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
-                  Profile
-                </Link>
-                <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
-                  Preferences
-                </Link>
+                {canManageSchool && (
+                  <>
+                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+                      Profile
+                    </Link>
+                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+                      Preferences
+                    </Link>
+                  </>
+                )}
                 <div className="flex items-center justify-between px-2.5 py-2">
                   <span className="text-[12px] font-medium text-foreground/70">Theme</span>
                   <ThemeSwitch />

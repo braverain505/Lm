@@ -29,6 +29,7 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
 
   const permissions = activeSchool?.permissions ?? [];
   const railItems = visibleRail(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
+  const canManageSchool = permissions.includes("school.manage");
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
 
@@ -96,21 +97,35 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
       </div>
 
       {/* Bottom: avatar - Premium style */}
-      <Link
-        href="/settings"
-        className="group relative mt-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 hover:bg-rail-active-bg/10 hover:scale-105"
-        title="Settings"
-      >
-        <Avatar
-          name={user?.full_name}
-          initials={initials}
-          className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-[11px] font-medium text-white ring-2 ring-rail-border"
-        />
-        {/* Premium Tooltip */}
-        <span className="pointer-events-none absolute left-full ml-3 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-elevated opacity-0 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-1 whitespace-nowrap z-50">
-          Settings
-        </span>
-      </Link>
+      {canManageSchool ? (
+        <Link
+          href="/settings"
+          className="group relative mt-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 hover:bg-rail-active-bg/10 hover:scale-105"
+          title="Settings"
+        >
+          <Avatar
+            name={user?.full_name}
+            initials={initials}
+            className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-xs font-semibold text-white ring-2 ring-rail-border"
+          />
+          {/* Premium Tooltip */}
+          <span className="pointer-events-none absolute left-full ml-3 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-elevated opacity-0 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-1 whitespace-nowrap z-50">
+            Settings
+          </span>
+        </Link>
+      ) : (
+        <div className="group relative mt-auto flex h-10 w-10 items-center justify-center">
+          <Avatar
+            name={user?.full_name}
+            initials={initials}
+            className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-xs font-semibold text-white ring-2 ring-rail-border"
+          />
+          {/* Premium Tooltip */}
+          <span className="pointer-events-none absolute left-full ml-3 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-elevated opacity-0 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-1 whitespace-nowrap z-50">
+            {user?.full_name}
+          </span>
+        </div>
+      )}
     </nav>
   );
 }

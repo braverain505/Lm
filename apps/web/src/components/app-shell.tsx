@@ -50,19 +50,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Close mobile nav on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  const contentPaddingLeft = isDesktop ? RAIL_WIDTH + (panelOpen ? PANEL_WIDTH : 0) : 0;
+  const contentPaddingLeft = 0;
 
   return (
     <SessionTermProvider>
       <div className="min-h-screen bg-background text-foreground">
         {/* ─── Desktop: Rail ─── */}
-        <div className="fixed inset-y-0 left-0 z-40 hidden lg:block print:hidden" style={{ width: RAIL_WIDTH }}>
+        <div className="fixed inset-y-0 left-0 z-40 hidden print:hidden" style={{ width: RAIL_WIDTH }}>
           <NavigationRail onTogglePanel={togglePanel} panelOpen={panelOpen} />
         </div>
 
-        {/* ─── Desktop: Expandable panel ─── */}
+        {/* ─── Desktop: Expandable panel (hidden with rail) ─── */}
         <motion.div
-          className="fixed inset-y-0 z-30 hidden lg:block print:hidden overflow-hidden"
+          className="fixed inset-y-0 z-30 hidden print:hidden overflow-hidden"
           style={{ left: RAIL_WIDTH }}
           initial={false}
           animate={{
