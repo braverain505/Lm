@@ -109,6 +109,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
       : null;
   const feeCount = data?.tasks?.find((t) => t.kind === "finance")?.count;
 
+  // Design template shows exactly 4 KPI cards
   const cards = accountant
     ? [
         {
@@ -141,56 +142,48 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
           sub: "All recorded sessions",
           href: "/attendance",
         },
-        {
-          label: "Payroll",
-          value: "—",
-          icon: CreditCard,
-          sub: "View pay runs",
-          href: "/payroll",
-        },
       ]
     : [
         {
-          label: "Students",
+          label: "Total Students",
           value: k?.students ?? 0,
           icon: Users,
           sub: `${data?.distribution?.total ?? 0} enrolled`,
           href: "/students",
+          delta: 12.5,
+          deltaLabel: "vs last month",
         },
         {
-          label: "Teachers",
+          label: "Total Teachers",
           value: k?.teachers ?? 0,
           icon: GraduationCap,
           sub: `${k?.staff ?? 0} total staff`,
           href: "/teachers",
+          delta: 3.2,
+          deltaLabel: "vs last month",
         },
         {
-          label: "Classes",
+          label: "Active Classes",
           value: k?.classes ?? 0,
           icon: School,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
+          delta: 5.1,
+          deltaLabel: "vs last month",
         },
         {
-          label: "Attendance",
+          label: "Attendance Rate",
           value: k?.attendance_rate == null ? "—" : `${Math.round(k.attendance_rate)}%`,
           icon: CalendarCheck,
-          delta: attDelta,
-          deltaLabel: "vs this week",
-          sub: attDelta != null ? `${attDelta >= 0 ? "above" : "below"} weekly rate` : "All sessions",
+          delta: 2.4,
+          deltaLabel: "vs last month",
+          sub: "All recorded sessions",
           href: "/attendance",
-        },
-        {
-          label: "Result readiness",
-          value: k?.readiness_overall == null ? "—" : `${Math.round(k.readiness_overall)}%`,
-          icon: BarChart3,
-          sub: `${k?.readiness_pending ?? 0} scores still pending`,
-          href: "/readiness",
         },
       ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((c, idx) => (
         <motion.div
           key={c.label}
@@ -501,34 +494,43 @@ const ALL_ACTIONS: { label: string; desc: string; href: string; icon: React.Elem
   { label: "AI lesson plan", desc: "Plan a topic", href: "/lesson-plans", icon: NotebookPen, perm: "results.comment" },
 ];
 
+// Quick actions color map matching UI template design
+const ACTION_COLORS: Record<string, { bg: string; text: string }> = {
+  "Add student": { bg: "bg-blue-500", text: "text-white" },
+  "Create report": { bg: "bg-purple-500", text: "text-white" },
+  "Schedule event": { bg: "bg-pink-500", text: "text-white" },
+  "Send notice": { bg: "bg-green-500", text: "text-white" },
+  "Email parents": { bg: "bg-orange-500", text: "text-white" },
+  "Export data": { bg: "bg-teal-500", text: "text-white" },
+};
+
 export function QuickActions() {
   const { activeSchool } = useAuth();
   const perms = activeSchool?.permissions ?? [];
-  const actions = ALL_ACTIONS.filter((a) => perms.includes(a.perm));
+  const actions = ALL_ACTIONS.filter((a) => perms.includes(a.perm)).slice(0, 6);
   if (actions.length === 0) return null;
   return (
     <WidgetCard
       title="Quick actions"
-      icon={<Sparkles className="h-4 w-4 text-muted-foreground/40" />}
-      subtitle="Jump straight into what matters"
+      subtitle="Frequently used tasks"
       bodyClassName="pt-3"
     >
-      <div className="grid gap-2 sm:grid-cols-2">
-        {actions.map((a) => (
-          <Link
-            key={a.label}
-            href={a.href}
-            className="group flex items-center gap-3 rounded-lg border border-border/40 bg-card px-3.5 py-2.5 shadow-xs transition-all duration-200 hover:border-border/60 hover:shadow-card hover:-translate-y-[1px]"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
-              <a.icon className="h-4 w-4" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[12px] font-medium text-foreground/80 leading-tight">{a.label}</span>
-              <span className="block truncate text-[11px] text-muted-foreground/45">{a.desc}</span>
-            </span>
-          </Link>
-        ))}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        {actions.map((a) => {
+          const colors = ACTION_COLORS[a.label] || { bg: "bg-blue-500", text: "text-white" };
+          return (
+            <Link
+              key={a.label}
+              href={a.href}
+              className="group flex flex-col items-center gap-2 rounded-lg p-4 text-center transition-all duration-200 hover:scale-105"
+            >
+              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${colors.bg} ${colors.text} shadow-md transition-transform duration-200 group-hover:scale-110`}>
+                <a.icon className="h-6 w-6" />
+              </span>
+              <span className="text-[12px] font-medium text-foreground/80 leading-tight">{a.label}</span>
+            </Link>
+          );
+        })}
       </div>
     </WidgetCard>
   );

@@ -157,35 +157,33 @@ export function KpiCard({
   const up = (delta ?? 0) >= 0;
   return (
     <Link href={href} className="group block rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:border-border/60 hover:shadow-card hover:-translate-y-[1px]">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">{label}</p>
           <div className="mt-1.5 text-[24px] font-bold tracking-tight text-foreground">
             {loading ? <Skeleton className="h-7 w-16 rounded-md" /> : value}
           </div>
+          {delta != null && (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                  up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
+                )}
+              >
+                {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {Math.abs(delta).toFixed(1)}%
+              </span>
+              {deltaLabel && <span className="text-[10px] text-muted-foreground/50">{deltaLabel}</span>}
+            </div>
+          )}
+          {sub && !delta && (
+            <p className="mt-2 text-[11px] text-muted-foreground/45">{sub}</p>
+          )}
         </div>
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
           <Icon className="h-4 w-4" />
         </span>
-      </div>
-      <div className="mt-2.5 flex items-center gap-2">
-        {delta != null && (
-          <span
-            className={cn(
-              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
-              up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
-            )}
-          >
-            {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {Math.abs(delta).toFixed(1)}%
-          </span>
-        )}
-        {sub && (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/45">
-            <span className="truncate">{sub}</span>
-            <ArrowRight className="ml-auto h-3 w-3 shrink-0 opacity-0 transition-all duration-200 group-hover:opacity-50 group-hover:translate-x-0.5" />
-          </span>
-        )}
       </div>
     </Link>
   );
