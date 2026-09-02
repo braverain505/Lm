@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, CheckCircle2 } from "lucide-react";
+import { Bell, CheckCircle2, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -112,6 +112,12 @@ export function Notifications() {
 
 export function ProfileMenu() {
   const { user, activeSchool } = useAuth();
+  const handleLogout = async () => {
+    // Clear auth and redirect to login
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  };
+
   return (
     <Dropdown
       trigger={<Avatar name={user?.full_name} className="h-8 w-8 cursor-pointer" />}
@@ -136,6 +142,17 @@ export function ProfileMenu() {
           <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
             Account settings
           </Link>
+          <div className="border-t border-border/30" />
+          <button
+            onClick={() => {
+              close();
+              handleLogout();
+            }}
+            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Logout
+          </button>
         </div>
       )}
     </Dropdown>

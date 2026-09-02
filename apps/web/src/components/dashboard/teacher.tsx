@@ -187,12 +187,12 @@ export function TeacherDashboard() {
         {/* Left — Responsibilities */}
         <div className="xl:col-span-2">
           <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">Your responsibilities</h3>
-          <div className="rounded-xl border border-border/40 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card">
+          <div className="rounded-xl border border-border/40 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card overflow-hidden">
             {busy ? (
               <div className="p-5 space-y-3">
-                <Skeleton className="h-12 w-full rounded-lg" />
-                <Skeleton className="h-12 w-full rounded-lg" />
-                <Skeleton className="h-12 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
               </div>
             ) : myRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
@@ -203,36 +203,37 @@ export function TeacherDashboard() {
                 <p className="mt-1.5 text-[12px] text-muted-foreground/50">Your assigned classes and subjects will appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-border/20">
+              <div className="space-y-2 p-3">
                 {myRows.map((r) => {
                   const pct = r.student_count ? Math.round((r.entered / r.student_count) * 100) : 0;
                   const done = r.pending === 0 && r.student_count > 0;
                   const status = r.submitted > 0 && r.submitted >= r.student_count
-                    ? { label: "Submitted", variant: "success" as const }
+                    ? { label: "Submitted", variant: "success" as const, bgColor: "bg-success/10", borderColor: "border-success/30" }
                     : done
-                      ? { label: "Ready", variant: "info" as const }
+                      ? { label: "Ready", variant: "info" as const, bgColor: "bg-info/10", borderColor: "border-info/30" }
                       : r.entered > 0
-                        ? { label: "In progress", variant: "warning" as const }
-                        : { label: "Not started", variant: "muted" as const };
+                        ? { label: "In progress", variant: "warning" as const, bgColor: "bg-warning/10", borderColor: "border-warning/30" }
+                        : { label: "Not started", variant: "muted" as const, bgColor: "bg-muted/20", borderColor: "border-border/40" };
                   return (
                     <Link
                       key={`${r.arm_id}-${r.subject_id}`}
                       href={`/results/score?arm_id=${r.arm_id}&subject_id=${r.subject_id}&term_id=${term?.id ?? ""}`}
-                      className="group flex items-center gap-4 px-5 py-3.5 transition-colors duration-200 hover:bg-muted/20"
+                      className={cn("group flex flex-col gap-3 rounded-lg border p-4 transition-all duration-200", status.bgColor, status.borderColor, "hover:shadow-md hover:-translate-y-0.5")}
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[13px] font-medium text-foreground">{r.subject_name}</p>
-                          <span className="text-[12px] text-muted-foreground/40">· {r.arm_name}</span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-foreground">{r.subject_name}</p>
+                          <p className="text-[12px] text-muted-foreground/60">{r.arm_name}</p>
                         </div>
-                        <div className="mt-2 flex items-center gap-3">
-                          <Progress value={pct} size="sm" className="h-1 flex-1" indicatorClassName={done ? "bg-success" : "bg-primary"} />
-                          <span className="shrink-0 text-[11px] text-muted-foreground/45">
-                            {r.entered}/{r.student_count}
-                          </span>
-                        </div>
+                        <Badge variant={status.variant} className="shrink-0">{status.label}</Badge>
                       </div>
-                      <Badge variant={status.variant}>{status.label}</Badge>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-medium text-muted-foreground">Progress</span>
+                          <span className="text-[11px] font-semibold text-foreground">{pct}% ({r.entered}/{r.student_count})</span>
+                        </div>
+                        <Progress value={pct} size="sm" className="h-2" indicatorClassName={done ? "bg-success" : pct > 0 ? "bg-primary" : "bg-muted-foreground/20"} />
+                      </div>
                     </Link>
                   );
                 })}
