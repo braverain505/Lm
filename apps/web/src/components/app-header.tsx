@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Menu } from "lucide-react";
+import { Lock, Menu, ChevronRight } from "lucide-react";
 
 import { pageMeta } from "@/components/nav-config";
 import { Notifications, ProfileMenu } from "@/components/notifications";
@@ -26,46 +26,47 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
   const meta = pageMeta(pathname);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border/40 bg-background/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-4 border-b border-border/50 bg-background/95 px-5 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
       {/* Mobile menu button */}
       <button
         onClick={onOpenMobileNav}
-        className="-ml-1 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+        className="-ml-1.5 flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground lg:hidden"
         aria-label="Open navigation"
       >
-        <Menu className="h-4 w-4" />
+        <Menu className="h-[18px] w-[18px]" />
       </button>
 
-      {/* Breadcrumb */}
+      {/* Premium Breadcrumb */}
       <div className="min-w-0">
-        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <span className="font-medium">{activeSchool?.role?.name ?? "Workspace"}</span>
+        <nav className="flex items-center gap-2 text-[12px]">
+          <span className="font-medium text-muted-foreground/70">Home</span>
           {meta.breadcrumb && (
             <>
-              <span className="text-border">·</span>
-              <span>{meta.breadcrumb}</span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+              <span className="font-medium text-muted-foreground/70">{meta.breadcrumb}</span>
             </>
           )}
-        </div>
-        <h1 className="mt-px truncate text-[14px] font-semibold tracking-tight">{meta.title}</h1>
+          <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+          <span className="font-semibold text-foreground">{meta.title}</span>
+        </nav>
       </div>
 
-      <div className="ml-auto flex items-center gap-1.5">
-        {/* Closed term */}
+      <div className="ml-auto flex items-center gap-2">
+        {/* Closed term indicator */}
         {isTermClosed && (
-          <span className="hidden items-center gap-1.5 rounded-md border border-warning/20 bg-warning/5 px-2 py-1 text-[11px] font-medium text-warning sm:inline-flex">
+          <span className="hidden items-center gap-1.5 rounded-lg border border-warning/20 bg-warning/5 px-2.5 py-1.5 text-[11px] font-semibold text-warning sm:inline-flex">
             <Lock className="h-3 w-3" />
             Term closed
           </span>
         )}
 
-        {/* Session */}
+        {/* Session selector */}
         {sessions.length > 0 && (
           <Select value={session?.id ?? ""} onValueChange={(v) => {
             const s = sessions.find((x) => x.id === v);
             if (s) setSession(s);
           }}>
-            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/40 bg-transparent text-[12px] font-medium md:inline-flex">
+            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/30 bg-transparent text-[12px] font-medium hover:bg-muted transition-colors md:inline-flex">
               <SelectValue placeholder="Session" />
             </SelectTrigger>
             <SelectContent>
@@ -78,13 +79,13 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
           </Select>
         )}
 
-        {/* Term */}
+        {/* Term selector */}
         {session && !loadingTerms && terms.length > 0 && (
           <Select value={term?.id ?? ""} onValueChange={(v) => {
             const t = terms.find((x) => x.id === v);
             if (t) setTerm(t);
           }}>
-            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/40 bg-transparent text-[12px] font-medium sm:inline-flex">
+            <SelectTrigger icon={null} className="hidden h-8 w-auto border-border/30 bg-transparent text-[12px] font-medium hover:bg-muted transition-colors sm:inline-flex">
               <SelectValue placeholder="Term" />
             </SelectTrigger>
             <SelectContent>
@@ -97,7 +98,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
           </Select>
         )}
 
-        <span className="hidden h-4 w-px bg-border/40 sm:block" />
+        <span className="hidden h-4 w-px bg-border/30 sm:block" />
 
         {/* Search */}
         <div className="hidden sm:block">
@@ -107,7 +108,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
         {/* Notifications */}
         <Notifications />
 
-        <span className="hidden h-4 w-px bg-border/40 sm:block" />
+        <span className="hidden h-4 w-px bg-border/30 sm:block" />
 
         {/* Profile */}
         <ProfileMenu />

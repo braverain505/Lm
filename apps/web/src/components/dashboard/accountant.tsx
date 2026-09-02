@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Banknote, CheckCircle2, FileText, TrendingUp, Wallet } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -13,6 +14,7 @@ import { useSessionTerm } from "@/providers/session-context";
 import { useDashboardSummary, useInvoices } from "@/hooks/use-api";
 
 const ngn = new Intl.NumberFormat("en-NG", { maximumFractionDigits: 0 });
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function AccountantDashboard() {
   const { user } = useAuth();
@@ -41,48 +43,62 @@ export function AccountantDashboard() {
   return (
     <div className="space-y-8">
       {/* Greeting */}
-      <div>
-        <h2 className="text-[22px] font-bold tracking-tight text-foreground">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease }}
+      >
+        <h2 className="text-[26px] font-bold tracking-tight text-foreground">
           {greeting}, {user?.full_name?.split(" ")[0] ?? "there"}.
         </h2>
-        <p className="mt-1 text-[14px] text-muted-foreground">
+        <p className="mt-1.5 text-[14px] text-muted-foreground/70">
           Here&apos;s the financial picture for your school.
         </p>
-      </div>
+      </motion.div>
 
       <KpiRow data={data} loading={isLoading} accountant />
 
       {/* Financial summary — 2 column */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Outstanding fees */}
-        <div className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs">
-          <p className="text-[11px] font-medium text-muted-foreground/60">Outstanding fees</p>
-          <div className="mt-2 text-[28px] font-bold tracking-tight text-foreground">
-            {isLoading ? <Skeleton className="inline-block h-7 w-32" /> : `${currency} ${ngn.format(data?.kpis?.outstanding_fees ?? 0)}`}
+        <motion.div
+          className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.06, ease }}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">Outstanding fees</p>
+          <div className="mt-2.5 text-[28px] font-bold tracking-tight text-foreground">
+            {isLoading ? <Skeleton className="inline-block h-8 w-32 rounded-md" /> : `${currency} ${ngn.format(data?.kpis?.outstanding_fees ?? 0)}`}
           </div>
-          <p className="mt-1 text-[12px] text-muted-foreground/50">{feeCount} students carry a balance</p>
-          <Link href="/billing" className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
-            Open billing <ArrowRight className="h-3.5 w-3.5" />
+          <p className="mt-1.5 text-[12px] text-muted-foreground/45">{feeCount} students carry a balance</p>
+          <Link href="/billing" className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-primary transition-colors duration-200 hover:text-primary-hover">
+            Open billing <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
-        </div>
+        </motion.div>
 
         {/* Today's collections */}
-        <div className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs">
-          <p className="text-[11px] font-medium text-muted-foreground/60">Today&apos;s collections</p>
-          <div className="mt-2 text-[28px] font-bold tracking-tight text-foreground">
-            {isLoading ? <Skeleton className="inline-block h-7 w-28" /> : `${currency} ${ngn.format(todayAmount)}`}
+        <motion.div
+          className="rounded-xl border border-border/40 bg-card px-5 py-5 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1, ease }}
+        >
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">Today&apos;s collections</p>
+          <div className="mt-2.5 text-[28px] font-bold tracking-tight text-foreground">
+            {isLoading ? <Skeleton className="inline-block h-8 w-28 rounded-md" /> : `${currency} ${ngn.format(todayAmount)}`}
           </div>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2.5 flex items-center gap-2">
             <Badge variant="success">{todayCount} payment{todayCount === 1 ? "" : "s"}</Badge>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Recent payments + activity */}
       <div className="grid gap-6 xl:grid-cols-3">
         <WidgetCard
           title="Recent payments"
-          icon={<Wallet className="h-4 w-4 text-muted-foreground/50" />}
+          icon={<Wallet className="h-4 w-4 text-muted-foreground/40" />}
           subtitle="Latest recorded collections"
           loading={invoicesLoading}
           error={isError}
@@ -92,15 +108,15 @@ export function AccountantDashboard() {
           className="xl:col-span-1"
           bodyClassName="pt-2"
         >
-          <div className="divide-y divide-border/30">
+          <div className="divide-y divide-border/20">
             {recent.map((i) => (
-              <div key={i.id} className="flex items-center gap-3 px-1 py-2.5">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-success/10 text-success">
+              <div key={i.id} className="flex items-center gap-3 px-1 py-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
                   <Banknote className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-medium text-foreground">{i.payment_method ?? "Payment"}</p>
-                  <p className="truncate text-[11px] text-muted-foreground/50">{i.paid_date ? relativeTime(i.paid_date) : ""}</p>
+                  <p className="truncate text-[11px] text-muted-foreground/45">{i.paid_date ? relativeTime(i.paid_date) : ""}</p>
                 </div>
                 <span className="shrink-0 text-[12px] font-semibold text-success">
                   {currency} {ngn.format(i.total_amount)}
@@ -125,14 +141,14 @@ export function AccountantDashboard() {
             <Link
               key={r.href}
               href={r.href}
-              className="group flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3 shadow-xs transition-all hover:border-border/60 hover:shadow-sm"
+              className="group flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3.5 shadow-xs transition-all duration-200 hover:border-border/60 hover:shadow-card hover:-translate-y-[1px]"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground/50">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
                 <FileText className="h-4 w-4" />
               </span>
               <div className="min-w-0">
                 <p className="text-[13px] font-medium text-foreground">{r.label}</p>
-                <p className="truncate text-[11px] text-muted-foreground/50">{r.desc}</p>
+                <p className="truncate text-[11px] text-muted-foreground/45">{r.desc}</p>
               </div>
             </Link>
           ))}

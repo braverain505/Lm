@@ -69,23 +69,34 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             return (
               <motion.div
                 key={t.id}
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+                initial={{ opacity: 0, x: 300, scale: 0.95 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 300, scale: 0.95 }}
+                transition={{
+                  duration: 0.25,
+                  ease: [0.21, 1.02, 0.73, 1],
+                }}
                 className={cn(
                   "flex items-center gap-2.5 rounded-xl border px-4 py-2.5 text-[13px] font-medium shadow-lg backdrop-blur-sm",
                   STYLES[t.variant],
                 )}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <motion.div
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3, type: "spring", stiffness: 300 }}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                </motion.div>
                 <span>{t.message}</span>
-                <button
+                <motion.button
                   onClick={() => dismiss(t.id)}
                   className="ml-1 shrink-0 rounded-md p-0.5 opacity-60 hover:opacity-100 transition-opacity"
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
                 >
                   <X className="h-3 w-3" />
-                </button>
+                </motion.button>
               </motion.div>
             );
           })}

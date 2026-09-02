@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence } from "framer-motion";
 import { Printer, X } from "lucide-react";
 import { useState } from "react";
 
@@ -27,32 +28,58 @@ export function ReceiptDialog({
   if (!paymentId) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:bg-white">
-      <div className="receipt-print-area flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border bg-background shadow-xl print:max-h-none print:overflow-visible print:shadow-none">
-        {/* Toolbar (hidden when printing) */}
-        <div className="flex items-center justify-between gap-3 border-b px-5 py-3 print:hidden">
-          <div>
-            <h3 className="text-base font-semibold">Payment receipt</h3>
-            <p className="text-xs text-muted-foreground">
-              Printable official receipt for this payment.
-            </p>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 print:bg-white"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <motion.div
+          className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        />
+        <motion.div
+          className="receipt-print-area relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border bg-background shadow-xl print:max-h-none print:overflow-visible print:shadow-none"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          {/* Toolbar (hidden when printing) */}
+          <div className="flex items-center justify-between gap-3 border-b px-5 py-3 print:hidden">
+            <div>
+              <h3 className="text-base font-semibold">Payment receipt</h3>
+              <p className="text-xs text-muted-foreground">
+                Printable official receipt for this payment.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setPrinted(true);
+                  window.print();
+                }}
+              >
+                <Printer className="h-4 w-4" /> Print
+              </Button>
+              <motion.button
+                onClick={onClose}
+                className="text-muted-foreground hover:text-foreground"
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ duration: 0.15 }}
+              >
+                <X className="h-5 w-5" />
+              </motion.button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setPrinted(true);
-                window.print();
-              }}
-            >
-              <Printer className="h-4 w-4" /> Print
-            </Button>
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
 
         <div className="overflow-y-auto px-6 py-6 print:overflow-visible">
           {isLoading || !receipt ? (
@@ -183,7 +210,8 @@ export function ReceiptDialog({
             </div>
           )}
         </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock,
+  CreditCard,
   FileText,
   GraduationCap,
   LayoutGrid,
@@ -17,6 +18,7 @@ import {
   ListChecks,
   Loader2,
   NotebookPen,
+  School,
   Sparkles,
   TrendingUp,
   UserPlus,
@@ -24,8 +26,12 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
+const ngn = new Intl.NumberFormat("en-NG", { maximumFractionDigits: 0 });
 
 import { Button } from "@/components/ui/button";
 
@@ -71,16 +77,16 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border/40 bg-muted/30 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-border/30 bg-muted/20 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-100",
+            "rounded-md px-2.5 py-1 text-[11px] font-medium transition-all duration-200",
             value === o.value
               ? "bg-card text-foreground shadow-xs"
-              : "text-muted-foreground hover:text-foreground",
+              : "text-muted-foreground/60 hover:text-foreground",
           )}
         >
           {o.label}
@@ -107,7 +113,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
     ? [
         {
           label: "Outstanding fees",
-          value: `${k?.fee_currency ?? "NGN"} ${(k?.outstanding_fees ?? 0).toLocaleString()}`,
+          value: `${k?.fee_currency ?? "NGN"} ${ngn.format(k?.outstanding_fees ?? 0)}`,
           icon: Wallet,
           sub: feeCount != null ? `${feeCount} students with balances` : "No balances yet",
           href: "/billing",
@@ -122,7 +128,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
         {
           label: "Classes",
           value: k?.classes ?? 0,
-          icon: LayoutGrid,
+          icon: School,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
         },
@@ -138,7 +144,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
         {
           label: "Payroll",
           value: "—",
-          icon: Wallet,
+          icon: CreditCard,
           sub: "View pay runs",
           href: "/payroll",
         },
@@ -161,7 +167,7 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
         {
           label: "Classes",
           value: k?.classes ?? 0,
-          icon: LayoutGrid,
+          icon: School,
           sub: `${k?.subjects ?? 0} subjects`,
           href: "/classes",
         },
@@ -185,8 +191,15 @@ export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-      {cards.map((c) => (
-        <KpiCard key={c.label} {...c} loading={loading} />
+      {cards.map((c, idx) => (
+        <motion.div
+          key={c.label}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
+        >
+          <KpiCard {...c} loading={loading} />
+        </motion.div>
       ))}
     </div>
   );
@@ -210,11 +223,11 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
       emptyHint="Once scores are entered, performance trends will appear here."
       bodyClassName="pt-3"
     >
-      <div className="mb-3 flex items-center gap-4 text-[11px]">
-        <span className="flex items-center gap-1.5 text-muted-foreground/60">
+      <div className="mb-3.5 flex items-center gap-4 text-[11px]">
+        <span className="flex items-center gap-1.5 text-muted-foreground/50">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Average
         </span>
-        <span className="flex items-center gap-1.5 text-muted-foreground/60">
+        <span className="flex items-center gap-1.5 text-muted-foreground/50">
           <span className="h-1.5 w-1.5 rounded-full bg-success" /> Pass rate
         </span>
       </div>
@@ -302,8 +315,8 @@ export function ReadinessPanel({
       </div>
 
       {agg && agg.list.length > 0 && (
-        <div className="mt-5 space-y-2.5 border-t border-border/30 pt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">By subject</p>
+        <div className="mt-5 space-y-2.5 border-t border-border/20 pt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">By subject</p>
           {agg.list.slice(0, 6).map((row) => {
             const pct = row.total ? Math.round((row.entered / row.total) * 100) : 0;
             const done = pct >= 100;
@@ -325,7 +338,7 @@ export function ReadinessPanel({
 
       <Link
         href="/readiness"
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-[12px] font-semibold text-foreground/80 transition-all hover:bg-muted/40"
+        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2 text-[12px] font-semibold text-foreground/80 transition-all duration-200 hover:bg-muted/30 hover:border-border/60"
       >
         View readiness <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -496,7 +509,7 @@ export function QuickActions() {
   return (
     <WidgetCard
       title="Quick actions"
-      icon={<Sparkles className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<Sparkles className="h-4 w-4 text-muted-foreground/40" />}
       subtitle="Jump straight into what matters"
       bodyClassName="pt-3"
     >
@@ -505,12 +518,14 @@ export function QuickActions() {
           <Link
             key={a.label}
             href={a.href}
-            className="group flex items-center gap-3 rounded-lg border border-border/30 px-3 py-2.5 transition-all duration-100 hover:border-border/50 hover:bg-muted/20"
+            className="group flex items-center gap-3 rounded-lg border border-border/40 bg-card px-3.5 py-2.5 shadow-xs transition-all duration-200 hover:border-border/60 hover:shadow-card hover:-translate-y-[1px]"
           >
-            <a.icon className="h-4 w-4 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground/60" />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
+              <a.icon className="h-4 w-4" />
+            </span>
             <span className="min-w-0">
               <span className="block text-[12px] font-medium text-foreground/80 leading-tight">{a.label}</span>
-              <span className="block truncate text-[11px] text-muted-foreground/40">{a.desc}</span>
+              <span className="block truncate text-[11px] text-muted-foreground/45">{a.desc}</span>
             </span>
           </Link>
         ))}
@@ -543,15 +558,15 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
           <Link
             key={a.id}
             href={a.href ?? "#"}
-            className="group flex items-start gap-3 px-1 py-2.5 transition-colors duration-100 hover:bg-muted/20"
+            className="group flex items-start gap-3 px-1 py-3 transition-colors duration-200 hover:bg-muted/20"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
-              <p className="truncate text-[11px] text-muted-foreground/40">
+              <p className="truncate text-[11px] text-muted-foreground/45">
                 {a.detail ? `${a.detail} · ` : ""}{a.actor_name}
               </p>
             </div>
-            <span className="shrink-0 text-[10px] text-muted-foreground/30">{relativeTime(a.created_at)}</span>
+            <span className="shrink-0 text-[10px] text-muted-foreground/40">{relativeTime(a.created_at)}</span>
           </Link>
         ))}
       </div>

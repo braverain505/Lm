@@ -62,33 +62,57 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* ─── Desktop: Expandable panel ─── */}
         {isDesktop && (
-          <div
-            className="fixed inset-y-0 z-30 hidden lg:block print:hidden transition-[width,opacity] duration-200 ease-out overflow-hidden"
-            style={{
-              left: RAIL_WIDTH,
+          <motion.div
+            className="fixed inset-y-0 z-30 hidden lg:block print:hidden overflow-hidden"
+            style={{ left: RAIL_WIDTH }}
+            initial={false}
+            animate={{
               width: panelOpen ? PANEL_WIDTH : 0,
               opacity: panelOpen ? 1 : 0,
             }}
+            transition={{
+              duration: 0.22,
+              ease: [0.25, 0.46, 0.45, 0.94],
+            }}
           >
             <NavigationPanel open={panelOpen} />
-          </div>
+          </motion.div>
         )}
 
         {/* ─── Mobile: Full-screen drawer ─── */}
         {mobileOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in-soft" onClick={closeMobile} />
-            <div className="absolute inset-y-0 left-0 flex shadow-elevated animate-slide-in-right">
+          <motion.div
+            className="fixed inset-0 z-50 lg:hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15 }}
+              onClick={closeMobile}
+            />
+            <motion.div
+              className="absolute inset-y-0 left-0 flex shadow-elevated"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              transition={{ duration: 0.25, ease: [0.21, 1.02, 0.73, 1] }}
+            >
               <NavigationRail onTogglePanel={closeMobile} panelOpen={false} />
               <NavigationPanel open={true} onNavigate={closeMobile} />
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
 
         {/* ─── Main content ─── */}
-        <div
-          className="flex min-h-screen flex-col transition-[padding] duration-200 ease-out print:!pl-0"
-          style={{ paddingLeft: contentPaddingLeft }}
+        <motion.div
+          className="flex min-h-screen flex-col print:!pl-0"
+          initial={false}
+          animate={{ paddingLeft: contentPaddingLeft }}
+          transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
           <AppHeader pathname={pathname} onOpenMobileNav={() => setMobileOpen(true)} />
           <motion.main
@@ -100,7 +124,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {children}
           </motion.main>
-        </div>
+        </motion.div>
       </div>
     </SessionTermProvider>
   );

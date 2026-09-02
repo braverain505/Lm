@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -43,18 +44,24 @@ export function Dropdown({ trigger, children, align = "end", className, contentC
       >
         {trigger}
       </button>
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border border-border/60 bg-card p-1.5 shadow-pop animate-scale-in",
-            align === "end" ? "right-0" : "left-0",
-            contentClassName,
-          )}
-        >
-          {typeof children === "function" ? children(() => setOpen(false)) : children}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="menu"
+            className={cn(
+              "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border border-border/60 bg-card p-1.5 shadow-pop",
+              align === "end" ? "right-0" : "left-0",
+              contentClassName,
+            )}
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {typeof children === "function" ? children(() => setOpen(false)) : children}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -69,7 +76,7 @@ export function MenuItem({ className, icon, variant = "default", children, ...pr
     <button
       role="menuitem"
       className={cn(
-        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors",
+        "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all duration-150 hover:translate-x-[2px] active:scale-[0.98]",
         variant === "danger"
           ? "text-destructive hover:bg-destructive/8"
           : "text-foreground hover:bg-accent",

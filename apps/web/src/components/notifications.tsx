@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { Bell, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -33,14 +34,23 @@ export function Notifications() {
     <Dropdown
       contentClassName="w-80"
       trigger={
-        <span className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground">
+        <motion.span
+          className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
           <Bell className="h-4 w-4" />
           {count > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white">
+            <motion.span
+              className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-white"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 15 }}
+            >
               {count > 99 ? "99+" : count}
-            </span>
+            </motion.span>
           )}
-        </span>
+        </motion.span>
       }
     >
       {(close) => (
@@ -53,28 +63,39 @@ export function Notifications() {
             {isLoading ? (
               <p className="px-3 py-6 text-center text-[12px] text-muted-foreground/50">Loading…</p>
             ) : items.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
+              <motion.div
+                className="flex flex-col items-center gap-2 px-3 py-8 text-center"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+              >
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 </div>
                 <p className="text-[12px] font-medium text-foreground/70">All caught up</p>
                 <p className="text-[11px] text-muted-foreground/40">Recent actions will appear here.</p>
-              </div>
+              </motion.div>
             ) : (
-              items.map((a) => (
-                <Link
+              items.map((a, index) => (
+                <motion.div
                   key={a.id}
-                  href={a.href ?? "/dashboard"}
-                  onClick={close}
-                  className="flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-colors hover:bg-muted/30"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.15, delay: index * 0.03 }}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
-                    <p className="truncate text-[11px] text-muted-foreground/40">
-                      {a.actor_name} · {relative(a.created_at)}
-                    </p>
-                  </div>
-                </Link>
+                  <Link
+                    href={a.href ?? "/dashboard"}
+                    onClick={close}
+                    className="flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-all duration-150 hover:bg-muted/30 hover:translate-x-1"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
+                      <p className="truncate text-[11px] text-muted-foreground/40">
+                        {a.actor_name} · {relative(a.created_at)}
+                      </p>
+                    </div>
+                  </Link>
+                </motion.div>
               ))
             )}
           </div>

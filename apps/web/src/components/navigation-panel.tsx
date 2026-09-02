@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@schoolos/shared";
+import { motion } from "framer-motion";
 import { LogOut, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -48,34 +49,48 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
   if (!open) return null;
 
   return (
-    <aside className="flex h-full w-[260px] flex-col border-r border-panel-border bg-panel animate-slide-in-right">
-      {/* Brand + school */}
-      <div className="flex h-[52px] shrink-0 items-center gap-2.5 border-b border-panel-border px-4">
-        <Link href="/dashboard" className="flex items-center gap-2.5" onClick={onNavigate}>
-          <span className="text-[14px] font-bold tracking-tight text-panel-foreground">Lumo</span>
+    <aside className="flex h-full w-[260px] flex-col border-r border-panel-border bg-panel shadow-panel">
+      {/* Premium Brand Header */}
+      <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-panel-border px-5">
+        <Link href="/dashboard" className="flex items-center gap-3" onClick={onNavigate}>
+          <span className="text-[15px] font-bold tracking-tight text-panel-foreground">Lumo</span>
         </Link>
       </div>
 
-      {/* School context */}
+      {/* Premium School Context */}
       {activeSchool && (
-        <div className="shrink-0 border-b border-panel-border px-4 py-2.5">
-          <p className="truncate text-[12px] font-medium text-panel-foreground/80">{activeSchool.school_name}</p>
-          <p className="mt-0.5 flex items-center gap-1.5 text-[10.5px] text-panel-muted">
-            <span className="inline-block h-1 w-1 rounded-full bg-success" />
-            {session ? session.name : "No session"}
-            {term ? ` · ${term.name}` : ""}
+        <motion.div
+          className="shrink-0 border-b border-panel-border px-5 py-3.5"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, delay: 0.08, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          <p className="truncate text-[13px] font-semibold text-panel-foreground">{activeSchool.school_name}</p>
+          <p className="mt-1 flex items-center gap-2 text-[11px] text-panel-muted">
+            <motion.span
+              className="inline-block h-1.5 w-1.5 rounded-full bg-success"
+              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="font-medium">{session ? session.name : "No session"}</span>
+            {term && <span className="text-panel-muted/70">· {term.name}</span>}
           </p>
-        </div>
+        </motion.div>
       )}
 
-      {/* Nav sections */}
-      <nav className="scrollbar-thin flex-1 space-y-4 overflow-y-auto px-3 py-3">
-        {sections.map((section) => (
-          <div key={section.label}>
-            <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-panel-muted/50">
+      {/* Premium Nav Sections - Sophisticated Typography */}
+      <nav className="scrollbar-thin flex-1 space-y-6 overflow-y-auto px-4 py-5">
+        {sections.map((section, sectionIndex) => (
+          <motion.div
+            key={section.label}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: 0.08 + sectionIndex * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <p className="mb-2 px-3 text-[10.5px] font-semibold uppercase tracking-wider text-panel-muted/60">
               {section.label}
             </p>
-            <div className="space-y-px">
+            <div className="space-y-0.5">
               {section.items.map(({ href, label, icon: Icon }) => {
                 const active = isActive(href);
                 return (
@@ -85,36 +100,40 @@ export function NavigationPanel({ open, onNavigate }: NavigationPanelProps) {
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium transition-colors duration-100",
+                      "group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200",
                       active
-                        ? "bg-panel-active-bg/10 text-panel-active-bg"
-                        : "text-panel-foreground/60 hover:bg-panel-hover hover:text-panel-foreground",
+                        ? "bg-panel-active-bg text-panel-active-fg shadow-sm"
+                        : "text-panel-foreground/70 hover:bg-panel-hover hover:text-panel-foreground hover:translate-x-1",
                     )}
                   >
-                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-panel-active-bg" : "text-panel-muted/50 group-hover:text-panel-foreground/70")} />
+                    <Icon className={cn("h-[18px] w-[18px] shrink-0 transition-all duration-200", active ? "text-panel-active-fg" : "text-panel-muted/60 group-hover:text-panel-foreground/80")} />
                     <span className="truncate">{label}</span>
                   </Link>
                 );
               })}
             </div>
-          </div>
+          </motion.div>
         ))}
       </nav>
 
-      {/* Bottom: user profile */}
-      <div className="shrink-0 border-t border-panel-border p-3">
+      {/* Premium User Profile Section */}
+      <div className="shrink-0 border-t border-panel-border p-4">
         <Dropdown
           trigger={
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-panel-hover">
-              <Avatar name={user?.full_name} initials={initials} className="h-7 w-7 text-[10px]" />
+            <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all duration-200 hover:bg-panel-hover">
+              <Avatar
+                name={user?.full_name}
+                initials={initials}
+                className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-[11px] font-medium text-white ring-2 ring-panel-border"
+              />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium text-panel-foreground">{user?.full_name}</p>
-                <p className="truncate text-[10.5px] text-panel-muted capitalize">{activeSchool?.role?.name ?? "Member"}</p>
+                <p className="truncate text-[13px] font-semibold text-panel-foreground">{user?.full_name}</p>
+                <p className="truncate text-[11px] text-panel-muted capitalize">{activeSchool?.role?.name ?? "Member"}</p>
               </div>
-              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-panel-muted/40" />
+              <ChevronRight className="h-4 w-4 shrink-0 text-panel-muted/50 transition-transform group-hover:translate-x-0.5" />
             </button>
           }
-          contentClassName="w-56"
+          contentClassName="w-64"
         >
           {(close) => (
             <div>

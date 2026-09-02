@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion } from "framer-motion";
 
 import {
   ActivityPanel,
@@ -19,6 +20,8 @@ import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 import { useDashboardSummary } from "@/hooks/use-api";
 
+const ease = [0.25, 0.46, 0.45, 0.94] as const;
+
 function Greeting() {
   const { user } = useAuth();
   const { term } = useSessionTerm();
@@ -30,17 +33,21 @@ function Greeting() {
     month: "long",
   });
   return (
-    <div>
-      <h2 className="text-[22px] font-bold tracking-tight text-foreground">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease }}
+    >
+      <h2 className="text-[26px] font-bold tracking-tight text-foreground">
         {part}, {user?.full_name?.split(" ")[0] ?? "there"}.
       </h2>
-      <p className="mt-1 text-[14px] text-muted-foreground">
+      <p className="mt-1.5 text-[14px] text-muted-foreground/70">
         Here&apos;s what&apos;s happening today — {today}
       </p>
       {term && (
-        <p className="mt-1 text-[13px] font-medium text-muted-foreground/70">{term.name}</p>
+        <p className="mt-1 text-[13px] font-medium text-muted-foreground/50">{term.name}</p>
       )}
-    </div>
+    </motion.div>
   );
 }
 
