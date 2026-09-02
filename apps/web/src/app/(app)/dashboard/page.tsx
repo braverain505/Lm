@@ -11,6 +11,7 @@ const ease = [0.25, 0.46, 0.45, 0.94] as const;
 export default function DashboardPage() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
+  const perms = activeSchool?.permissions ?? [];
 
   // Teachers and homeroom teachers get the teacher-specific dashboard
   if (role === "teacher" || role === "homeroom_teacher") {
