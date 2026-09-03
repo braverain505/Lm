@@ -175,6 +175,17 @@ export function useSaImpersonate() {
   });
 }
 
+export function useSaDeleteSchool() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (schoolId: string) => api.superAdminDeleteSchool(schoolId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["sa", "schools"] });
+      void queryClient.invalidateQueries({ queryKey: ["sa", "overview"] });
+    },
+  });
+}
+
 export function useImpersonateEnter() {
   const { refreshMe } = useAuth();
   return useMutation({

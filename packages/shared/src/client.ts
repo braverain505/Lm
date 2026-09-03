@@ -526,6 +526,10 @@ export async function superAdminImpersonate(schoolId: string): Promise<{ token: 
   return request(`/superadmin/schools/${schoolId}/impersonate`, { method: "POST", body: JSON.stringify({}) });
 }
 
+export async function superAdminDeleteSchool(schoolId: string): Promise<{ id: string; name: string; deleted: boolean }> {
+  return request(`/superadmin/schools/${schoolId}`, { method: "DELETE" });
+}
+
 export async function impersonateEnter(token: string): Promise<{ token: string; user_id: string; full_name: string; email: string; school_id: string; school_name: string }> {
   return request("/auth/impersonate/enter", { method: "POST", body: JSON.stringify({ token }) });
 }
@@ -1590,6 +1594,7 @@ export const api = {
   superAdminUpdateSubscription,
   superAdminResetAdmin,
   superAdminImpersonate,
+  superAdminDeleteSchool,
   impersonateEnter,
   impersonateExit,
   superAdminIssues,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, UserX } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, Trash2, UserX } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,6 +21,7 @@ import {
 import { useSetSchoolAi, useSetSchoolSuspended } from "@/hooks/use-api";
 import {
   useImpersonateEnter,
+  useSaDeleteSchool,
   useSaResetAdmin,
   useSaSchool,
   useSaUpdateSubscription,
@@ -42,12 +43,14 @@ export default function SchoolDetailPage() {
   const resetAdmin = useSaResetAdmin();
   const impersonateStart = useImpersonateEnter();
   const updateSub = useSaUpdateSubscription(schoolId);
+  const deleteSchool = useSaDeleteSchool();
 
   const [plan, setPlan] = useState<string>("");
   const [status, setStatus] = useState<string>("");
   const [aiCredits, setAiCredits] = useState<string>("");
   const [resetResult, setResetResult] = useState<{ email: string; temp_password: string } | null>(null);
   const [impersonating, setImpersonating] = useState(false);
+  const [confirmText, setConfirmText] = useState<string>("");
 
   if (isLoading || !data) {
     return (
@@ -86,6 +89,15 @@ export default function SchoolDetailPage() {
     } finally {
       setImpersonating(false);
     }
+  }
+
+  function handleDelete() {
+    deleteSchool.mutate(schoolId, {
+      onSuccess: () => {
+        queryClient.removeQueries({ queryKey: ["sa", "school", schoolId] });
+        router.push("/super-admin/schools");
+      },
+    });
   }
 
   return (
@@ -369,6 +381,53 @@ export default function SchoolDetailPage() {
           </Panel>
         </div>
       </div>
+
+      {/* Danger zone — irreversible full tenant deletion */}
+      <Panel
+        title="Danger zone"
+        subtitle="Permanently delete this school and all of its data"
+        className="border-destructive/30"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">This cannot be undone.</p>
+              <p className="text-muted-foreground">
+                Deleting <span className="font-medium text-foreground">{p.name}</span> permanently removes every
+                student, teacher, result, invoice and setting for this school. Support tickets and the audit log
+                are kept for record-keeping, and admin user accounts are preserved.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">
+              Type <span className="font-mono font-semibold">{p.name}</span> to confirm
+            </Label>
+            <Input
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={p.name}
+              autoComplete="off"
+            />
+          </div>
+
+          <Button
+            variant="destructive"
+            disabled={confirmText !== p.name || deleteSchool.isPending}
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+            {deleteSchool.isPending ? "Deleting…" : "Delete school permanently"}
+          </Button>
+          {deleteSchool.isError && (
+            <p className="text-xs text-destructive">
+              Failed to delete the school. {String((deleteSchool.error as Error)?.message ?? "")}
+            </p>
+          )}
+        </div>
+      </Panel>
     </div>
   );
 }

@@ -222,6 +222,22 @@ def impersonate(
     return result
 
 
+@router.delete("/schools/{school_id}")
+def delete_school(
+    school_id: uuid.UUID,
+    request: Request,
+    db: DbSession,
+    _admin: User = PlatformAdmin,
+):
+    """Permanently delete a school and all of its tenant data. Irreversible."""
+    _, ip = _client_info(request)
+    result = super_admin_service.delete_school(
+        db, school_id, actor_id=_admin.id, ip=ip
+    )
+    db.commit()
+    return result
+
+
 # --- Support ----------------------------------------------------------------
 
 @router.get("/issues")

@@ -12,7 +12,7 @@ import uuid
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import case, distinct, func, or_, select
+from sqlalchemy import case, delete, distinct, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..core.errors import NotFoundError, ValidationError
@@ -1941,6 +1941,66 @@ def add_school(
     )
     db.flush()
     return {"id": str(school.id), "name": school.name, "admin_email": email, "temp_password": password}
+
+
+def delete_school(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    actor_id: uuid.UUID | None,
+    ip: str | None,
+) -> dict:
+    """Permanently delete a school and ALL of its tenant data.
+
+    Every tenant-scoped table declares ``ForeignKey("schools.id",
+    ondelete="CASCADE")``, so deleting the school row drops students, staff,
+    results, invoices, sessions, roles, etc. at the database level. The only
+    non-cascade references (AuditLog.school_id, Ticket.school_id) are
+    ``SET NULL`` and survive as historical records. Membership rows are removed
+    explicitly first because SchoolMembership.role_id is RESTRICT and its roles
+    cascade from the same school. User accounts are global identities and are
+    intentionally left intact.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+    name = school.name
+
+    member_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(SchoolMembership)
+            .where(SchoolMembership.school_id == school_id)
+        )
+        or 0
+    )
+    student_count = (
+        db.scalar(
+            select(func.count())
+            .select_from(Student)
+            .where(Student.school_id == school_id)
+        )
+        or 0
+    )
+
+    db.execute(delete(SchoolMembership).where(SchoolMembership.school_id == school_id))
+    db.execute(delete(School).where(School.id == school_id))
+
+    _audit(
+        db,
+        action="delete",
+        entity_type="school",
+        entity_id=str(school_id),
+        user_id=actor_id,
+        school_id=None,
+        ip=ip,
+        details=(
+            f"Permanently deleted school '{name}' "
+            f"({student_count} students, {member_count} members and all related data)"
+        ),
+    )
+    db.flush()
+    return {"id": str(school_id), "name": name, "deleted": True}
 
 
 def reset_admin(db: Session, school_id: uuid.UUID, actor_id: uuid.UUID | None, ip: str | None) -> dict:
