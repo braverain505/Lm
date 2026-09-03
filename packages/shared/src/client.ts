@@ -223,7 +223,7 @@ export type {
 
 const BASE = (
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://schoolos-api-5066.onrender.com/api"
+  "/api/proxy"
 ).replace(/\/$/, "");
 
 export class ApiClientError extends Error {
