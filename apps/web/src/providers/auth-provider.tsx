@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (prev && me.memberships.some((m) => m.school_id === prev.school_id)) return prev;
         return me.memberships[0] ?? null;
       });
-    } catch {
+    } catch (error) {
+      // 401/404 when unauthenticated is expected — user not logged in
       setUser(null);
       setMemberships([]);
       setActiveSchool(null);
