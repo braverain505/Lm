@@ -22,7 +22,13 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 def _storage_root() -> Path:
     root = Path(settings.storage_base_dir)
-    root.mkdir(parents=True, exist_ok=True)
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        # If we can't create the directory, log it but continue
+        # This allows the app to start even if storage is misconfigured
+        import sys
+        print(f"WARNING: Could not create storage directory {root}: {e}", file=sys.stderr)
     return root
 
 
