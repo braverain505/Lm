@@ -1,12 +1,11 @@
 "use client";
 
-import { ArrowRight, Banknote, CheckCircle2, FileText, TrendingUp, Wallet } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { ActivityPanel } from "@/components/dashboard/widgets";
-import { WidgetCard, relativeTime } from "@/components/dashboard/shared";
+
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/providers/auth-provider";
@@ -19,7 +18,7 @@ const ease = [0.25, 0.46, 0.45, 0.94] as const;
 export function AccountantDashboard() {
   const { user } = useAuth();
   const { term } = useSessionTerm();
-  const { data, isLoading, isError, refetch } = useDashboardSummary(term?.id ?? undefined);
+  const { data, isLoading } = useDashboardSummary(term?.id ?? undefined);
   const { data: invoices = [], isLoading: invoicesLoading } = useInvoices(null);
 
   const { todayCount, todayAmount, recent } = useMemo(() => {
@@ -90,41 +89,6 @@ export function AccountantDashboard() {
             <Badge variant="success">{todayCount} payment{todayCount === 1 ? "" : "s"}</Badge>
           </div>
         </motion.div>
-      </div>
-
-      {/* Recent payments + activity */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
-        <WidgetCard
-          title="Recent payments"
-          icon={<Wallet className="h-4 w-4 text-muted-foreground/40" />}
-          subtitle="Latest recorded collections"
-          loading={invoicesLoading}
-          error={isError}
-          onRetry={refetch}
-          empty={!invoicesLoading && recent.length === 0}
-          emptyHint="Recorded payments will appear here."
-          className="xl:col-span-1"
-          bodyClassName="pt-2"
-        >
-          <div className="divide-y divide-border/20">
-            {recent.map((i) => (
-              <div key={i.id} className="flex items-center gap-3 px-1 py-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
-                  <Banknote className="h-3.5 w-3.5" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium text-foreground">{i.payment_method ?? "Payment"}</p>
-                  <p className="truncate text-[11px] text-muted-foreground/45">{i.paid_date ? relativeTime(i.paid_date) : ""}</p>
-                </div>
-                <span className="shrink-0 text-[12px] font-semibold text-success">
-                  {currency} {ngn.format(i.total_amount)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </WidgetCard>
-
-        <ActivityPanel items={data?.activity} loading={isLoading} error={isError} onRetry={refetch} className="xl:col-span-2" />
       </div>
 
       {/* Quick reports */}

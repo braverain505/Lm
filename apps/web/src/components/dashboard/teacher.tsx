@@ -7,7 +7,6 @@ import {
   FileText,
   GraduationCap,
   LayoutGrid,
-  ListChecks,
   NotebookPen,
   Sparkles,
 } from "lucide-react";
@@ -15,7 +14,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { ActivityPanel } from "@/components/dashboard/widgets";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +33,7 @@ export function TeacherDashboard() {
   const { user, activeSchool } = useAuth();
   const { term } = useSessionTerm();
   const { data: assignments = [], isLoading: assignmentsLoading } = useMyAssignments();
-  const { data: summary, isLoading: summaryLoading, isError, refetch } = useDashboardSummary(term?.id ?? undefined);
+  useDashboardSummary(term?.id ?? undefined);
   const { data: readiness = [], isLoading: readinessLoading } = useReadiness(term?.id ?? null);
 
   const role = activeSchool?.role?.code ?? "";
@@ -69,7 +67,7 @@ export function TeacherDashboard() {
     return [...map.values()];
   }, [assignments]);
 
-  const busy = summaryLoading || assignmentsLoading || readinessLoading;
+  const busy = assignmentsLoading || readinessLoading;
 
   const toolShortcuts = [
     { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, always: true, bgColor: "bg-blue-50", iconColor: "text-blue-600", hoverBg: "hover:bg-blue-100" },
@@ -264,10 +262,7 @@ export function TeacherDashboard() {
         </div>
       </div>
 
-      {/* Bottom — Activity */}
-      <div>
-        <ActivityPanel items={summary?.activity} loading={summaryLoading} error={isError} onRetry={refetch} />
-      </div>
+
     </div>
   );
 }

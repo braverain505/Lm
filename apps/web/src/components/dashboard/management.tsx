@@ -1,23 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import { motion } from "framer-motion";
 
-import {
-  ActivityPanel,
-  ApprovalQueuePanel,
-  AttendancePanel,
-  ClassPerformancePanel,
-  CompilePanel,
-  EnrollmentPanel,
-  InsightsPanel,
-  PerformancePanel,
-  ReadinessPanel,
-  TasksPanel,
-} from "@/components/dashboard/widgets";
 import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
-import { useDashboardSummary } from "@/hooks/use-api";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -51,66 +37,9 @@ function Greeting() {
 }
 
 export function ManagementDashboard({ variant }: { variant: "admin" | "academic" }) {
-  const { term } = useSessionTerm();
-  const { data, isLoading, isError, refetch } = useDashboardSummary(term?.id ?? undefined);
-
-  const common = {
-    data,
-    loading: isLoading,
-    error: isError,
-    onRetry: refetch,
-  };
-
-  const summary = useMemo(() => data, [data]);
-
-  if (variant === "academic") {
-    return (
-      <div className="space-y-8">
-        <Greeting />
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <ReadinessPanel termId={term?.id} {...common} />
-          <ApprovalQueuePanel termId={term?.id} {...common} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <CompilePanel termId={term?.id} {...common} />
-          <PerformancePanel {...common} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <ClassPerformancePanel {...common} />
-          <InsightsPanel items={summary?.insights?.insights} {...common} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-          <AttendancePanel {...common} />
-          <ActivityPanel items={summary?.activity} {...common} />
-        </div>
-
-        <TasksPanel tasks={summary?.tasks} {...common} />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <Greeting />
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <PerformancePanel {...common} />
-        <ReadinessPanel termId={term?.id} {...common} />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <AttendancePanel {...common} />
-        <EnrollmentPanel {...common} />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        <ClassPerformancePanel {...common} />
-        <ActivityPanel items={summary?.activity} {...common} />
-      </div>
-
-      <TasksPanel tasks={summary?.tasks} {...common} />
     </div>
   );
 }
