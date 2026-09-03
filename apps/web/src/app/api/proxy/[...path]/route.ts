@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api';
+const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com').replace(/\/$/, '');
 
 /**
  * Forward request to backend API
