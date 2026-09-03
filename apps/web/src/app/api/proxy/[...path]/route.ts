@@ -12,6 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 // Read and clean the API_URL environment variable
 const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api')
@@ -50,6 +51,11 @@ async function forwardRequest(
 
   console.log(`[API Proxy] ${method} ${pathname} → ${url.toString()}`);
 
+  // Get cookies from Next.js cookies store
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  const cookieHeader = allCookies.map(c => `${c.name}=${c.value}`).join('; ');
+
   // Build request options
   const fetchOptions: RequestInit = {
     method,
@@ -59,8 +65,9 @@ async function forwardRequest(
       ...(requestHeaders?.get('authorization') && {
         'Authorization': requestHeaders.get('authorization') || '',
       }),
-      ...(requestHeaders?.get('cookie') && {
-        'Cookie': requestHeaders.get('cookie') || '',
+      // Forward cookies to backend
+      ...(cookieHeader && {
+        'Cookie': cookieHeader,
       }),
     },
   };
