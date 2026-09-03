@@ -20,6 +20,11 @@ import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { cn } from "@/lib/utils";
+import {
+  PerformanceTrendChart,
+  AttendanceOverviewChart,
+  EnrollmentDonut,
+} from "@/components/dashboard/premium-charts";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -203,6 +208,112 @@ export function AdminDashboard() {
           })}
         </div>
       </motion.div>
+
+      {/* ── Charts Row ────────────────────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Performance Trend */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Performance Trend</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Average score & pass rate</p>
+          </div>
+          <div className="mb-3 flex items-center gap-4 text-[10px]">
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" /> Average
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Pass rate
+            </span>
+          </div>
+          <PerformanceTrendChart
+            data={[
+              { month: "Sep", avg: 68, pass: 72 },
+              { month: "Oct", avg: 71, pass: 75 },
+              { month: "Nov", avg: 74, pass: 78 },
+              { month: "Dec", avg: 72, pass: 76 },
+              { month: "Jan", avg: 76, pass: 80 },
+              { month: "Feb", avg: 78, pass: 82 },
+            ]}
+            height={180}
+          />
+        </motion.div>
+
+        {/* Attendance Overview */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.24, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Attendance Overview</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">This week&apos;s breakdown</p>
+          </div>
+          <div className="mb-3 flex items-center gap-4 text-[10px]">
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Present
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> Late
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" /> Absent
+            </span>
+          </div>
+          <AttendanceOverviewChart
+            data={[
+              { name: "Mon", present: 245, absent: 18, late: 12 },
+              { name: "Tue", present: 252, absent: 14, late: 9 },
+              { name: "Wed", present: 248, absent: 20, late: 11 },
+              { name: "Thu", present: 255, absent: 12, late: 8 },
+              { name: "Fri", present: 240, absent: 22, late: 15 },
+            ]}
+            height={180}
+          />
+        </motion.div>
+
+        {/* Enrollment Distribution */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.28, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Enrollment</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Students by level</p>
+          </div>
+          <EnrollmentDonut
+            data={[
+              { name: "Primary", value: 820, color: "#6366f1" },
+              { name: "JSS", value: 945, color: "#10b981" },
+              { name: "SSS", value: 680, color: "#f59e0b" },
+              { name: "Other", value: 402, color: "#f43f5e" },
+            ]}
+            total={2847}
+            height={170}
+          />
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {[
+              { label: "Primary", value: 820, color: "#6366f1" },
+              { label: "JSS", value: 945, color: "#10b981" },
+              { label: "SSS", value: 680, color: "#f59e0b" },
+              { label: "Other", value: 402, color: "#f43f5e" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-[10px] text-muted-foreground/50">{item.label}</span>
+                <span className="text-[10px] font-semibold text-foreground/60 ml-auto">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
 
       {/* ── Bottom Grid: Activity + Upcoming ─────────────────────── */}
       <div className="grid gap-5 lg:grid-cols-5">

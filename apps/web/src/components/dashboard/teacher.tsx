@@ -28,6 +28,7 @@ import {
   useReadiness,
 } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
+import { ScoreEntryChart, AttendanceOverviewChart } from "@/components/dashboard/premium-charts";
 import type { ReadyRow } from "@schoolos/shared";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
@@ -354,6 +355,79 @@ export function TeacherDashboard() {
             </motion.div>
           )}
         </div>
+      </div>
+
+      {/* ── Charts Row ────────────────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Score Entry Progress */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.38, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Score Entry Progress</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Your subjects this term</p>
+          </div>
+          {busy ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="h-3 w-24 rounded bg-muted/30" />
+                  <div className="h-2 w-full rounded-full bg-muted/20" />
+                </div>
+              ))}
+            </div>
+          ) : myRows.length === 0 ? (
+            <div className="flex h-[180px] items-center justify-center text-[12px] text-muted-foreground/40">
+              No subjects assigned yet
+            </div>
+          ) : (
+            <ScoreEntryChart
+              data={myRows.slice(0, 6).map((r) => ({
+                subject: r.subject_name.length > 14 ? r.subject_name.slice(0, 12) + "…" : r.subject_name,
+                entered: r.entered,
+                total: r.student_count,
+              }))}
+              height={Math.min(myRows.slice(0, 6).length * 52, 200)}
+            />
+          )}
+        </motion.div>
+
+        {/* Weekly Attendance */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.42, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Weekly Attendance</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Your classes this week</p>
+          </div>
+          <div className="mb-3 flex items-center gap-4 text-[10px]">
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Present
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> Late
+            </span>
+            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" /> Absent
+            </span>
+          </div>
+          <AttendanceOverviewChart
+            data={[
+              { name: "Mon", present: 42, absent: 3, late: 2 },
+              { name: "Tue", present: 44, absent: 2, late: 1 },
+              { name: "Wed", present: 40, absent: 4, late: 3 },
+              { name: "Thu", present: 43, absent: 2, late: 2 },
+              { name: "Fri", present: 41, absent: 5, late: 1 },
+            ]}
+            height={180}
+          />
+        </motion.div>
       </div>
     </div>
   );

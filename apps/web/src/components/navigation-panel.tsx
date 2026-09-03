@@ -3,6 +3,7 @@
 import { api } from "@schoolos/shared";
 import { motion } from "framer-motion";
 import { LogOut, ChevronRight } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -56,11 +57,21 @@ export function NavigationPanel({ open, onNavigate, isTablet = false }: Navigati
       isTablet ? "w-[240px]" : "w-[260px]"
     )}>
       {/* Premium Brand Header */}
-      <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-panel-border px-5">
+      <div className="flex h-[56px] shrink-0 items-center gap-3 border-b border-panel-border px-5">
         <Link href="/dashboard" className="flex items-center gap-3" onClick={onNavigate}>
-          <span className="font-bold tracking-tight text-panel-foreground text-[14px] md:text-[15px]">
-            {activeSchool?.school_name || "Clearis"}
-          </span>
+          {schoolProfile?.logo_url ? (
+            <img src={schoolProfile.logo_url} alt="Logo" className="h-8 w-8 rounded-lg object-contain" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-hover">
+              <Image src="/clearisbg.png" alt="Clearis" width={32} height={32} className="h-5 w-5 object-contain" priority />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="truncate font-bold tracking-tight text-panel-foreground text-[13px] md:text-[14px]">
+              {activeSchool?.school_name || "Clearis"}
+            </p>
+            <p className="text-[9px] font-medium uppercase tracking-wider text-panel-muted/50">School Management</p>
+          </div>
         </Link>
       </div>
 
