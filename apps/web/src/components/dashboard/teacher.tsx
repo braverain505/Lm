@@ -94,16 +94,6 @@ export function TeacherDashboard() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  // Quick actions matching design template colors
-  const quickActions = [
-    { label: "Add Student", icon: UserPlus, href: "/students", color: "bg-[#0066FF]" },
-    { label: "Create Report", icon: FileText, href: "/reports", color: "bg-[#7C3AED]" },
-    { label: "Schedule Event", icon: Calendar, href: "/schedule", color: "bg-[#EC4899]" },
-    { label: "Send Notice", icon: Bell, href: "/notices", color: "bg-[#10B981]" },
-    { label: "Email Parents", icon: Mail, href: "/communications", color: "bg-[#F97316]" },
-    { label: "Export Data", icon: Download, href: "/exports", color: "bg-[#06B6D4]" },
-  ];
-
   return (
     <div className="space-y-8">
       {/* Greeting */}
@@ -126,73 +116,93 @@ export function TeacherDashboard() {
       {/* Quick actions */}
       {toolShortcuts.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.06, ease }}
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
         >
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Quick actions</p>
-          <div className="flex flex-wrap gap-2">
-            {toolShortcuts.map((shortcut) => (
+          <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick actions</h3>
+          <p className="mt-1 text-[12px] text-muted-foreground/60">Frequently used tools</p>
+
+          <div className="mt-6 grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5">
+            {toolShortcuts.map((shortcut, idx) => (
               <Link
                 key={shortcut.label}
                 href={shortcut.href}
-                className="group inline-flex items-center gap-2 rounded-lg border border-border/40 bg-card px-3.5 py-2 text-[12px] font-medium text-foreground/80 shadow-xs transition-all duration-200 hover:border-border/60 hover:shadow-card hover:text-foreground hover:-translate-y-[1px]"
+                className="group flex flex-col items-center gap-3 transition-all duration-200"
               >
-                <shortcut.icon className="h-3.5 w-3.5 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/60" />
-                {shortcut.label}
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40 group-hover:bg-muted/60 transition-colors duration-200">
+                  <shortcut.icon className="h-6 w-6 text-muted-foreground/50 group-hover:text-primary/60 transition-colors duration-200" strokeWidth={1.5} />
+                </div>
+                <p className="text-[12px] font-medium text-foreground text-center">{shortcut.label}</p>
               </Link>
             ))}
           </div>
         </motion.div>
       )}
 
-      {/* Key metrics */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+      {/* KPI Cards - 3 columns */}
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
         <motion.div
-          className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.08, ease }}
         >
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">My subjects</p>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-[24px] font-bold tracking-tight">{busy ? <Skeleton className="inline-block h-7 w-10 rounded-md" /> : assignments.length}</span>
-            <span className="text-[12px] text-muted-foreground/50">{byArm.length} class{byArm.length === 1 ? "" : "es"}</span>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">My subjects</p>
+              <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : assignments.length}</p>
+              <p className="mt-2 text-[12px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
+            </div>
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
+              <GraduationCap className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            </div>
           </div>
         </motion.div>
+
         <motion.div
-          className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.12, ease }}
         >
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">Scores entered</p>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className={cn("text-[24px] font-bold tracking-tight", totals.entered > 0 ? "text-success" : "text-muted-foreground")}>
-              {busy ? <Skeleton className="inline-block h-7 w-10 rounded-md" /> : `${totals.entered}/${totals.students}`}
-            </span>
-          </div>
-          {totals.students > 0 && !busy && (
-            <div className="mt-2.5">
-              <Progress value={(totals.entered / totals.students) * 100} size="sm" className="h-1" indicatorClassName={totals.entered >= totals.students ? "bg-primary" : "bg-primary"} />
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Scores entered</p>
+              <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.entered > 0 ? "text-foreground" : "text-muted-foreground")}>
+                {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : `${totals.entered}/${totals.students}`}
+              </p>
+              <p className="mt-2 text-[12px] text-semantic-success font-medium">
+                <span className="text-muted-foreground/50">{Math.round((totals.entered / Math.max(totals.students, 1)) * 100)}% complete</span>
+              </p>
             </div>
-          )}
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
+              <ClipboardCheck className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            </div>
+          </div>
         </motion.div>
+
         <motion.div
-          className="rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card"
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.16, ease }}
         >
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">Pending submissions</p>
-          <div className="mt-1.5 flex items-baseline gap-2">
-            <span className={cn("text-[24px] font-bold tracking-tight", totals.pending > 0 ? "text-warning" : "text-success")}>
-              {busy ? <Skeleton className="inline-block h-7 w-10 rounded-md" /> : totals.pending}
-            </span>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Pending submissions</p>
+              <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.pending > 0 ? "text-foreground" : "text-success")}>
+                {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : totals.pending}
+              </p>
+              <p className="mt-2 text-[12px] text-muted-foreground/60">
+                {totals.submitted > 0 ? `${totals.submitted} submitted` : "Ready to enter"}
+              </p>
+            </div>
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
+              <ListChecks className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            </div>
           </div>
-          <p className="mt-2.5 text-[11px] text-muted-foreground/45">
-            {totals.submitted > 0 ? `${totals.submitted} already submitted` : "Nothing submitted yet"}
-          </p>
         </motion.div>
       </div>
 
@@ -200,10 +210,15 @@ export function TeacherDashboard() {
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">
         {/* Left — Responsibilities */}
         <div className="xl:col-span-2">
-          <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">Your responsibilities</h3>
-          <div className="rounded-xl border border-border/40 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card overflow-hidden">
+          <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground">Your responsibilities</h3>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.24, ease }}
+            className="rounded-2xl border border-border/60 bg-card shadow-xs hover:shadow-card transition-all duration-200 overflow-hidden"
+          >
             {busy ? (
-              <div className="p-5 space-y-3">
+              <div className="p-6 space-y-3">
                 <Skeleton className="h-16 w-full rounded-lg" />
                 <Skeleton className="h-16 w-full rounded-lg" />
                 <Skeleton className="h-16 w-full rounded-lg" />
@@ -217,7 +232,7 @@ export function TeacherDashboard() {
                 <p className="mt-1.5 text-[12px] text-muted-foreground/50">Your assigned classes and subjects will appear here.</p>
               </div>
             ) : (
-              <div className="space-y-2 p-3">
+              <div className="space-y-2 p-6">
                 {myRows.map((r) => {
                   const pct = r.student_count ? Math.round((r.entered / r.student_count) * 100) : 0;
                   const done = r.pending === 0 && r.student_count > 0;
@@ -253,20 +268,25 @@ export function TeacherDashboard() {
                 })}
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
 
         {/* Right — My classes + AI */}
         <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">My classes</h3>
-            <div className="rounded-xl border border-border/40 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card">
+            <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground">My classes</h3>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.28, ease }}
+              className="rounded-2xl border border-border/60 bg-card shadow-xs hover:shadow-card transition-all duration-200"
+            >
               {byArm.length === 0 ? (
-                <p className="px-5 py-5 text-[13px] text-muted-foreground/60">No classes assigned yet.</p>
+                <p className="px-6 py-6 text-[13px] text-muted-foreground/60">No classes assigned yet.</p>
               ) : (
                 <div className="divide-y divide-border/20">
                   {byArm.map((arm) => (
-                    <div key={arm.arm_name} className="flex items-center justify-between px-5 py-3.5">
+                    <div key={arm.arm_name} className="flex items-center justify-between px-6 py-3.5 hover:bg-muted/20 transition-colors duration-200">
                       <div className="min-w-0">
                         <p className="text-[13px] font-medium text-foreground">{arm.arm_name}</p>
                         <p className="truncate text-[11px] text-muted-foreground/45">{arm.subjects.join(" · ")}</p>
@@ -278,14 +298,19 @@ export function TeacherDashboard() {
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           </div>
 
           {hasPermission("ai.copilot") && (
             <div>
-              <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground/90">AI tools</h3>
-              <div className="rounded-xl border border-border/40 bg-card shadow-xs divide-y divide-border/20 transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card">
-                <Link href="/lesson-plans" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-200 hover:bg-muted/20">
+              <h3 className="mb-3 text-[14px] font-semibold tracking-tight text-foreground">AI tools</h3>
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.32, ease }}
+                className="rounded-2xl border border-border/60 bg-card shadow-xs hover:shadow-card divide-y divide-border/20 transition-all duration-200"
+              >
+                <Link href="/lesson-plans" className="group flex items-center gap-3 px-6 py-3.5 transition-colors duration-200 hover:bg-muted/20">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted/40 transition-colors duration-200 group-hover:bg-primary/10">
                     <NotebookPen className="h-4 w-4 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/70" />
                   </span>
@@ -295,7 +320,7 @@ export function TeacherDashboard() {
                   </div>
                   <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-colors duration-200 group-hover:text-primary/60" />
                 </Link>
-                <Link href="/question-banks" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-200 hover:bg-muted/20">
+                <Link href="/question-banks" className="group flex items-center gap-3 px-6 py-3.5 transition-colors duration-200 hover:bg-muted/20">
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted/40 transition-colors duration-200 group-hover:bg-primary/10">
                     <Sparkles className="h-4 w-4 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/70" />
                   </span>
@@ -305,7 +330,7 @@ export function TeacherDashboard() {
                   </div>
                   <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-colors duration-200 group-hover:text-primary/60" />
                 </Link>
-              </div>
+              </motion.div>
             </div>
           )}
         </div>

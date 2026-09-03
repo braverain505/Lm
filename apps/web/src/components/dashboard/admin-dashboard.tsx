@@ -86,7 +86,7 @@ export function AdminDashboard() {
       </motion.div>
 
       {/* KPI Cards - 4 columns */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
@@ -95,18 +95,18 @@ export function AdminDashboard() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.08 + idx * 0.04, ease }}
-              className="rounded-2xl border border-border/40 bg-white p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
+              className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-[13px] font-medium text-muted-foreground/70">{kpi.label}</p>
-                  <p className="mt-2 text-[28px] font-bold text-foreground">{kpi.value}</p>
-                  <p className="mt-2 text-[12px] text-green-600 font-medium">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{kpi.label}</p>
+                  <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{kpi.value}</p>
+                  <p className="mt-2 text-[12px] text-semantic-success font-medium">
                     {kpi.change} <span className="text-muted-foreground/50">{kpi.changeLabel}</span>
                   </p>
                 </div>
-                <div className={`${kpi.bgColor} rounded-2xl p-3 flex items-center justify-center`}>
-                  <Icon className={`h-6 w-6 ${kpi.color} text-white`} />
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
+                  <Icon className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
                 </div>
               </div>
             </motion.div>
@@ -119,22 +119,22 @@ export function AdminDashboard() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.12, ease }}
-        className="rounded-2xl border border-border/40 bg-white p-6 shadow-sm"
+        className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
       >
-        <h3 className="text-[15px] font-semibold text-foreground mb-1">Quick Actions</h3>
-        <p className="text-[13px] text-muted-foreground/60 mb-6">Frequently used tasks</p>
+        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Actions</h3>
+        <p className="mt-1 text-[12px] text-muted-foreground/60">Frequently used tasks</p>
 
-        <div className="grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
+        <div className="mt-6 grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
           {quickActions.map((action, idx) => {
             const Icon = action.icon;
             return (
               <Link
                 key={action.label}
                 href={action.href}
-                className="flex flex-col items-center gap-3"
+                className="group flex flex-col items-center gap-3 transition-all duration-200"
               >
-                <div className={`${action.color} rounded-2xl p-4 flex items-center justify-center shadow-sm hover:shadow-md transition-shadow duration-200`}>
-                  <Icon className="h-6 w-6 text-white" strokeWidth={2} />
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40 group-hover:bg-muted/60 transition-colors duration-200">
+                  <Icon className="h-6 w-6 text-muted-foreground/50 group-hover:text-primary/60 transition-colors duration-200" strokeWidth={1.5} />
                 </div>
                 <p className="text-[12px] font-medium text-foreground text-center">{action.label}</p>
               </Link>
@@ -150,12 +150,12 @@ export function AdminDashboard() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.16, ease }}
-          className="rounded-2xl border border-border/40 bg-white p-6 shadow-sm"
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
         >
-          <h3 className="text-[15px] font-semibold text-foreground mb-1">Weekly Attendance</h3>
-          <p className="text-[13px] text-muted-foreground/60 mb-6">Student and teacher attendance overview</p>
+          <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Weekly Attendance</h3>
+          <p className="mt-1 text-[12px] text-muted-foreground/60">Student and teacher attendance overview</p>
 
-          <div className="h-64 flex items-center justify-center bg-muted/30 rounded-lg">
+          <div className="mt-6 h-64 flex items-center justify-center bg-muted/30 rounded-lg">
             <p className="text-sm text-muted-foreground">Chart will render here</p>
           </div>
         </motion.div>
@@ -165,15 +165,15 @@ export function AdminDashboard() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.20, ease }}
-          className="rounded-2xl border border-border/40 bg-white p-6 shadow-sm"
+          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
         >
-          <h3 className="text-[15px] font-semibold text-foreground mb-1">Upcoming Events</h3>
-          <p className="text-[13px] text-muted-foreground/60 mb-6">School calendar</p>
+          <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Upcoming Events</h3>
+          <p className="mt-1 text-[12px] text-muted-foreground/60">School calendar</p>
 
-          <div className="space-y-4">
+          <div className="mt-6 space-y-4">
             <div className="flex items-start gap-4 pb-4 border-b border-border/40">
-              <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-blue-600" />
+              <div className="flex-shrink-0 w-10 h-10 bg-muted/40 rounded-lg flex items-center justify-center">
+                <Calendar className="h-5 w-5 text-muted-foreground/50" />
               </div>
               <div className="flex-1">
                 <p className="text-[13px] font-medium text-foreground">Parent-Teacher Meeting</p>
