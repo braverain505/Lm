@@ -5,19 +5,16 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
 import { AppHeader } from "@/components/app-header";
-import { NavigationRail } from "@/components/navigation-rail";
 import { NavigationPanel } from "@/components/navigation-panel";
 import { SessionTermProvider } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 
-const RAIL_WIDTH = 68;
 const PANEL_WIDTH = 260;
-const PANEL_KEY = "lumo.panel-open";
+const PANEL_TABLET_WIDTH = 240;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { activeSchool } = useAuth();
-  const [panelOpen, setPanelOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
@@ -41,41 +38,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Restore panel state
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(PANEL_KEY);
-      if (saved) setPanelOpen(saved === "1");
-    } catch { /* ignore */ }
-  }, [activeSchool?.school_id]);
-
-  // Persist panel state
-  useEffect(() => {
-    try {
-      localStorage.setItem(PANEL_KEY, panelOpen ? "1" : "0");
-    } catch { /* ignore */ }
-  }, [panelOpen]);
-
-  const togglePanel = useCallback(() => setPanelOpen((v) => !v), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
   // Close mobile nav on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  const contentPaddingLeft = isDesktop ? PANEL_WIDTH : isTablet ? 240 : 0;
+  const contentPaddingLeft = isDesktop ? PANEL_WIDTH : isTablet ? PANEL_TABLET_WIDTH : 0;
 
   return (
     <SessionTermProvider>
       <div className="min-h-screen bg-background text-foreground">
-        {/* ─── Desktop: Rail (hidden on tablets) ─── */}
-        <div className="fixed inset-y-0 left-0 z-40 hidden lg:block print:hidden" style={{ width: RAIL_WIDTH }}>
-          <NavigationRail onTogglePanel={togglePanel} panelOpen={panelOpen} />
-        </div>
-
-        {/* ─── Desktop & Tablet: Sidebar panel (always visible) ─── */}
+        {/* ─── Desktop & Tablet: Main Navigation Sidebar ─── */}
         <div
           className="fixed inset-y-0 left-0 z-30 hidden md:block print:hidden"
-          style={{ width: isTablet ? 240 : PANEL_WIDTH }}
+          style={{ width: isTablet ? PANEL_TABLET_WIDTH : PANEL_WIDTH }}
         >
           <NavigationPanel open={true} isTablet={isTablet} />
         </div>
@@ -98,8 +74,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
             <motion.div
               className="absolute inset-y-0 left-0 shadow-elevated"
-              style={{ width: isTablet ? 240 : 260 }}
-              initial={{ x: isTablet ? -260 : -280 }}
+              style={{ width: isTablet ? PANEL_TABLET_WIDTH : PANEL_WIDTH }}
+              initial={{ x: isTablet ? -PANEL_TABLET_WIDTH : -PANEL_WIDTH }}
               animate={{ x: 0 }}
               transition={{ duration: 0.25, ease: [0.21, 1.02, 0.73, 1] }}
             >

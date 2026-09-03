@@ -41,19 +41,20 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold",
+          "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold leading-none",
           size === "sm" && "h-7 w-7 text-[10px]",
           size === "default" && "h-9 w-9 text-[11px]",
           size === "lg" && "h-11 w-11 text-[13px]",
           !src && deriveTone(name ?? "U"),
           className,
         )}
+        style={{ backfaceVisibility: 'hidden', WebkitFontSmoothing: 'antialiased' }}
         {...props}
       >
         {src ? (
           <img src={src} alt={name ?? ""} className="h-full w-full object-cover" />
         ) : (
-          text
+          <span className="flex h-full w-full items-center justify-center">{text}</span>
         )}
       </div>
     );
