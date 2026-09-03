@@ -154,19 +154,50 @@ export default function RegisterPage() {
   if (complete) {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
+        {/* Animated background orbs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-[20%] -top-[20%] h-[600px] w-[600px] rounded-full bg-primary/[0.04] blur-[120px]" />
-          <div className="absolute -bottom-[20%] -right-[20%] h-[500px] w-[500px] rounded-full bg-primary/[0.03] blur-[100px]" />
+          <motion.div
+            animate={{ scale: [1, 1.1, 1], opacity: [0.04, 0.06, 0.04] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -left-[20%] -top-[20%] h-[600px] w-[600px] rounded-full bg-success/[0.06] blur-[120px]"
+          />
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.03, 0.05, 0.03] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute -bottom-[20%] -right-[20%] h-[500px] w-[500px] rounded-full bg-primary/[0.04] blur-[100px]"
+          />
+          {/* Confetti-like floating dots */}
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{ y: [-20, 20, -20], opacity: [0.15, 0.3, 0.15] }}
+              transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 }}
+              className="absolute h-2 w-2 rounded-full bg-success/20"
+              style={{
+                left: `${15 + i * 14}%`,
+                top: `${10 + (i % 3) * 25}%`,
+              }}
+            />
+          ))}
         </div>
+
         <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
           <ThemeSwitch />
         </div>
+
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="relative z-10 w-full max-w-[520px]"
         >
-          <div className="mb-8 flex flex-col items-center gap-3">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="mb-8 flex flex-col items-center gap-3"
+          >
             <Image
               src="/clearisbg.png"
               alt="Clearis"
@@ -175,55 +206,132 @@ export default function RegisterPage() {
               priority
               className="h-20 w-auto object-contain"
             />
-          </div>
-          <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-success/10 text-success">
-                <Check className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-[13px] font-semibold text-success">
-                  Registration complete
-                </p>
-                <h1 className="text-[22px] font-bold tracking-tight">
-                  {values.school_name} is ready
-                </h1>
-              </div>
-            </div>
-            <p className="mt-4 text-[14px] leading-relaxed text-muted-foreground">
-              We created your secure school workspace. Your administrator
-              account is ready, and school verification can be completed from
-              your workspace.
-            </p>
-            <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
-              {[
-                "Complete school profile",
-                "Create academic session",
-                "Add classes and subjects",
-                "Invite teachers",
-                "Add students",
-                "Configure grading",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-center gap-2.5 rounded-xl border border-border/60 px-3.5 py-2.5 text-[13px]"
-                >
-                  <Check className="h-4 w-4 shrink-0 text-primary" />
-                  {item}
-                </div>
-              ))}
-            </div>
-            {logoNotice && (
-              <p className="mt-4 text-[13px] text-warning">{logoNotice}</p>
-            )}
-            <Button
-              className="mt-7 h-11 w-full text-[14px] font-semibold"
-              onClick={() => router.replace("/dashboard")}
+          </motion.div>
+
+          {/* Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="rounded-2xl border border-border/40 bg-white/80 p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:bg-white/5 sm:p-10"
+          >
+            {/* Success badge */}
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 15 }}
+              className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 ring-1 ring-emerald-100/80"
             >
-              Open your workspace
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
-          </div>
+              <Check className="h-7 w-7 text-emerald-600" />
+            </motion.div>
+
+            {/* Title */}
+            <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <p className="mb-1 text-[12px] font-semibold uppercase tracking-wider text-emerald-600">
+                  Registration Complete
+                </p>
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="text-[24px] font-bold tracking-tight text-foreground"
+              >
+                {values.school_name}
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8 }}
+                className="mt-1 text-[14px] text-muted-foreground"
+              >
+                Your workspace is ready to go
+              </motion.p>
+            </div>
+
+            {/* Divider */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.9, duration: 0.4 }}
+              className="my-7 h-px bg-gradient-to-r from-transparent via-border to-transparent"
+            />
+
+            {/* What to do next */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.0 }}
+            >
+              <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                What to do next
+              </p>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {[
+                  { icon: "1", text: "Complete school profile", color: "text-blue-600 bg-blue-50" },
+                  { icon: "2", text: "Create academic session", color: "text-violet-600 bg-violet-50" },
+                  { icon: "3", text: "Add classes and subjects", color: "text-amber-600 bg-amber-50" },
+                  { icon: "4", text: "Invite teachers", color: "text-emerald-600 bg-emerald-50" },
+                  { icon: "5", text: "Add students", color: "text-rose-600 bg-rose-50" },
+                  { icon: "6", text: "Configure grading", color: "text-cyan-600 bg-cyan-50" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={item.text}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.1 + i * 0.08 }}
+                    className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-white/60 px-3.5 py-2.5 backdrop-blur-sm dark:bg-white/5"
+                  >
+                    <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${item.color}`}>
+                      {item.icon}
+                    </span>
+                    <span className="text-[13px] text-muted-foreground">{item.text}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {logoNotice && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-600 dark:bg-amber-500/10"
+              >
+                {logoNotice}
+              </motion.p>
+            )}
+
+            {/* CTA */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.3 }}
+              className="mt-8"
+            >
+              <Button
+                className="h-12 w-full text-[14px] font-semibold shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
+                onClick={() => router.replace("/dashboard")}
+              >
+                Open your workspace
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </motion.div>
+          </motion.div>
+
+          {/* Trust bar */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+            className="mt-6 text-center text-[11px] text-muted-foreground/50"
+          >
+            Secure school data · Role-based access · Automated backups
+          </motion.p>
         </motion.div>
       </div>
     );
