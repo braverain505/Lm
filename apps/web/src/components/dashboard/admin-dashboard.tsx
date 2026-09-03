@@ -115,11 +115,12 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* ── Greeting ─────────────────────────────────────────────── */}
+      {/* ── Greeting with animated gradient ──────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease }}
+        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/[0.04] via-violet-500/[0.03] to-rose-500/[0.04] p-6 border border-white/40"
       >
         <h1 className="text-[28px] font-bold tracking-tight text-foreground">
           {greeting}, {user?.full_name?.split(" ")[0] ?? "there"} 👋
