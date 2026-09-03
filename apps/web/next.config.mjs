@@ -8,14 +8,8 @@ const nextConfig = {
   // Transpile + cache it as a first-class dependency so dev/build don't
   // re-transform it per page and slow every route down.
   transpilePackages: ["@schoolos/shared"],
-  // Proxy /api → the FastAPI service so the browser rides a single origin and
-  // httpOnly cookies flow without CORS. The API backend publishes under /api.
-  async rewrites() {
-    const apiUrl = process.env.API_URL ?? "https://schoolos-api-5066.onrender.com";
-    return [
-      { source: "/api/:path*", destination: `${apiUrl}/api/:path*` },
-    ];
-  },
+  // API proxy is now handled by /api/proxy/[...path]/route.ts
+  // which forwards requests server-side using process.env.API_URL
 };
 
 export default nextConfig;
