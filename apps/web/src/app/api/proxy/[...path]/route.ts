@@ -88,11 +88,14 @@ async function forwardRequest(
     // Create the response
     const nextResponse = NextResponse.json(data, { status: response.status });
 
-    // Forward Set-Cookie headers from backend to client
-    const setCookieHeaders = response.headers.get('set-cookie');
-    if (setCookieHeaders) {
-      console.log('[API Proxy] Forwarding Set-Cookie headers from backend');
-      nextResponse.headers.set('Set-Cookie', setCookieHeaders);
+    // Forward ALL Set-Cookie headers from backend to client
+    // The backend may send multiple Set-Cookie headers (access token + refresh token)
+    const setCookies = response.headers.getSetCookie();
+    if (setCookies && setCookies.length > 0) {
+      console.log(`[API Proxy] Forwarding ${setCookies.length} Set-Cookie headers from backend`);
+      setCookies.forEach(cookie => {
+        nextResponse.headers.append('Set-Cookie', cookie);
+      });
     }
 
     return nextResponse;
