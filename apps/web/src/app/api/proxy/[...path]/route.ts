@@ -89,12 +89,17 @@ async function forwardRequest(
     // Create the response
     const nextResponse = NextResponse.json(data, { status: response.status });
 
-    // Forward ALL Set-Cookie headers from backend to client
+    // Forward ALL Set-Cookie headers from backend to client, rewriting their
+    // Path so they match the proxy mount. The backend sets the refresh token at
+    // Path=/api/auth, but the browser talks to /api/proxy/*, so without a rewrite
+    // the refresh cookie is never sent back and the session 401s once the access
+    // token expires. Map /api/ -> /api/proxy/ (a plain Path=/ stays Path=/).
     const setCookies = response.headers.getSetCookie();
     if (setCookies && setCookies.length > 0) {
       console.log(`[API Proxy] Forwarding ${setCookies.length} Set-Cookie headers from backend`);
       setCookies.forEach(cookie => {
-        nextResponse.headers.append('Set-Cookie', cookie);
+        const rewritten = cookie.replace(/;\s*Path=\/api\//i, '; Path=/api/proxy/');
+        nextResponse.headers.append('Set-Cookie', rewritten);
       });
     }
 
