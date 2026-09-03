@@ -65,7 +65,11 @@ def resolve_upload(rel_path: str) -> Path:
     if not str(target).startswith(str(root)):
         raise ValidationError("Invalid file path")
 
+    # Provide detailed debugging info if file not found
     if not target.is_file():
-        raise NotFoundError("File not found")
+        import os
+        # Log for debugging: check if parent directory exists
+        parent_exists = target.parent.is_dir()
+        raise NotFoundError(f"File not found: {rel_path} (resolved to {target}, parent exists: {parent_exists})")
 
     return target
