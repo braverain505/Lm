@@ -12,7 +12,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 // Read and clean the API_URL environment variable
 const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api')
@@ -29,7 +28,7 @@ async function forwardRequest(
   pathname: string,
   searchParams: URLSearchParams,
   body?: any,
-  requestHeaders?: Headers,
+  request?: NextRequest,
 ) {
   // Construct the backend URL safely
   let url: URL;
@@ -51,25 +50,27 @@ async function forwardRequest(
 
   console.log(`[API Proxy] ${method} ${pathname} → ${url.toString()}`);
 
-  // Get cookies from Next.js cookies store
-  const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll();
-  const cookieHeader = allCookies.map(c => `${c.name}=${c.value}`).join('; ');
+  // Forward cookies from incoming request to backend
+  const cookieHeader = request?.headers.get('cookie');
+  const headers = new Headers();
+  headers.set('Content-Type', 'application/json');
+
+  // Forward authorization header if present
+  const authHeader = request?.headers.get('authorization');
+  if (authHeader) {
+    headers.set('Authorization', authHeader);
+  }
+
+  // Forward cookies to backend
+  if (cookieHeader) {
+    headers.set('Cookie', cookieHeader);
+    console.log('[API Proxy] Forwarding cookies to backend');
+  }
 
   // Build request options
   const fetchOptions: RequestInit = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      // Forward auth headers from the client
-      ...(requestHeaders?.get('authorization') && {
-        'Authorization': requestHeaders.get('authorization') || '',
-      }),
-      // Forward cookies to backend
-      ...(cookieHeader && {
-        'Cookie': cookieHeader,
-      }),
-    },
+    headers,
   };
 
   // Add body for POST, PUT, PATCH requests
@@ -89,7 +90,6 @@ async function forwardRequest(
     const nextResponse = NextResponse.json(data, { status: response.status });
 
     // Forward ALL Set-Cookie headers from backend to client
-    // The backend may send multiple Set-Cookie headers (access token + refresh token)
     const setCookies = response.headers.getSetCookie();
     if (setCookies && setCookies.length > 0) {
       console.log(`[API Proxy] Forwarding ${setCookies.length} Set-Cookie headers from backend`);
@@ -123,7 +123,7 @@ export async function GET(
 
   console.log('[API Proxy] GET handler called with path:', path);
 
-  return forwardRequest('GET', pathname, searchParams, undefined, request.headers);
+  return forwardRequest('GET', pathname, searchParams, undefined, request);
 }
 
 /**
@@ -146,7 +146,7 @@ export async function POST(
     body = undefined;
   }
 
-  return forwardRequest('POST', pathname, searchParams, body, request.headers);
+  return forwardRequest('POST', pathname, searchParams, body, request);
 }
 
 /**
@@ -169,7 +169,7 @@ export async function PUT(
     body = undefined;
   }
 
-  return forwardRequest('PUT', pathname, searchParams, body, request.headers);
+  return forwardRequest('PUT', pathname, searchParams, body, request);
 }
 
 /**
@@ -192,7 +192,7 @@ export async function PATCH(
     body = undefined;
   }
 
-  return forwardRequest('PATCH', pathname, searchParams, body, request.headers);
+  return forwardRequest('PATCH', pathname, searchParams, body, request);
 }
 
 /**
@@ -208,5 +208,5 @@ export async function DELETE(
 
   console.log('[API Proxy] DELETE handler called with path:', path);
 
-  return forwardRequest('DELETE', pathname, searchParams, undefined, request.headers);
+  return forwardRequest('DELETE', pathname, searchParams, undefined, request);
 }
