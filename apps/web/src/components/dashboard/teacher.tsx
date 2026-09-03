@@ -79,11 +79,11 @@ export function TeacherDashboard() {
   const busy = summaryLoading || assignmentsLoading || readinessLoading;
 
   const toolShortcuts = [
-    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, always: true },
-    { label: "Attendance", desc: "Mark today's register", href: "/attendance", icon: CalendarCheck, permission: "attendance.mark" },
-    { label: "Timetable", desc: "Weekly schedule", href: "/timetable", icon: LayoutGrid, permission: "timetable.view" },
-    { label: "Lesson plans", desc: "Generate with AI", href: "/lesson-plans", icon: NotebookPen, permission: "results.comment" },
-    { label: "Comments", desc: "Add comments for homeroom class", href: "/results", icon: FileText, permission: "results.comment", condition: isHomeroomTeacher },
+    { label: "Score entry", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, always: true, bgColor: "bg-blue-50", iconColor: "text-blue-600", hoverBg: "hover:bg-blue-100" },
+    { label: "Attendance", desc: "Mark today's register", href: "/attendance", icon: CalendarCheck, permission: "attendance.mark", bgColor: "bg-emerald-50", iconColor: "text-emerald-600", hoverBg: "hover:bg-emerald-100" },
+    { label: "Timetable", desc: "Weekly schedule", href: "/timetable", icon: LayoutGrid, permission: "timetable.view", bgColor: "bg-purple-50", iconColor: "text-purple-600", hoverBg: "hover:bg-purple-100" },
+    { label: "Lesson plans", desc: "Generate with AI", href: "/lesson-plans", icon: NotebookPen, permission: "results.comment", bgColor: "bg-amber-50", iconColor: "text-amber-600", hoverBg: "hover:bg-amber-100" },
+    { label: "Comments", desc: "Add comments for homeroom class", href: "/results", icon: FileText, permission: "results.comment", condition: isHomeroomTeacher, bgColor: "bg-rose-50", iconColor: "text-rose-600", hoverBg: "hover:bg-rose-100" },
   ].filter(
     (shortcut) =>
       shortcut.always ||
@@ -131,8 +131,8 @@ export function TeacherDashboard() {
                 href={shortcut.href}
                 className="group flex flex-col items-center gap-3 transition-all duration-200"
               >
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40 group-hover:bg-muted/60 transition-colors duration-200">
-                  <shortcut.icon className="h-6 w-6 text-muted-foreground/50 group-hover:text-primary/60 transition-colors duration-200" strokeWidth={1.5} />
+                <div className={cn("flex items-center justify-center h-12 w-12 rounded-xl transition-colors duration-200", shortcut.bgColor, shortcut.hoverBg)}>
+                  <shortcut.icon className={cn("h-6 w-6 transition-colors duration-200", shortcut.iconColor)} strokeWidth={1.5} />
                 </div>
                 <p className="text-[12px] font-medium text-foreground text-center">{shortcut.label}</p>
               </Link>
@@ -155,8 +155,8 @@ export function TeacherDashboard() {
               <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : assignments.length}</p>
               <p className="mt-2 text-[12px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
-              <GraduationCap className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-indigo-50">
+              <GraduationCap className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
@@ -177,8 +177,8 @@ export function TeacherDashboard() {
                 <span className="text-muted-foreground/50">{Math.round((totals.entered / Math.max(totals.students, 1)) * 100)}% complete</span>
               </p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
-              <ClipboardCheck className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-sky-50">
+              <ClipboardCheck className="h-6 w-6 text-sky-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
@@ -199,8 +199,8 @@ export function TeacherDashboard() {
                 {totals.submitted > 0 ? `${totals.submitted} submitted` : "Ready to enter"}
               </p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-muted/40">
-              <ListChecks className="h-6 w-6 text-muted-foreground/50" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-teal-50">
+              <ListChecks className="h-6 w-6 text-teal-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
