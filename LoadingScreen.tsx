@@ -1,26 +1,22 @@
-"use client";
-
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 interface LoadingScreenProps {
-  text?: string;
-  className?: string;
   isLoading?: boolean;
   onComplete?: () => void;
 }
 
-export function LoadingScreen({ text = "Clearis", className, isLoading = true, onComplete }: LoadingScreenProps) {
+export function LoadingScreen({ isLoading = true, onComplete }: LoadingScreenProps) {
   const [displayText, setDisplayText] = useState('');
+  const brandName = 'Clearis';
 
   useEffect(() => {
     if (!isLoading) return;
 
     let currentIndex = 0;
     const typingInterval = setInterval(() => {
-      if (currentIndex <= text.length) {
-        setDisplayText(text.slice(0, currentIndex));
+      if (currentIndex <= brandName.length) {
+        setDisplayText(brandName.slice(0, currentIndex));
         currentIndex++;
       } else {
         clearInterval(typingInterval);
@@ -28,7 +24,7 @@ export function LoadingScreen({ text = "Clearis", className, isLoading = true, o
     }, 150);
 
     return () => clearInterval(typingInterval);
-  }, [isLoading, text]);
+  }, [isLoading]);
 
   return (
     <AnimatePresence mode="wait" onExitComplete={onComplete}>
@@ -38,7 +34,7 @@ export function LoadingScreen({ text = "Clearis", className, isLoading = true, o
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4, ease: 'easeInOut' }}
-          className={cn("fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm dark:bg-slate-950/80", className)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm dark:bg-slate-950/80"
         >
           <div className="flex flex-col items-center gap-8">
             <div className="relative">
@@ -119,51 +115,5 @@ export function LoadingScreen({ text = "Clearis", className, isLoading = true, o
         </motion.div>
       )}
     </AnimatePresence>
-  );
-}
-
-// A simpler version for inline use (when page is already rendered)
-export function LoadingOverlay() {
-  return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4">
-        <motion.div
-          className="relative h-16 w-16 rounded-full"
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            rotate: {
-              duration: 2,
-              repeat: Infinity,
-              ease: "linear",
-            },
-            scale: {
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            },
-          }}
-        >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-primary/50 to-primary" />
-          <div className="absolute inset-4 rounded-full bg-background" />
-        </motion.div>
-
-        <motion.div
-          className="text-lg font-semibold text-foreground"
-          animate={{
-            opacity: [0.5, 1, 0.5],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          Loading
-        </motion.div>
-      </div>
-    </div>
   );
 }
