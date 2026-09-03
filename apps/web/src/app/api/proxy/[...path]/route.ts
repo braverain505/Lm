@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com').replace(/\/$/, '');
 
+console.log('[API Proxy] Loaded. API_URL:', API_URL);
+
 /**
  * Forward request to backend API
  */
@@ -28,6 +30,8 @@ async function forwardRequest(
   // Construct the backend URL
   const url = new URL(`${API_URL}${pathname}`);
   url.search = searchParams.toString();
+
+  console.log(`[API Proxy] ${method} ${pathname} → ${url.toString()}`);
 
   // Build request options
   const fetchOptions: RequestInit = {
@@ -55,6 +59,8 @@ async function forwardRequest(
     // Extract response body
     const data = await response.json().catch(() => response.text());
 
+    console.log(`[API Proxy] Response status: ${response.status}`);
+
     // Return the response with appropriate status
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
@@ -77,6 +83,8 @@ export async function GET(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
+  console.log('[API Proxy] GET handler called with path:', path);
+
   return forwardRequest('GET', pathname, searchParams, undefined, request.headers);
 }
 
@@ -90,6 +98,8 @@ export async function POST(
   const { path } = await params;
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
+
+  console.log('[API Proxy] POST handler called with path:', path);
 
   let body;
   try {
@@ -112,6 +122,8 @@ export async function PUT(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
+  console.log('[API Proxy] PUT handler called with path:', path);
+
   let body;
   try {
     body = await request.json();
@@ -133,6 +145,8 @@ export async function PATCH(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
+  console.log('[API Proxy] PATCH handler called with path:', path);
+
   let body;
   try {
     body = await request.json();
@@ -153,6 +167,8 @@ export async function DELETE(
   const { path } = await params;
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
+
+  console.log('[API Proxy] DELETE handler called with path:', path);
 
   return forwardRequest('DELETE', pathname, searchParams, undefined, request.headers);
 }
