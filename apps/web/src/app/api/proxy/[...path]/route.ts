@@ -13,7 +13,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api').replace(/\/$/, '');
+// Read and clean the API_URL environment variable
+const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api')
+  .trim()
+  .replace(/\/$/, '');
 
 console.log('[API Proxy] Loaded. API_URL:', API_URL);
 
@@ -27,9 +30,23 @@ async function forwardRequest(
   body?: any,
   requestHeaders?: Headers,
 ) {
-  // Construct the backend URL
-  const url = new URL(`${API_URL}${pathname}`);
-  url.search = searchParams.toString();
+  // Construct the backend URL safely
+  let url: URL;
+  try {
+    // Remove leading slash from pathname if API_URL already has path
+    const cleanPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    const fullUrl = `${API_URL}/${cleanPath}`;
+    url = new URL(fullUrl);
+    url.search = searchParams.toString();
+  } catch (error) {
+    console.error('[API Proxy] Invalid URL construction:', error);
+    console.error('[API Proxy] API_URL:', API_URL);
+    console.error('[API Proxy] pathname:', pathname);
+    return NextResponse.json(
+      { error: 'Invalid backend URL configuration', details: String(error) },
+      { status: 500 }
+    );
+  }
 
   console.log(`[API Proxy] ${method} ${pathname} → ${url.toString()}`);
 
