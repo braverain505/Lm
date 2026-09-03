@@ -154,14 +154,8 @@ def refresh(request: Request, response: Response, db: DbSession, payload: Refres
 def me(user: AnyUser, db: DbSession):
     try:
         memberships = auth_service.user_memberships(db, user.id)
-    except Exception as e:
-        # Database tables may not exist yet — return empty memberships as fallback
-        # Log the error but don't crash the backend
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error fetching user memberships: {e}")
+    except Exception:
         memberships = []
-
     return MeResponse(
         user=UserSummary.model_validate(user),
         memberships=memberships,
