@@ -1,119 +1,279 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserPlus, FileText, Calendar, Bell, Mail, Download } from "lucide-react";
+import {
+  Users,
+  GraduationCap,
+  BookOpen,
+  CalendarCheck,
+  UserPlus,
+  FileText,
+  Calendar,
+  Bell,
+  Mail,
+  Download,
+  ArrowUpRight,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
-import { useDashboardSummary } from "@/hooks/use-api";
 import { useSessionTerm } from "@/providers/session-context";
 import { cn } from "@/lib/utils";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
+/* ─── KPI cards ─────────────────────────────────────────────────────────── */
+
+const kpis = [
+  {
+    label: "Total Students",
+    value: "2,847",
+    delta: "+12.5%",
+    deltaLabel: "vs last month",
+    icon: Users,
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+    ring: "ring-blue-100",
+    href: "/students",
+  },
+  {
+    label: "Total Teachers",
+    value: "142",
+    delta: "+3.2%",
+    deltaLabel: "vs last month",
+    icon: GraduationCap,
+    color: "text-violet-600",
+    bg: "bg-violet-50",
+    ring: "ring-violet-100",
+    href: "/teachers",
+  },
+  {
+    label: "Active Classes",
+    value: "86",
+    delta: "+5.1%",
+    deltaLabel: "vs last month",
+    icon: BookOpen,
+    color: "text-rose-500",
+    bg: "bg-rose-50",
+    ring: "ring-rose-100",
+    href: "/classes",
+  },
+  {
+    label: "Attendance Rate",
+    value: "94.2%",
+    delta: "+2.4%",
+    deltaLabel: "vs last month",
+    icon: CalendarCheck,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-100",
+    href: "/attendance",
+  },
+];
+
+/* ─── Quick actions ─────────────────────────────────────────────────────── */
+
+const quickActions = [
+  { label: "Add Student", icon: UserPlus, href: "/students", color: "text-blue-600", bg: "bg-blue-50 hover:bg-blue-100" },
+  { label: "Create Report", icon: FileText, href: "/reports", color: "text-violet-600", bg: "bg-violet-50 hover:bg-violet-100" },
+  { label: "Schedule Event", icon: Calendar, href: "/schedule", color: "text-rose-500", bg: "bg-rose-50 hover:bg-rose-100" },
+  { label: "Send Notice", icon: Bell, href: "/notices", color: "text-emerald-600", bg: "bg-emerald-50 hover:bg-emerald-100" },
+  { label: "Email Parents", icon: Mail, href: "/communications", color: "text-amber-500", bg: "bg-amber-50 hover:bg-amber-100" },
+  { label: "Export Data", icon: Download, href: "/exports", color: "text-cyan-600", bg: "bg-cyan-50 hover:bg-cyan-100" },
+];
+
+/* ─── Activity feed (static) ────────────────────────────────────────────── */
+
+const recentActivity = [
+  { title: "New student enrolled", detail: "JSS 1A — Amara Okafor", time: "2m ago", icon: UserPlus, color: "text-blue-600 bg-blue-50" },
+  { title: "Results compiled", detail: "SS 3 — First Term", time: "18m ago", icon: FileText, color: "text-violet-600 bg-violet-50" },
+  { title: "Attendance marked", detail: "JSS 2B — Morning session", time: "1h ago", icon: CalendarCheck, color: "text-emerald-600 bg-emerald-50" },
+  { title: "Fee payment received", detail: "Chidinma Eze — NGN 45,000", time: "2h ago", icon: Sparkles, color: "text-amber-500 bg-amber-50" },
+];
+
+/* ─── Component ─────────────────────────────────────────────────────────── */
+
 export function AdminDashboard() {
   const { user } = useAuth();
   const { term } = useSessionTerm();
-  const { data: summary } = useDashboardSummary(term?.id ?? undefined);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  const quickActions = [
-    { label: "Add Student", icon: UserPlus, href: "/students", tile: "bg-blue-50 hover:bg-blue-100", iconColor: "text-blue-600" },
-    { label: "Create Report", icon: FileText, href: "/reports", tile: "bg-purple-50 hover:bg-purple-100", iconColor: "text-purple-600" },
-    { label: "Schedule Event", icon: Calendar, href: "/schedule", tile: "bg-pink-50 hover:bg-pink-100", iconColor: "text-pink-600" },
-    { label: "Send Notice", icon: Bell, href: "/notices", tile: "bg-green-50 hover:bg-green-100", iconColor: "text-green-600" },
-    { label: "Email Parents", icon: Mail, href: "/communications", tile: "bg-orange-50 hover:bg-orange-100", iconColor: "text-orange-600" },
-    { label: "Export Data", icon: Download, href: "/exports", tile: "bg-cyan-50 hover:bg-cyan-100", iconColor: "text-cyan-600" },
-  ];
-
   return (
-    <div className="space-y-8 rounded-3xl bg-gradient-to-b from-indigo-50/60 via-transparent to-transparent p-1 sm:p-2">
-      {/* Greeting */}
+    <div className="space-y-8">
+      {/* ── Greeting ─────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease }}
-        className="pt-2"
       >
-        <h2 className="text-[26px] font-bold tracking-tight text-foreground">
-          {greeting}, {user?.full_name?.split(" ")[0] ?? "there"}.
-        </h2>
-        <p className="mt-1.5 text-[14px] text-muted-foreground/70">
+        <h1 className="text-[28px] font-bold tracking-tight text-foreground">
+          {greeting}, {user?.full_name?.split(" ")[0] ?? "there"} 👋
+        </h1>
+        <p className="mt-1.5 text-[14px] text-muted-foreground/60">
           Here&apos;s what&apos;s happening across your school today.
         </p>
         {term && (
-          <p className="mt-1 text-[13px] font-medium text-muted-foreground/50">{term.name}</p>
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+            {term.name}
+          </p>
         )}
       </motion.div>
 
-      {/* Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.12, ease }}
-        className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
-      >
-        <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Actions</h3>
-        <p className="mt-1 text-[12px] text-muted-foreground/60">Frequently used tasks</p>
+      {/* ── KPI Cards ────────────────────────────────────────────── */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        {kpis.map((kpi, idx) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div
+              key={kpi.label}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.06 + idx * 0.05, ease }}
+            >
+              <Link
+                href={kpi.href}
+                className="group relative block rounded-2xl border border-white/60 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:-translate-y-0.5"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                      {kpi.label}
+                    </p>
+                    <p className="mt-2 text-[26px] font-bold tracking-tight text-foreground">
+                      {kpi.value}
+                    </p>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                        <ArrowUpRight className="h-3 w-3" />
+                        {kpi.delta}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/40">{kpi.deltaLabel}</span>
+                    </div>
+                  </div>
+                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl ring-1", kpi.bg, kpi.ring)}>
+                    <Icon className={cn("h-5 w-5", kpi.color)} strokeWidth={1.75} />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
 
-        <div className="mt-6 grid gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6">
-          {quickActions.map((action) => {
+      {/* ── Quick Actions ────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15, ease }}
+        className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Actions</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Frequently used tasks</p>
+          </div>
+          <Clock className="h-4 w-4 text-muted-foreground/30" />
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
+          {quickActions.map((action, idx) => {
             const Icon = action.icon;
             return (
-              <Link
+              <motion.div
                 key={action.label}
-                href={action.href}
-                className="group flex flex-col items-center gap-3 transition-all duration-200"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.2 + idx * 0.03, ease }}
               >
-                <div className={cn("flex items-center justify-center h-16 w-16 rounded-2xl transition-colors duration-200", action.tile)}>
-                  <Icon className={cn("h-8 w-8 transition-colors duration-200", action.iconColor)} strokeWidth={1.75} />
-                </div>
-                <p className="text-[12px] font-medium text-foreground text-center">{action.label}</p>
-              </Link>
+                <Link
+                  href={action.href}
+                  className="group flex flex-col items-center gap-2.5 rounded-xl p-3 transition-all duration-200 hover:bg-muted/30"
+                >
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110", action.bg)}>
+                    <Icon className={cn("h-5 w-5", action.color)} strokeWidth={1.75} />
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground/70 text-center leading-tight">{action.label}</span>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
       </motion.div>
 
-      {/* Charts Section - Weekly Attendance + Upcoming Events */}
-      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        {/* Weekly Attendance */}
+      {/* ── Bottom Grid: Activity + Upcoming ─────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-5">
+        {/* Recent Activity */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.16, ease }}
-          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
+          transition={{ duration: 0.4, delay: 0.22, ease }}
+          className="lg:col-span-3 rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
-          <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Weekly Attendance</h3>
-          <p className="mt-1 text-[12px] text-muted-foreground/60">Student and teacher attendance overview</p>
-
-          <div className="mt-6 h-64 flex items-center justify-center bg-muted/30 rounded-lg">
-            <p className="text-sm text-muted-foreground">Chart will render here</p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Recent Activity</h3>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/50">Latest changes across the school</p>
+            </div>
+            <Link href="/activity" className="text-[11px] font-semibold text-primary/70 hover:text-primary transition-colors">
+              View all
+            </Link>
+          </div>
+          <div className="space-y-1">
+            {recentActivity.map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.28 + idx * 0.04, ease }}
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-muted/20"
+                >
+                  <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", item.color.split(" ")[1])}>
+                    <Icon className={cn("h-4 w-4", item.color.split(" ")[0])} strokeWidth={1.75} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-medium text-foreground/80 truncate">{item.title}</p>
+                    <p className="text-[11px] text-muted-foreground/45 truncate">{item.detail}</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground/35">{item.time}</span>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
         {/* Upcoming Events */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.20, ease }}
-          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
+          transition={{ duration: 0.4, delay: 0.26, ease }}
+          className="lg:col-span-2 rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
-          <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Upcoming Events</h3>
-          <p className="mt-1 text-[12px] text-muted-foreground/60">School calendar</p>
-
-          <div className="mt-6 space-y-4">
-            <div className="flex items-start gap-4 pb-4 border-b border-border/40">
-              <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Calendar className="h-5 w-5 text-indigo-600" />
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Upcoming Events</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">School calendar</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { title: "Parent-Teacher Meeting", date: "Dec 15, 2025", time: "10:00 AM", color: "bg-violet-50 text-violet-600" },
+              { title: "Mid-Term Break", date: "Dec 20, 2025", time: "All day", color: "bg-rose-50 text-rose-500" },
+              { title: "Sports Day", date: "Jan 10, 2026", time: "9:00 AM", color: "bg-emerald-50 text-emerald-600" },
+            ].map((event, idx) => (
+              <div key={idx} className="flex items-start gap-3 rounded-xl px-2 py-2">
+                <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", event.color.split(" ")[0])}>
+                  <Calendar className={cn("h-4 w-4", event.color.split(" ")[1])} strokeWidth={1.75} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-medium text-foreground/80">{event.title}</p>
+                  <p className="text-[11px] text-muted-foreground/45">{event.date} · {event.time}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-[13px] font-medium text-foreground">Parent-Teacher Meeting</p>
-                <p className="text-[12px] text-muted-foreground/60 mt-1">Dec 15, 2025</p>
-                <p className="text-[12px] text-muted-foreground/60">10:00 AM</p>
-              </div>
-            </div>
+            ))}
           </div>
         </motion.div>
       </div>
