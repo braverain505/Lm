@@ -65,8 +65,10 @@ async function forwardRequest(
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error(`[API Proxy] Error forwarding ${method} ${pathname}:`, error);
+    console.error(`[API Proxy] Target URL was: ${url.toString()}`);
+    console.error(`[API Proxy] API_URL env var: ${API_URL}`);
     return NextResponse.json(
-      { error: 'Failed to reach backend API' },
+      { error: 'Failed to reach backend API', details: String(error) },
       { status: 502 }
     );
   }
