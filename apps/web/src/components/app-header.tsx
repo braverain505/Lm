@@ -5,6 +5,7 @@ import { Lock, Menu, ChevronRight } from "lucide-react";
 import { pageMeta } from "@/components/nav-config";
 import { Notifications, ProfileMenu } from "@/components/notifications";
 import { SearchPalette } from "@/components/search-palette";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import {
   Select,
   SelectContent,
@@ -26,7 +27,9 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
   const meta = pageMeta(pathname);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-4 border-b border-border/50 bg-background/95 px-5 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
+    <header className="sticky top-0 z-20 print:hidden">
+      <AnnouncementBanner />
+      <div className="flex h-14 shrink-0 items-center gap-4 border-b border-border/50 bg-background/95 px-5 backdrop-blur-xl sm:px-6 lg:px-8">
       {/* Mobile menu button */}
       <button
         onClick={onOpenMobileNav}
@@ -112,6 +115,7 @@ export function AppHeader({ pathname, onOpenMobileNav }: AppHeaderProps) {
 
         {/* Profile */}
         <ProfileMenu />
+      </div>
       </div>
     </header>
   );

@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { cn } from "@/lib/utils";
@@ -102,8 +103,14 @@ const recentActivity = [
 export function AdminDashboard() {
   const { user } = useAuth();
   const { term } = useSessionTerm();
+  const [time, setTime] = useState(() => new Date());
 
-  const hour = new Date().getHours();
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const hour = time.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
@@ -120,12 +127,18 @@ export function AdminDashboard() {
         <p className="mt-1.5 text-[14px] text-muted-foreground/60">
           Here&apos;s what&apos;s happening across your school today.
         </p>
-        {term && (
-          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
-            {term.name}
+        <div className="mt-2 flex items-center gap-3">
+          {term && (
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+              {term.name}
+            </p>
+          )}
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-muted/30 px-3 py-1 text-[11px] font-medium text-muted-foreground/50">
+            <Clock className="h-3 w-3" />
+            {time.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </p>
-        )}
+        </div>
       </motion.div>
 
       {/* ── KPI Cards ────────────────────────────────────────────── */}
