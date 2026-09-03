@@ -131,8 +131,8 @@ export function TeacherDashboard() {
                 href={shortcut.href}
                 className="group flex flex-col items-center gap-3 transition-all duration-200"
               >
-                <div className={cn("flex items-center justify-center h-12 w-12 rounded-xl transition-colors duration-200", shortcut.bgColor, shortcut.hoverBg)}>
-                  <shortcut.icon className={cn("h-6 w-6 transition-colors duration-200", shortcut.iconColor)} strokeWidth={1.5} />
+                <div className={cn("flex items-center justify-center h-16 w-16 rounded-2xl transition-colors duration-200", shortcut.bgColor, shortcut.hoverBg)}>
+                  <shortcut.icon className={cn("h-8 w-8 transition-colors duration-200", shortcut.iconColor)} strokeWidth={1.5} />
                 </div>
                 <p className="text-[12px] font-medium text-foreground text-center">{shortcut.label}</p>
               </Link>
@@ -144,32 +144,32 @@ export function TeacherDashboard() {
       {/* KPI Cards - 3 columns */}
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
         <motion.div
-          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
+          className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.08, ease }}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">My subjects</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600/70">My subjects</p>
               <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : assignments.length}</p>
               <p className="mt-2 text-[12px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-indigo-50">
-              <GraduationCap className="h-6 w-6 text-indigo-600" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-100">
+              <GraduationCap className="h-7 w-7 text-indigo-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
+          className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.12, ease }}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Scores entered</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-sky-600/70">Scores entered</p>
               <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.entered > 0 ? "text-foreground" : "text-muted-foreground")}>
                 {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : `${totals.entered}/${totals.students}`}
               </p>
@@ -177,21 +177,21 @@ export function TeacherDashboard() {
                 <span className="text-muted-foreground/50">{Math.round((totals.entered / Math.max(totals.students, 1)) * 100)}% complete</span>
               </p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-sky-50">
-              <ClipboardCheck className="h-6 w-6 text-sky-600" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-sky-100">
+              <ClipboardCheck className="h-7 w-7 text-sky-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
 
         <motion.div
-          className="rounded-2xl border border-border/60 bg-card p-6 shadow-xs hover:shadow-card transition-all duration-200"
+          className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.16, ease }}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Pending submissions</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-600/70">Pending submissions</p>
               <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.pending > 0 ? "text-foreground" : "text-success")}>
                 {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : totals.pending}
               </p>
@@ -199,8 +199,8 @@ export function TeacherDashboard() {
                 {totals.submitted > 0 ? `${totals.submitted} submitted` : "Ready to enter"}
               </p>
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-teal-50">
-              <ListChecks className="h-6 w-6 text-teal-600" strokeWidth={1.5} />
+            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-teal-100">
+              <ListChecks className="h-7 w-7 text-teal-600" strokeWidth={1.5} />
             </div>
           </div>
         </motion.div>
