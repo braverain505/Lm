@@ -78,8 +78,17 @@ async function forwardRequest(
 
     console.log(`[API Proxy] Response status: ${response.status}`);
 
-    // Return the response with appropriate status
-    return NextResponse.json(data, { status: response.status });
+    // Create the response
+    const nextResponse = NextResponse.json(data, { status: response.status });
+
+    // Forward Set-Cookie headers from backend to client
+    const setCookieHeaders = response.headers.get('set-cookie');
+    if (setCookieHeaders) {
+      console.log('[API Proxy] Forwarding Set-Cookie headers from backend');
+      nextResponse.headers.set('Set-Cookie', setCookieHeaders);
+    }
+
+    return nextResponse;
   } catch (error) {
     console.error(`[API Proxy] Error forwarding ${method} ${pathname}:`, error);
     console.error(`[API Proxy] Target URL was: ${url.toString()}`);
