@@ -11,9 +11,9 @@
  * - Private environment variables protected from browser exposure
  */
 
-import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_URL || 'https://schoolos-api-5066.onrender.com';
+const API_URL = process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api';
 
 /**
  * Forward request to backend API
@@ -56,10 +56,10 @@ async function forwardRequest(
     const data = await response.json().catch(() => response.text());
 
     // Return the response with appropriate status
-    return Response.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error(`[API Proxy] Error forwarding ${method} ${pathname}:`, error);
-    return Response.json(
+    return NextResponse.json(
       { error: 'Failed to reach backend API' },
       { status: 502 }
     );
@@ -70,26 +70,26 @@ async function forwardRequest(
  * GET /api/proxy/...
  */
 export async function GET(
-  request: Request,
-  { params }: { params: { path: string[] } }
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const pathname = `/${params.path.join('/')}`;
-  const searchParams = new URL(request.url).searchParams;
-  const requestHeaders = await headers();
+  const { path } = await params;
+  const pathname = `/${path.join('/')}`;
+  const searchParams = request.nextUrl.searchParams;
 
-  return forwardRequest('GET', pathname, searchParams, undefined, requestHeaders);
+  return forwardRequest('GET', pathname, searchParams, undefined, request.headers);
 }
 
 /**
  * POST /api/proxy/...
  */
 export async function POST(
-  request: Request,
-  { params }: { params: { path: string[] } }
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const pathname = `/${params.path.join('/')}`;
-  const searchParams = new URL(request.url).searchParams;
-  const requestHeaders = await headers();
+  const { path } = await params;
+  const pathname = `/${path.join('/')}`;
+  const searchParams = request.nextUrl.searchParams;
 
   let body;
   try {
@@ -98,19 +98,19 @@ export async function POST(
     body = undefined;
   }
 
-  return forwardRequest('POST', pathname, searchParams, body, requestHeaders);
+  return forwardRequest('POST', pathname, searchParams, body, request.headers);
 }
 
 /**
  * PUT /api/proxy/...
  */
 export async function PUT(
-  request: Request,
-  { params }: { params: { path: string[] } }
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const pathname = `/${params.path.join('/')}`;
-  const searchParams = new URL(request.url).searchParams;
-  const requestHeaders = await headers();
+  const { path } = await params;
+  const pathname = `/${path.join('/')}`;
+  const searchParams = request.nextUrl.searchParams;
 
   let body;
   try {
@@ -119,19 +119,19 @@ export async function PUT(
     body = undefined;
   }
 
-  return forwardRequest('PUT', pathname, searchParams, body, requestHeaders);
+  return forwardRequest('PUT', pathname, searchParams, body, request.headers);
 }
 
 /**
  * PATCH /api/proxy/...
  */
 export async function PATCH(
-  request: Request,
-  { params }: { params: { path: string[] } }
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const pathname = `/${params.path.join('/')}`;
-  const searchParams = new URL(request.url).searchParams;
-  const requestHeaders = await headers();
+  const { path } = await params;
+  const pathname = `/${path.join('/')}`;
+  const searchParams = request.nextUrl.searchParams;
 
   let body;
   try {
@@ -140,19 +140,19 @@ export async function PATCH(
     body = undefined;
   }
 
-  return forwardRequest('PATCH', pathname, searchParams, body, requestHeaders);
+  return forwardRequest('PATCH', pathname, searchParams, body, request.headers);
 }
 
 /**
  * DELETE /api/proxy/...
  */
 export async function DELETE(
-  request: Request,
-  { params }: { params: { path: string[] } }
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const pathname = `/${params.path.join('/')}`;
-  const searchParams = new URL(request.url).searchParams;
-  const requestHeaders = await headers();
+  const { path } = await params;
+  const pathname = `/${path.join('/')}`;
+  const searchParams = request.nextUrl.searchParams;
 
-  return forwardRequest('DELETE', pathname, searchParams, undefined, requestHeaders);
+  return forwardRequest('DELETE', pathname, searchParams, undefined, request.headers);
 }
