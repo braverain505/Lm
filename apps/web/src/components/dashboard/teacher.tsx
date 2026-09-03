@@ -2,21 +2,14 @@
 
 import {
   ArrowUpRight,
-  Bot,
-  Calendar,
   CalendarCheck,
   ClipboardCheck,
-  Clock,
-  Download,
   FileText,
   GraduationCap,
   LayoutGrid,
   ListChecks,
-  Mail,
   NotebookPen,
   Sparkles,
-  UserPlus,
-  Bell,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -140,71 +133,6 @@ export function TeacherDashboard() {
           </div>
         </motion.div>
       )}
-
-      {/* KPI Cards - 3 columns */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
-        <motion.div
-          className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.08, ease }}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-indigo-600/70">My subjects</p>
-              <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : assignments.length}</p>
-              <p className="mt-2 text-[12px] text-muted-foreground/60">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
-            </div>
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-indigo-100">
-              <GraduationCap className="h-7 w-7 text-indigo-600" strokeWidth={1.5} />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.12, ease }}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-sky-600/70">Scores entered</p>
-              <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.entered > 0 ? "text-foreground" : "text-muted-foreground")}>
-                {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : `${totals.entered}/${totals.students}`}
-              </p>
-              <p className="mt-2 text-[12px] text-semantic-success font-medium">
-                <span className="text-muted-foreground/50">{Math.round((totals.entered / Math.max(totals.students, 1)) * 100)}% complete</span>
-              </p>
-            </div>
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-sky-100">
-              <ClipboardCheck className="h-7 w-7 text-sky-600" strokeWidth={1.5} />
-            </div>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-6 shadow-xs hover:shadow-card transition-all duration-200"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.16, ease }}
-        >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-teal-600/70">Pending submissions</p>
-              <p className={cn("mt-3 text-[28px] font-bold tracking-tight", totals.pending > 0 ? "text-foreground" : "text-success")}>
-                {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : totals.pending}
-              </p>
-              <p className="mt-2 text-[12px] text-muted-foreground/60">
-                {totals.submitted > 0 ? `${totals.submitted} submitted` : "Ready to enter"}
-              </p>
-            </div>
-            <div className="flex items-center justify-center h-14 w-14 rounded-2xl bg-teal-100">
-              <ListChecks className="h-7 w-7 text-teal-600" strokeWidth={1.5} />
-            </div>
-          </div>
-        </motion.div>
-      </div>
 
       {/* Main content — 2 column */}
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Users, GraduationCap, BookOpen, TrendingUp, UserPlus, FileText, Calendar, Bell, Mail, Download } from "lucide-react";
+import { UserPlus, FileText, Calendar, Bell, Mail, Download } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/providers/auth-provider";
 import { useDashboardSummary } from "@/hooks/use-api";
@@ -13,58 +13,10 @@ const ease = [0.25, 0.46, 0.45, 0.94] as const;
 export function AdminDashboard() {
   const { user } = useAuth();
   const { term } = useSessionTerm();
-  const { data: summary, isLoading } = useDashboardSummary(term?.id ?? undefined);
+  const { data: summary } = useDashboardSummary(term?.id ?? undefined);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-
-  // KPI data matching the design
-  const kpis = [
-    {
-      label: "Total Students",
-      value: summary?.kpis?.students || 2847,
-      change: "+12.5%",
-      changeLabel: "vs last month",
-      icon: Users,
-      gradient: "from-blue-50 to-white",
-      border: "border-blue-100",
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
-    },
-    {
-      label: "Total Teachers",
-      value: summary?.kpis?.teachers || 142,
-      change: "+3.2%",
-      changeLabel: "vs last month",
-      icon: GraduationCap,
-      gradient: "from-purple-50 to-white",
-      border: "border-purple-100",
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
-    },
-    {
-      label: "Active Classes",
-      value: summary?.kpis?.classes || 86,
-      change: "+5.1%",
-      changeLabel: "vs last month",
-      icon: BookOpen,
-      gradient: "from-pink-50 to-white",
-      border: "border-pink-100",
-      iconBg: "bg-pink-100",
-      iconColor: "text-pink-600",
-    },
-    {
-      label: "Attendance Rate",
-      value: summary?.kpis?.attendance_rate != null ? `${Math.round(summary.kpis.attendance_rate)}%` : "94.2%",
-      change: "+2.4%",
-      changeLabel: "vs last month",
-      icon: TrendingUp,
-      gradient: "from-green-50 to-white",
-      border: "border-green-100",
-      iconBg: "bg-green-100",
-      iconColor: "text-green-600",
-    },
-  ];
 
   const quickActions = [
     { label: "Add Student", icon: UserPlus, href: "/students", tile: "bg-blue-50 hover:bg-blue-100", iconColor: "text-blue-600" },
@@ -94,39 +46,6 @@ export function AdminDashboard() {
           <p className="mt-1 text-[13px] font-medium text-muted-foreground/50">{term.name}</p>
         )}
       </motion.div>
-
-      {/* KPI Cards - 4 columns */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi, idx) => {
-          const Icon = kpi.icon;
-          return (
-            <motion.div
-              key={kpi.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.08 + idx * 0.04, ease }}
-              className={cn(
-                "rounded-2xl border bg-gradient-to-br p-6 shadow-xs hover:shadow-card transition-all duration-200",
-                kpi.gradient,
-                kpi.border,
-              )}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{kpi.label}</p>
-                  <p className="mt-3 text-[28px] font-bold tracking-tight text-foreground">{kpi.value}</p>
-                  <p className="mt-2 text-[12px] text-semantic-success font-medium">
-                    {kpi.change} <span className="text-muted-foreground/50">{kpi.changeLabel}</span>
-                  </p>
-                </div>
-                <div className={cn("flex items-center justify-center h-16 w-16 rounded-2xl", kpi.iconBg)}>
-                  <Icon className={cn("h-8 w-8", kpi.iconColor)} strokeWidth={1.75} />
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
 
       {/* Quick Actions */}
       <motion.div

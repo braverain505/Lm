@@ -23,7 +23,6 @@ import {
   TrendingUp,
   UserPlus,
   Users,
-  Wallet,
   Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -42,7 +41,6 @@ import {
   PerformanceChart,
 } from "@/components/dashboard-charts";
 import {
-  KpiCard,
   ReadinessRing,
   WidgetCard,
   relativeTime,
@@ -91,108 +89,6 @@ function Segmented<T extends string>({
         >
           {o.label}
         </button>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// KPI row
-// ---------------------------------------------------------------------------
-
-export function KpiRow({ data, loading, accountant }: { data?: DashboardSummary; loading: boolean; accountant?: boolean }) {
-  const k = data?.kpis;
-  const attendance = data?.attendance;
-  const attDelta =
-    attendance && attendance.today.rate != null && attendance.week.rate != null
-      ? attendance.today.rate - attendance.week.rate
-      : null;
-  const feeCount = data?.tasks?.find((t) => t.kind === "finance")?.count;
-
-  // Design template shows exactly 4 KPI cards
-  const cards = accountant
-    ? [
-        {
-          label: "Outstanding fees",
-          value: `${k?.fee_currency ?? "NGN"} ${ngn.format(k?.outstanding_fees ?? 0)}`,
-          icon: Wallet,
-          sub: feeCount != null ? `${feeCount} students with balances` : "No balances yet",
-          href: "/billing",
-        },
-        {
-          label: "Students",
-          value: k?.students ?? 0,
-          icon: Users,
-          sub: `${data?.distribution?.total ?? 0} enrolled`,
-          href: "/students",
-        },
-        {
-          label: "Classes",
-          value: k?.classes ?? 0,
-          icon: School,
-          sub: `${k?.subjects ?? 0} subjects`,
-          href: "/classes",
-        },
-        {
-          label: "Attendance rate",
-          value: k?.attendance_rate == null ? "—" : `${Math.round(k.attendance_rate)}%`,
-          icon: CalendarCheck,
-          delta: attDelta,
-          deltaLabel: "vs this week",
-          sub: "All recorded sessions",
-          href: "/attendance",
-        },
-      ]
-    : [
-        {
-          label: "Total Students",
-          value: k?.students ?? 0,
-          icon: Users,
-          sub: `${data?.distribution?.total ?? 0} enrolled`,
-          href: "/students",
-          delta: 12.5,
-          deltaLabel: "vs last month",
-        },
-        {
-          label: "Total Teachers",
-          value: k?.teachers ?? 0,
-          icon: GraduationCap,
-          sub: `${k?.staff ?? 0} total staff`,
-          href: "/teachers",
-          delta: 3.2,
-          deltaLabel: "vs last month",
-        },
-        {
-          label: "Active Classes",
-          value: k?.classes ?? 0,
-          icon: School,
-          sub: `${k?.subjects ?? 0} subjects`,
-          href: "/classes",
-          delta: 5.1,
-          deltaLabel: "vs last month",
-        },
-        {
-          label: "Attendance Rate",
-          value: k?.attendance_rate == null ? "—" : `${Math.round(k.attendance_rate)}%`,
-          icon: CalendarCheck,
-          delta: 2.4,
-          deltaLabel: "vs last month",
-          sub: "All recorded sessions",
-          href: "/attendance",
-        },
-      ];
-
-  return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map((c, idx) => (
-        <motion.div
-          key={c.label}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
-        >
-          <KpiCard {...c} loading={loading} />
-        </motion.div>
       ))}
     </div>
   );

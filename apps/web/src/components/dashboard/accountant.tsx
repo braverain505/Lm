@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { ActivityPanel, KpiRow } from "@/components/dashboard/widgets";
+import { ActivityPanel } from "@/components/dashboard/widgets";
 import { WidgetCard, relativeTime } from "@/components/dashboard/shared";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,8 +55,6 @@ export function AccountantDashboard() {
           Here&apos;s the financial picture for your school.
         </p>
       </motion.div>
-
-      <KpiRow data={data} loading={isLoading} accountant />
 
       {/* Financial summary — 2 column */}
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">

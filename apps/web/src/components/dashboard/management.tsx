@@ -11,7 +11,6 @@ import {
   CompilePanel,
   EnrollmentPanel,
   InsightsPanel,
-  KpiRow,
   PerformancePanel,
   ReadinessPanel,
   TasksPanel,
@@ -68,8 +67,6 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
     return (
       <div className="space-y-8">
         <Greeting />
-        <KpiRow data={summary} loading={isLoading} />
-
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
           <ReadinessPanel termId={term?.id} {...common} />
           <ApprovalQueuePanel termId={term?.id} {...common} />
@@ -98,8 +95,6 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
   return (
     <div className="space-y-8">
       <Greeting />
-      <KpiRow data={summary} loading={isLoading} />
-
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <PerformancePanel {...common} />
         <ReadinessPanel termId={term?.id} {...common} />
