@@ -43,7 +43,12 @@ def save_image_upload(data: bytes, content_type: str, school_id: str, kind: str 
     rel = f"{kind}/{school_id}/{name}"
     dest = _storage_root() / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write file and verify it was actually written
     dest.write_bytes(data)
+    if not dest.is_file() or dest.stat().st_size != len(data):
+        raise ValidationError(f"Failed to persist file: {rel}")
+
     return rel
 
 
