@@ -37,15 +37,15 @@ async def upload_school_logo(
     file: UploadFile = File(...),
     ctx=Depends(require_permission(SCHOOL_MANAGE)),
 ):
-    """Upload the school crest/logo; it is stored and immediately reflected on
-    report cards (school.logo_url)."""
+    """Upload the school crest/logo; stored as Base64 in database for Render
+    free-tier compatibility (ephemeral storage). Returns a data URL that can
+    be used directly in <img src={...} />."""
     data = await file.read()
-    rel = storage_service.save_image_upload(
-        data, file.content_type or "", str(ctx.school.id), kind="schools"
-    )
-    ctx.school.logo_url = f"/api/uploads/{rel}"
+    # Store as Base64 data URL in database
+    logo_url = storage_service.save_image_as_base64(data, file.content_type or "")
+    ctx.school.logo_url = logo_url
     db.commit()
-    return UploadOut(photo_url=ctx.school.logo_url)
+    return UploadOut(photo_url=logo_url)
 
 
 @router.get("/{file_path:path}")

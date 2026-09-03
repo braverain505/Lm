@@ -1,11 +1,18 @@
-"""Local file storage for uploaded media (student photos, avatars).
+"""Image storage via Base64 in database for Render free-tier compatibility.
 
-Files are stored under ``settings.storage_base_dir`` as
-``{kind}/{school_id}/{random}.{ext}`` and served read-only through the
-``/api/uploads/...`` route. The random filename doubles as the access token,
-so URLs are effectively unguessable (public GET, no auth — needed by the
-PIN-based parent portal report card).
+Previously used local filesystem, but Render free tier has ephemeral storage.
+Now images are converted to Base64 and stored directly in the database.
+
+For school logos:
+- Convert image bytes to Base64 string
+- Prepend MIME type: "data:image/png;base64,..."
+- Store in school.logo_url as a data URL
+- Frontend displays directly: <img src={school.logo_url} />
+
+For student photos:
+- Still stored as file paths (can be migrated later if needed)
 """
+import base64
 import uuid
 from pathlib import Path
 
@@ -18,6 +25,23 @@ ALLOWED_IMAGE_TYPES: dict[str, str] = {
     "image/webp": ".webp",
 }
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+
+def save_image_as_base64(data: bytes, content_type: str) -> str:
+    """Convert image to Base64 data URL for database storage.
+
+    Returns a data URL like: data:image/png;base64,iVBORw0KG...
+    """
+    ext = ALLOWED_IMAGE_TYPES.get((content_type or "").lower())
+    if ext is None:
+        raise ValidationError("Only JPEG, PNG and WebP images are allowed")
+    if len(data) > MAX_IMAGE_BYTES:
+        raise ValidationError("Image is too large (max 5 MB)")
+
+    # Convert to Base64
+    b64 = base64.b64encode(data).decode('ascii')
+    # Return as data URL
+    return f"data:{content_type};base64,{b64}"
 
 
 def _storage_root() -> Path:
@@ -33,7 +57,11 @@ def _storage_root() -> Path:
 
 
 def save_image_upload(data: bytes, content_type: str, school_id: str, kind: str = "students") -> str:
-    """Persist an image upload and return the relative storage path."""
+    """Persist an image upload and return the relative storage path.
+
+    Note: This is legacy filesystem storage. For new uploads (especially logos),
+    use save_image_as_base64() instead which stores in the database.
+    """
     ext = ALLOWED_IMAGE_TYPES.get((content_type or "").lower())
     if ext is None:
         raise ValidationError("Only JPEG, PNG and WebP images are allowed")
