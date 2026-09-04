@@ -180,14 +180,22 @@ export function Notifications() {
     setReadIds(new Set(notifications.map((n) => n.id)));
   }
 
-  function handleClick(n: Notification) {
+  function handleClick(n: Notification, e: React.MouseEvent) {
+    // Prevent the Dropdown's mousedown listener from closing the dropdown
+    e.stopPropagation();
+    e.preventDefault();
     setReadIds((prev) => new Set(prev).add(n.id));
     setSelected(n);
+  }
+
+  function goBack() {
+    setSelected(null);
   }
 
   return (
     <Dropdown
       contentClassName="w-80 p-0"
+      onOpenChange={(open) => { if (!open) setSelected(null); }}
       trigger={
         <motion.span
           className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground/50 transition-all duration-200 hover:bg-muted/50 hover:text-foreground"
@@ -212,7 +220,7 @@ export function Notifications() {
       }
     >
       {(close) => (
-        <div className="overflow-hidden relative">
+        <div className="overflow-hidden relative" onMouseDown={(e) => e.stopPropagation()}>
           <AnimatePresence mode="wait">
             {selected ? (
               <NotificationDetail
@@ -270,7 +278,7 @@ export function Notifications() {
                           className="border-b border-border/10 last:border-0"
                         >
                           <button
-                            onClick={() => handleClick(item)}
+                            onClick={(e) => handleClick(item, e)}
                             className={`w-full group flex items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/20 ${isUnread ? "bg-primary/[0.02]" : ""}`}
                           >
                             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.color.split(" ")[1]}`}>

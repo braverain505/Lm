@@ -11,11 +11,20 @@ interface DropdownProps {
   align?: "start" | "end";
   className?: string;
   contentClassName?: string;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function Dropdown({ trigger, children, align = "end", className, contentClassName }: DropdownProps) {
-  const [open, setOpen] = React.useState(false);
+export function Dropdown({ trigger, children, align = "end", className, contentClassName, onOpenChange }: DropdownProps) {
+  const [open, setOpenRaw] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
+
+  const setOpen = React.useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    setOpenRaw((prev) => {
+      const next = typeof v === "function" ? v(prev) : v;
+      onOpenChange?.(next);
+      return next;
+    });
+  }, [onOpenChange]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -31,7 +40,7 @@ export function Dropdown({ trigger, children, align = "end", className, contentC
       document.removeEventListener("mousedown", onClick);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>

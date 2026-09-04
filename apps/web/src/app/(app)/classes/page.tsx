@@ -59,17 +59,23 @@ export default function ClassesPage() {
     onSuccess: invalidate,
   });
 
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const createSession = useMutation({
     mutationFn: async () => {
       if (!schoolId) throw new Error("No active school");
-      return api.schoolFetch(schoolId, "/academics/sessions", {
+      const res = await api.schoolFetch<{ id: string }>(schoolId, "/academics/sessions", {
         method: "POST",
         body: JSON.stringify({ name: sessionName, is_current: sessions.length === 0 }),
       });
+      return res;
     },
     onSuccess: () => {
       invalidate();
       setSessionName("");
+      setSessionError(null);
+    },
+    onError: (err: Error) => {
+      setSessionError(err.message || "Failed to create session. Please try again.");
     },
   });
 
@@ -106,6 +112,7 @@ export default function ClassesPage() {
     },
   });
 
+  const [termError, setTermError] = useState<string | null>(null);
   const createTerm = useMutation({
     mutationFn: async () => {
       if (!schoolId) throw new Error("No active school");
@@ -123,6 +130,10 @@ export default function ClassesPage() {
       invalidate();
       setTermName("");
       setTermNo(0);
+      setTermError(null);
+    },
+    onError: (err: Error) => {
+      setTermError(err.message || "Failed to create term. Please try again.");
     },
   });
 
@@ -258,11 +269,24 @@ export default function ClassesPage() {
                 ))
               )}
               <div className="flex gap-2 pt-2">
-                <Input placeholder="2026/2027" value={sessionName} onChange={(e) => setSessionName(e.target.value)} />
-                <Button size="sm" onClick={() => createSession.mutate()} disabled={!sessionName}>
+                <Input
+                  placeholder="2026/2027"
+                  value={sessionName}
+                  onChange={(e) => { setSessionName(e.target.value); setSessionError(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter" && sessionName) createSession.mutate(); }}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => createSession.mutate()}
+                  disabled={!sessionName || createSession.isPending}
+                  isLoading={createSession.isPending}
+                >
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
+              {sessionError && (
+                <p className="text-[12px] text-destructive mt-1">{sessionError}</p>
+              )}
             </CardContent>
           </Card>
           </motion.div>
@@ -332,10 +356,14 @@ export default function ClassesPage() {
                     size="sm"
                     onClick={() => createTerm.mutate()}
                     disabled={!termName || termNo <= 0 || createTerm.isPending}
+                    isLoading={createTerm.isPending}
                     className="w-full"
                   >
                     <Plus className="h-3.5 w-3.5" /> Add term
                   </Button>
+                  {termError && (
+                    <p className="text-[12px] text-destructive">{termError}</p>
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground/50">Create a session first.</p>
