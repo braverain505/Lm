@@ -13,6 +13,7 @@ import { Check, Loader2, Lock, RotateCcw, X } from "lucide-react";
 import type { WorkbenchRow } from "@schoolos/shared";
 import { cn } from "@/lib/utils";
 import { useSessionTerm } from "@/providers/session-context";
+import { useToast } from "@/components/toast";
 
 type NextStep = { action: "verify" | "approve" | "publish"; label: string } | null;
 
@@ -63,6 +64,7 @@ export default function ApprovalsPage() {
   const [rejectingKey, setRejectingKey] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [processError, setProcessError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const grouped = new Map<string, WorkbenchRow[]>();
   rows.forEach((r) => {
@@ -81,7 +83,13 @@ export default function ApprovalsPage() {
     const step = nextStep(r);
     if (step?.action === action) {
       const fn = action === "verify" ? validating : action === "approve" ? approving : publishing;
-      fn.mutate({ cell: cellOf(r) });
+      fn.mutate(
+        { cell: cellOf(r) },
+        {
+          onSuccess: () => toast(`${r.subject_name}: ${step.label} ✓`),
+          onError: () => toast(`Failed to ${action} ${r.subject_name}`, "error"),
+        },
+      );
     }
   };
 
@@ -92,11 +100,13 @@ export default function ApprovalsPage() {
     setProcessError(null);
     ready
       .reduce(
-            (chain, row) => chain.then(() => compiling.mutateAsync(cellOf(row)).then(() => undefined)),
+        (chain, row) => chain.then(() => compiling.mutateAsync(cellOf(row)).then(() => undefined)),
         Promise.resolve(),
       )
+      .then(() => toast(`Processed ${ready.length} result${ready.length === 1 ? "" : "s"} ✓`))
       .catch((error: unknown) => {
         setProcessError(error instanceof Error ? error.message : "Could not process all ready results");
+        toast("Failed to process some results", "error");
       });
   };
 
@@ -197,7 +207,12 @@ export default function ApprovalsPage() {
                           size="sm"
                           variant="outline"
                           disabled={busy || selectedTermClosed}
-                          onClick={() => compiling.mutate(cellOf(row))}
+                          onClick={() => {
+                            compiling.mutate(cellOf(row), {
+                              onSuccess: () => toast(`Result generated for ${row.subject_name}`),
+                              onError: () => toast(`Failed to generate result for ${row.subject_name}`, "error"),
+                            });
+                          }}
                         >
                           {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                           Generate card
@@ -254,7 +269,11 @@ export default function ApprovalsPage() {
                             onClick={() => {
                               rejecting.mutate(
                                 { cell: cellOf(row), reason: reason.trim() },
-                                { onSettled: () => setRejectingKey(null) },
+                                {
+                                  onSettled: () => setRejectingKey(null),
+                                  onSuccess: () => toast(`Bounced ${row.subject_name} to draft`),
+                                  onError: () => toast(`Failed to reject ${row.subject_name}`, "error"),
+                                },
                               );
                             }}
                           >

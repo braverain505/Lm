@@ -172,15 +172,20 @@ export default function TeachersPage() {
 
   const onAddTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createStaff.mutateAsync({
-      staff_no: form.staff_no,
-      full_name: form.full_name,
-      membership_type: form.membership_type,
-      gender: form.gender || null,
-      phone: form.phone || null,
-      email: form.email || null,
-    });
-    resetForm();
+    try {
+      await createStaff.mutateAsync({
+        staff_no: form.staff_no,
+        full_name: form.full_name,
+        membership_type: form.membership_type,
+        gender: form.gender || null,
+        phone: form.phone || null,
+        email: form.email || null,
+      });
+      resetForm();
+      toast("Staff member created successfully");
+    } catch {
+      toast("Failed to create staff member", "error");
+    }
   };
 
   const onSubmitAccount = async (e: React.FormEvent) => {
@@ -232,6 +237,7 @@ export default function TeachersPage() {
       });
     }
     closeAccountForm();
+    toast(accountMode === "change" ? "Account updated" : "Account created");
   };
 
   const onAssign = async (e: React.FormEvent) => {
@@ -250,11 +256,17 @@ export default function TeachersPage() {
       teacher_id: assignFor,
     });
     setAssignSubject("");
+    toast("Subject assigned successfully");
   };
 
   const onUnassign = async (assignmentId: string) => {
-    await deleteAssignment.mutateAsync(assignmentId);
-    queryClient.invalidateQueries({ queryKey: ["staff-assignments", schoolId, assignFor] });
+    try {
+      await deleteAssignment.mutateAsync(assignmentId);
+      queryClient.invalidateQueries({ queryKey: ["staff-assignments", schoolId, assignFor] });
+      toast("Subject unassigned");
+    } catch {
+      toast("Failed to unassign subject", "error");
+    }
   };
 
   const onDeleteStaff = async (s: Staff) => {
@@ -262,9 +274,14 @@ export default function TeachersPage() {
       `Delete ${s.full_name}? This removes them from the staff list, unassigns their subjects and revokes their login.`,
     );
     if (!ok) return;
-    await deleteStaff.mutateAsync(s.id);
-    if (accountFor === s.id) closeAccountForm();
-    if (assignFor === s.id) setAssignFor(null);
+    try {
+      await deleteStaff.mutateAsync(s.id);
+      if (accountFor === s.id) closeAccountForm();
+      if (assignFor === s.id) setAssignFor(null);
+      toast("Staff member deleted");
+    } catch {
+      toast("Failed to delete staff member", "error");
+    }
   };
 
   return (

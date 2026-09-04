@@ -65,7 +65,7 @@ function PhotoFrame({ src, fallback }: { src?: string | null; fallback: string }
     <div className="rc-photo">
       {resolvedSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={resolvedSrc} alt="Student" crossOrigin="anonymous" />
+        <img src={resolvedSrc} alt="Student" />
       ) : (
         <span className="rc-photo-fallback">{fallback}</span>
       )}
@@ -79,7 +79,7 @@ function LogoFrame({ src, fallback }: { src?: string | null; fallback: string })
     <div className="rc-logo">
       {resolvedSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={resolvedSrc} alt="School crest" crossOrigin="anonymous" />
+        <img src={resolvedSrc} alt="School crest" />
       ) : (
         <span className="rc-logo-fallback">{fallback}</span>
       )}
@@ -110,7 +110,7 @@ export function ReportCardDocument({ card, template }: { card: ReportCard; templ
           <div>
             <h1 className="rc-school-name">{card.school.name}</h1>
             {card.school.motto && (
-              <p className="rc-motto">“{card.school.motto}”</p>
+              <p className="rc-motto">&ldquo;{card.school.motto}&rdquo;</p>
             )}
             <div className="rc-rule" />
             <h2 className="rc-title">Report Card</h2>
@@ -284,7 +284,7 @@ export function ReportCardDocument({ card, template }: { card: ReportCard; templ
           </div>
           <div className="rc-metric">
             <span className="k">Conduct</span>
-            <span className="v" style={{ fontSize: 15 }}>
+            <span className="v" style={{ fontSize: 13 }}>
               {card.conduct ?? "—"}
             </span>
             <span className="s">Overall</span>

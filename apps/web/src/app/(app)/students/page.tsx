@@ -27,6 +27,7 @@ export default function StudentsPage() {
   const schoolId = useActiveSchoolId();
   const { data = [], isLoading } = useStudents();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // --- Add student form ------------------------------------------------------
   const [addOpen, setAddOpen] = useState(false);
@@ -71,7 +72,6 @@ export default function StudentsPage() {
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
   const updateStudent = useUpdateStudent();
-  const { toast } = useToast();
 
   const openEdit = (student: typeof data[0]) => {
     setEditFor(student.id);
@@ -122,7 +122,9 @@ export default function StudentsPage() {
     onSuccess: () => {
       setPinFor(null);
       setPinValue("");
+      toast("PIN set successfully");
     },
+    onError: () => toast("Failed to set PIN", "error"),
   });
 
   const createStudent = useMutation({
@@ -137,7 +139,9 @@ export default function StudentsPage() {
       void queryClient.invalidateQueries({ queryKey: ["students"] });
       setAddOpen(false);
       setForm({ admission_no: "", first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
+      toast("Student created successfully");
     },
+    onError: (err: Error) => toast(err.message || "Failed to create student", "error"),
   });
 
   const [q, setQ] = useState("");
@@ -155,29 +159,39 @@ export default function StudentsPage() {
   const onEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!enrollFor || !enrollArm || !currentSessionId) return;
-    await enrollStudent.mutateAsync({ student_id: enrollFor, arm_id: enrollArm, session_id: currentSessionId });
-    setEnrollFor(null);
-    setEnrollArm("");
+    try {
+      await enrollStudent.mutateAsync({ student_id: enrollFor, arm_id: enrollArm, session_id: currentSessionId });
+      setEnrollFor(null);
+      setEnrollArm("");
+      toast("Student enrolled successfully");
+    } catch {
+      toast("Failed to enroll student", "error");
+    }
   };
 
   const onPromote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!promoteFrom || !promoteTo) return;
-    const result = await promote.mutateAsync({
-      from_session_id: promoteFrom,
-      to_session_id: promoteTo,
-      target_arms: fromArms
-        .map((a) => ({ from_arm_id: a.id, to_arm_id: armMappings[a.id] }))
-        .filter((pair) => pair.to_arm_id),
-    });
-    setPromoteResult(
-      `Promoted ${result.promoted} student${result.promoted === 1 ? "" : "s"}` +
-        (result.skipped.length > 0 ? ` · ${result.skipped.length} skipped (no target class assigned)` : ""),
-    );
-    setPromoteOpen(false);
-    setPromoteFrom("");
-    setPromoteTo("");
-    setArmMappings({});
+    try {
+      const result = await promote.mutateAsync({
+        from_session_id: promoteFrom,
+        to_session_id: promoteTo,
+        target_arms: fromArms
+          .map((a) => ({ from_arm_id: a.id, to_arm_id: armMappings[a.id] }))
+          .filter((pair) => pair.to_arm_id),
+      });
+      setPromoteResult(
+        `Promoted ${result.promoted} student${result.promoted === 1 ? "" : "s"}` +
+          (result.skipped.length > 0 ? ` · ${result.skipped.length} skipped (no target class assigned)` : ""),
+      );
+      setPromoteOpen(false);
+      setPromoteFrom("");
+      setPromoteTo("");
+      setArmMappings({});
+      toast(`Promoted ${result.promoted} student${result.promoted === 1 ? "" : "s"}`);
+    } catch {
+      toast("Failed to promote students", "error");
+    }
   };
 
   const otherSessions = sessions.filter((s) => s.id !== promoteFrom);
@@ -269,8 +283,8 @@ export default function StudentsPage() {
                   <Input placeholder="Lagos" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} />
                 </div>
                 <div className="flex items-end gap-2">
-                  <Button type="submit" disabled={createStudent.isPending}>
-                    {createStudent.isPending ? "Saving…" : "Create"}
+                  <Button type="submit" disabled={createStudent.isPending} isLoading={createStudent.isPending}>
+                    Create
                   </Button>
                   <Button type="button" variant="ghost" onClick={() => setAddOpen(false)}>Cancel</Button>
                 </div>
@@ -370,8 +384,9 @@ export default function StudentsPage() {
                       !promoteTo ||
                       !fromArms.some((a) => armMappings[a.id])
                     }
+                    isLoading={promote.isPending}
                   >
-                    {promote.isPending ? "Promoting…" : "Promote"}
+                    Promote
                   </Button>
                   <Button type="button" variant="ghost" onClick={() => setPromoteOpen(false)}>Cancel</Button>
                 </div>
@@ -405,8 +420,8 @@ export default function StudentsPage() {
                     ))}
                   </select>
                 </div>
-                <Button type="submit" disabled={enrollStudent.isPending}>
-                  {enrollStudent.isPending ? "Enrolling…" : "Enroll"}
+                <Button type="submit" disabled={enrollStudent.isPending} isLoading={enrollStudent.isPending}>
+                  Enroll
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setEnrollFor(null)}>Cancel</Button>
               </form>
@@ -527,8 +542,8 @@ export default function StudentsPage() {
                   {editPhotoUploading && <p className="text-[11px] text-muted-foreground/60">Uploading photo…</p>}
                 </div>
                 <div className="flex items-end gap-2">
-                  <Button onClick={saveEdit} disabled={updateStudent.isPending}>
-                    {updateStudent.isPending ? "Saving…" : "Save changes"}
+                  <Button onClick={saveEdit} disabled={updateStudent.isPending} isLoading={updateStudent.isPending}>
+                    Save changes
                   </Button>
                   <Button variant="ghost" onClick={() => setEditFor(null)}>Cancel</Button>
                 </div>

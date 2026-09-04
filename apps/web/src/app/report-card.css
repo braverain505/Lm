@@ -22,8 +22,9 @@
     "Helvetica Neue", Arial, sans-serif;
 
   position: relative;
-  width: 100%;
-  max-width: 210mm;
+  width: 210mm;
+  min-height: 297mm;
+  max-height: 297mm;
   margin: 0 auto;
   background: var(--rc-cream);
   color: var(--rc-ink);
@@ -31,6 +32,7 @@
   border: 1px solid var(--rc-line);
   box-shadow: 0 8px 28px rgb(27 44 74 / 0.14);
   border-radius: 10px;
+  overflow: hidden;
 }
 
 /* Inner gold hairline frame */
@@ -41,10 +43,14 @@
   border: 1px solid var(--rc-gold);
   border-radius: 6px;
   pointer-events: none;
+  z-index: 1;
 }
 
 .rc-pad {
-  padding: 26px 30px 24px;
+  padding: 22px 26px 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ------------------------------------------------------------------ *
@@ -52,16 +58,16 @@
  * ------------------------------------------------------------------ */
 .rc-header {
   display: grid;
-  grid-template-columns: 120px 1fr 120px;
+  grid-template-columns: 100px 1fr 100px;
   align-items: center;
-  gap: 22px;
+  gap: 18px;
   text-align: center;
 }
 
 .rc-photo,
 .rc-logo {
-  width: 112px;
-  height: 112px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto;
   border-radius: 9999px;
   border: 2px solid var(--rc-gold);
@@ -82,7 +88,7 @@
 .rc-photo-fallback,
 .rc-logo-fallback {
   font-family: var(--rc-serif);
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 1px;
   color: var(--rc-navy);
@@ -90,7 +96,7 @@
 
 .rc-logo {
   border-radius: 50%;
-  padding: 6px;
+  padding: 5px;
   background: #fff;
 }
 
@@ -102,7 +108,7 @@
 .rc-school-name {
   margin: 0;
   font-family: var(--rc-serif);
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--rc-navy);
@@ -111,18 +117,18 @@
 }
 
 .rc-motto {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-family: var(--rc-serif);
-  font-size: 12.5px;
+  font-size: 11px;
   font-style: italic;
   letter-spacing: 0.6px;
   color: var(--rc-navy-soft);
 }
 
 .rc-rule {
-  width: 150px;
+  width: 120px;
   height: 2px;
-  margin: 12px auto 10px;
+  margin: 8px auto 6px;
   background: linear-gradient(
     90deg,
     transparent,
@@ -135,15 +141,15 @@
 .rc-title {
   margin: 0;
   font-family: var(--rc-serif);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: 6px;
+  letter-spacing: 5px;
   color: var(--rc-navy);
 }
 
 .rc-session {
-  margin: 8px 0 0;
-  font-size: 11px;
+  margin: 5px 0 0;
+  font-size: 9.5px;
   letter-spacing: 2.5px;
   text-transform: uppercase;
   color: var(--rc-muted);
@@ -155,9 +161,9 @@
 .rc-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px 36px;
-  margin-top: 22px;
-  padding: 14px 18px;
+  gap: 4px 30px;
+  margin-top: 14px;
+  padding: 10px 14px;
   border: 1px solid var(--rc-line);
   border-radius: 6px;
   background: #fff;
@@ -165,11 +171,11 @@
 
 .rc-info p {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
-  padding: 4px 0;
-  font-size: 12.5px;
-  line-height: 1.35;
+  padding: 3px 0;
+  font-size: 10.5px;
+  line-height: 1.3;
 }
 
 .rc-info p + p {
@@ -177,13 +183,13 @@
 }
 
 .rc-info span {
-  min-width: 108px;
-  font-size: 9px;
+  min-width: 90px;
+  font-size: 7.5px;
   font-weight: 700;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--rc-navy-soft);
-  padding-top: 2px;
+  padding-top: 1px;
 }
 
 .rc-info strong {
@@ -197,8 +203,8 @@
 .rc-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 10px;
   align-items: start;
 }
 
@@ -212,7 +218,7 @@
 }
 
 .rc-panel-header {
-  padding: 9px 14px 8px;
+  padding: 7px 12px 6px;
   text-align: center;
   color: #fff;
 }
@@ -228,29 +234,29 @@
 .rc-panel-header h3 {
   margin: 0;
   font-family: var(--rc-serif);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.8px;
+  letter-spacing: 1.5px;
 }
 
 .rc-panel-header p {
   margin: 2px 0 0;
-  font-size: 8.5px;
-  letter-spacing: 0.4px;
+  font-size: 7.5px;
+  letter-spacing: 0.3px;
   opacity: 0.92;
 }
 
 .rc-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10.5px;
+  font-size: 9px;
 }
 
 .rc-table th {
-  padding: 5px 8px;
-  font-size: 8px;
+  padding: 4px 6px;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   text-align: left;
   color: var(--rc-navy-soft);
@@ -259,8 +265,9 @@
 }
 
 .rc-table td {
-  padding: 5px 8px;
+  padding: 3.5px 6px;
   border-bottom: 1px solid #e9e3d5;
+  font-size: 9px;
 }
 
 .rc-table tbody tr:last-child td {
@@ -281,14 +288,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-top: 2px solid var(--rc-line);
   background: var(--rc-cream-deep);
-  font-size: 8.5px;
+  font-size: 7.5px;
   font-weight: 700;
-  letter-spacing: 1.1px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--rc-navy-soft);
 }
@@ -302,34 +309,34 @@
 }
 
 .rc-avg strong {
-  font-size: 11px;
-  letter-spacing: 0.4px;
+  font-size: 9.5px;
+  letter-spacing: 0.3px;
 }
 
 /* ------------------------------------------------------------------ *
  * Grading key
  * ------------------------------------------------------------------ */
 .rc-grading {
-  margin-top: 16px;
+  margin-top: 10px;
   border: 1px solid var(--rc-line);
   border-radius: 6px;
   background: #fff;
-  padding: 10px 16px;
+  padding: 8px 12px;
 }
 
 .rc-grading h3 {
-  margin: 0 0 6px;
+  margin: 0 0 5px;
   font-family: var(--rc-serif);
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.8px;
   color: var(--rc-navy);
 }
 
 .rc-bands {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .rc-band {
@@ -337,28 +344,28 @@
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 6px 4px;
+  padding: 5px 3px;
   border: 1px solid var(--rc-line);
-  border-radius: 5px;
+  border-radius: 4px;
   background: var(--rc-cream);
 }
 
 .rc-band em {
   font-style: normal;
   font-family: var(--rc-serif);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--rc-navy);
 }
 
 .rc-band span {
-  font-size: 8px;
+  font-size: 7px;
   color: var(--rc-muted);
   white-space: nowrap;
 }
 
 .rc-band b {
-  font-size: 8.5px;
+  font-size: 7.5px;
   font-weight: 600;
   color: var(--rc-ink);
 }
@@ -369,7 +376,7 @@
 .rc-summary {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  margin-top: 16px;
+  margin-top: 10px;
   border: 1px solid var(--rc-line);
   border-radius: 6px;
   background: #fff;
@@ -377,7 +384,7 @@
 }
 
 .rc-metric {
-  padding: 10px 8px 9px;
+  padding: 8px 6px 7px;
   text-align: center;
 }
 
@@ -387,18 +394,18 @@
 
 .rc-metric .k {
   display: block;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   color: var(--rc-navy-soft);
 }
 
 .rc-metric .v {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   font-family: var(--rc-serif);
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--rc-navy);
   line-height: 1.05;
@@ -406,9 +413,9 @@
 
 .rc-metric .s {
   display: block;
-  margin-top: 2px;
-  font-size: 8.5px;
-  letter-spacing: 0.6px;
+  margin-top: 1px;
+  font-size: 7.5px;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--rc-muted);
 }
@@ -417,30 +424,30 @@
  * Best in core subject awards
  * ------------------------------------------------------------------ */
 .rc-awards {
-  margin-top: 14px;
+  margin-top: 10px;
   border: 1px solid var(--rc-gold);
   border-radius: 6px;
   background: #fff;
-  padding: 10px 14px;
+  padding: 8px 12px;
 }
 
 .rc-awards h3 {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 1.6px;
+  letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--rc-gold);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .rc-award-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 16px;
+  gap: 6px 14px;
 }
 
 .rc-award {
-  font-size: 11px;
+  font-size: 9.5px;
   color: var(--rc-ink);
 }
 
@@ -460,7 +467,7 @@
 
 .rc-comp-max {
   display: block;
-  font-size: 7.5px;
+  font-size: 6.5px;
   font-weight: 500;
   color: var(--rc-muted);
 }
@@ -469,37 +476,38 @@
  * Next term panel
  * ------------------------------------------------------------------ */
 .rc-next {
-  margin-top: 16px;
-  padding: 12px 18px;
+  margin-top: 10px;
+  padding: 8px 14px;
   border-radius: 6px;
   background: var(--rc-navy);
   color: #fff;
   text-align: center;
-  font-size: 12.5px;
-  letter-spacing: 0.5px;
+  font-size: 10.5px;
+  letter-spacing: 0.4px;
 }
 
 .rc-next strong {
   font-family: var(--rc-serif);
   font-weight: 700;
   color: var(--rc-gold-soft);
-  font-size: 14px;
-  letter-spacing: 0.6px;
+  font-size: 12px;
+  letter-spacing: 0.5px;
 }
 
 /* ------------------------------------------------------------------ *
  * Comments
  * ------------------------------------------------------------------ */
 .rc-comments {
-  margin-top: 16px;
+  margin-top: 10px;
+  flex-shrink: 0;
 }
 
 .rc-comments > h3 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-family: var(--rc-serif);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 2.5px;
   text-align: center;
   color: var(--rc-navy);
 }
@@ -507,26 +515,26 @@
 .rc-comment-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 10px;
 }
 
 .rc-comment {
   border: 1px solid var(--rc-line);
   border-radius: 6px;
   background: #fff;
-  padding: 10px 12px 12px;
+  padding: 8px 10px 10px;
   display: flex;
   flex-direction: column;
 }
 
 .rc-comment h4 {
-  margin: 0 0 7px;
-  padding-bottom: 6px;
+  margin: 0 0 5px;
+  padding-bottom: 5px;
   border-bottom: 1px solid var(--rc-cream-deep);
   font-family: var(--rc-serif);
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--rc-navy-soft);
   text-align: center;
@@ -536,26 +544,26 @@
   margin: 0;
   flex: 1;
   font-family: var(--rc-serif);
-  font-size: 10.5px;
-  line-height: 1.5;
+  font-size: 9px;
+  line-height: 1.45;
   font-style: italic;
   color: var(--rc-ink);
-  min-height: 52px;
+  min-height: 36px;
 }
 
 .rc-sign {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .rc-sign-line {
   height: 1px;
   border-top: 1px solid var(--rc-ink);
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .rc-sign .who {
   font-family: var(--rc-serif);
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 700;
   text-align: center;
   color: var(--rc-ink);
@@ -563,8 +571,8 @@
 
 .rc-sign .role,
 .rc-sign .date {
-  font-size: 8.5px;
-  letter-spacing: 0.8px;
+  font-size: 7.5px;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   text-align: center;
   color: var(--rc-muted);
@@ -572,7 +580,7 @@
 }
 
 .rc-sign .role {
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 /* ------------------------------------------------------------------ *
@@ -615,11 +623,15 @@
   .rc-sheet {
     max-width: none;
     width: 100% !important;
+    min-height: auto;
+    max-height: none;
+    height: auto !important;
     box-shadow: none;
     border: none;
     border-radius: 0;
     margin: 0;
     display: block !important;
+    overflow: visible;
   }
 
   .rc-sheet::before {

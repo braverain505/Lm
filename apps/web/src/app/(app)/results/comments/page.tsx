@@ -95,8 +95,8 @@ function CommentsContent() {
   const [selectedArm, setSelectedArm] = useState(armId ?? "");
   const [selectedTerm, setSelectedTerm] = useState(termId ?? "");
 
-  // Use URL params or state
-  const effectiveArm = armId ?? selectedArm;
+  // Use URL params or state, auto-select first arm and current term
+  const effectiveArm = armId || selectedArm || visibleArms[0]?.id || "";
   const effectiveTerm =
     termId ??
     selectedTerm ??
