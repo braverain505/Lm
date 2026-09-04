@@ -18,7 +18,7 @@ const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/
   .trim()
   .replace(/\/$/, '');
 
-console.log('[API Proxy] Loaded. API_URL:', API_URL);
+
 
 /**
  * Forward request to backend API
@@ -48,12 +48,19 @@ async function forwardRequest(
     );
   }
 
-  console.log(`[API Proxy] ${method} ${pathname} → ${url.toString()}`);
+
 
   // Forward cookies from incoming request to backend
   const cookieHeader = request?.headers.get('cookie');
   const headers = new Headers();
-  headers.set('Content-Type', 'application/json');
+
+  // Detect if this is a FormData (multipart) upload
+  const contentType = request?.headers.get('content-type') || '';
+  const isMultipart = contentType.includes('multipart/form-data');
+
+  if (!isMultipart) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   // Forward authorization header if present
   const authHeader = request?.headers.get('authorization');
@@ -70,7 +77,6 @@ async function forwardRequest(
   // Forward cookies to backend
   if (cookieHeader) {
     headers.set('Cookie', cookieHeader);
-    console.log('[API Proxy] Forwarding cookies to backend');
   }
 
   // Build request options
@@ -80,8 +86,13 @@ async function forwardRequest(
   };
 
   // Add body for POST, PUT, PATCH requests
-  if (body && ['POST', 'PUT', 'PATCH'].includes(method)) {
-    fetchOptions.body = JSON.stringify(body);
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    if (isMultipart && request) {
+      // Forward FormData as-is (body is already the raw multipart)
+      fetchOptions.body = await request.formData();
+    } else if (body) {
+      fetchOptions.body = JSON.stringify(body);
+    }
   }
 
   try {
@@ -90,7 +101,7 @@ async function forwardRequest(
     // Extract response body
     const data = await response.json().catch(() => response.text());
 
-    console.log(`[API Proxy] Response status: ${response.status}`);
+
 
     // Create the response
     const nextResponse = NextResponse.json(data, { status: response.status });
@@ -102,7 +113,7 @@ async function forwardRequest(
     // token expires. Map /api/ -> /api/proxy/ (a plain Path=/ stays Path=/).
     const setCookies = response.headers.getSetCookie();
     if (setCookies && setCookies.length > 0) {
-      console.log(`[API Proxy] Forwarding ${setCookies.length} Set-Cookie headers from backend`);
+
       setCookies.forEach(cookie => {
         const rewritten = cookie.replace(/;\s*Path=\/api\//i, '; Path=/api/proxy/');
         nextResponse.headers.append('Set-Cookie', rewritten);
@@ -132,8 +143,6 @@ export async function GET(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
-  console.log('[API Proxy] GET handler called with path:', path);
-
   return forwardRequest('GET', pathname, searchParams, undefined, request);
 }
 
@@ -147,8 +156,6 @@ export async function POST(
   const { path } = await params;
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
-
-  console.log('[API Proxy] POST handler called with path:', path);
 
   let body;
   try {
@@ -171,8 +178,6 @@ export async function PUT(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
-  console.log('[API Proxy] PUT handler called with path:', path);
-
   let body;
   try {
     body = await request.json();
@@ -194,8 +199,6 @@ export async function PATCH(
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
 
-  console.log('[API Proxy] PATCH handler called with path:', path);
-
   let body;
   try {
     body = await request.json();
@@ -216,8 +219,6 @@ export async function DELETE(
   const { path } = await params;
   const pathname = `/${path.join('/')}`;
   const searchParams = request.nextUrl.searchParams;
-
-  console.log('[API Proxy] DELETE handler called with path:', path);
 
   return forwardRequest('DELETE', pathname, searchParams, undefined, request);
 }
