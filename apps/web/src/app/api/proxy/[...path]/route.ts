@@ -61,6 +61,12 @@ async function forwardRequest(
     headers.set('Authorization', authHeader);
   }
 
+  // Forward X-School-Id header for tenant resolution
+  const schoolId = request?.headers.get('x-school-id');
+  if (schoolId) {
+    headers.set('X-School-Id', schoolId);
+  }
+
   // Forward cookies to backend
   if (cookieHeader) {
     headers.set('Cookie', cookieHeader);
