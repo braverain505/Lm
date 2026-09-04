@@ -58,6 +58,8 @@ async function forwardRequest(
   const contentType = request?.headers.get('content-type') || '';
   const isMultipart = contentType.includes('multipart/form-data');
 
+  // For multipart uploads, do NOT set Content-Type — the browser must
+  // set it automatically with the correct boundary string.
   if (!isMultipart) {
     headers.set('Content-Type', 'application/json');
   }
@@ -79,24 +81,39 @@ async function forwardRequest(
     headers.set('Cookie', cookieHeader);
   }
 
-  // Build request options
-  const fetchOptions: RequestInit = {
-    method,
-    headers,
-  };
-
-  // Add body for POST, PUT, PATCH requests
-  if (['POST', 'PUT', 'PATCH'].includes(method)) {
-    if (isMultipart && request) {
-      // Forward FormData as-is (body is already the raw multipart)
-      fetchOptions.body = await request.formData();
-    } else if (body) {
-      fetchOptions.body = JSON.stringify(body);
-    }
-  }
-
   try {
-    const response = await fetch(url.toString(), fetchOptions);
+    let response: Response;
+
+    if (isMultipart && request && ['POST', 'PUT', 'PATCH'].includes(method)) {
+      // For multipart uploads, forward the original Request directly so the
+      // browser preserves the Content-Type boundary and streams the body natively.
+      // Calling request.formData() would reconstruct the body with a new boundary
+      // that doesn't match the forwarded Content-Type, causing backend parse errors.
+      const forwardHeaders = new Headers();
+      const fwdAuth = request.headers.get('authorization');
+      if (fwdAuth) forwardHeaders.set('Authorization', fwdAuth);
+      const fwdSchool = request.headers.get('x-school-id');
+      if (fwdSchool) forwardHeaders.set('X-School-Id', fwdSchool);
+      if (cookieHeader) forwardHeaders.set('Cookie', cookieHeader);
+
+      response = await fetch(url.toString(), {
+        method,
+        headers: forwardHeaders,
+        body: request as unknown as BodyInit,
+      });
+    } else {
+      // Build request options for non-multipart requests
+      const fetchOptions: RequestInit = {
+        method,
+        headers,
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
+        fetchOptions.body = JSON.stringify(body);
+      }
+
+      response = await fetch(url.toString(), fetchOptions);
+    }
 
     // Extract response body
     const data = await response.json().catch(() => response.text());

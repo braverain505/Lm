@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Plus, Search, UserPlus } from "lucide-react";
+import { ArrowUpRight, MessageSquare, Plus, Search, UserPlus } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { api } from "@schoolos/shared";
@@ -19,6 +19,7 @@ import {
   usePromoteStudents,
   useSessions,
   useStudents,
+  useTerms,
   useUpdateStudent,
 } from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
@@ -28,6 +29,45 @@ export default function StudentsPage() {
   const { data = [], isLoading } = useStudents();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // --- Comment status for current term ---
+  const { data: sessions = [] } = useSessions();
+  const currentSessionId = sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? null;
+  const { data: terms = [] } = useTerms(currentSessionId);
+  const currentTermId = terms.find((t) => t.is_current)?.id ?? terms[0]?.id ?? null;
+  const { data: arms = [] } = useArms(currentSessionId);
+
+  // Fetch report cards for all arms to build comment status map
+  // We fetch each arm's cards and merge into a single map
+  const [commentMap, setCommentMap] = useState<Record<string, boolean>>({});
+
+  // Use a ref to track which arms we've already fetched
+  const fetchedArmsRef = useRef<Set<string>>(new Set());
+
+  // Fetch comment status for each arm when data loads
+  // Using individual fetch calls to build the comment map
+  useMemo(() => {
+    if (!schoolId || !currentTermId || arms.length === 0) return;
+    const armsToFetch = arms.filter((a) => !fetchedArmsRef.current.has(a.id));
+    if (armsToFetch.length === 0) return;
+
+    armsToFetch.forEach((arm) => {
+      fetchedArmsRef.current.add(arm.id);
+      api.fetchReportCards(schoolId, arm.id, currentTermId)
+        .then((cards) => {
+          setCommentMap((prev) => {
+            const next = { ...prev };
+            cards.forEach((card) => {
+              next[card.student.student_id] = Boolean(card.comments.homeroom);
+            });
+            return next;
+          });
+        })
+        .catch(() => {
+          // Silently ignore — comments just won't show
+        });
+    });
+  }, [schoolId, currentTermId, arms]);
 
   // --- Add student form ------------------------------------------------------
   const [addOpen, setAddOpen] = useState(false);
@@ -52,9 +92,6 @@ export default function StudentsPage() {
   const [enrollFor, setEnrollFor] = useState<string | null>(null);
   const [enrollArm, setEnrollArm] = useState("");
   const enrollStudent = useEnrollStudent();
-  const { data: sessions = [] } = useSessions();
-  const currentSessionId = sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? null;
-  const { data: arms = [] } = useArms(currentSessionId);
 
   // --- Promote ---------------------------------------------------------------
   const [promoteOpen, setPromoteOpen] = useState(false);
@@ -573,15 +610,16 @@ export default function StudentsPage() {
                   <th className="pb-2.5 font-semibold">Name</th>
                   <th className="pb-2.5 font-semibold">Gender</th>
                   <th className="pb-2.5 font-semibold">State</th>
+                  <th className="pb-2.5 font-semibold">Comments</th>
                   <th className="pb-2.5 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={5}><Skeleton className="my-2 h-6 w-full" /></td></tr>
+                  <tr><td colSpan={6}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center">
+                    <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
                           <UserPlus className="h-5 w-5 text-muted-foreground/40" />
@@ -593,27 +631,41 @@ export default function StudentsPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((s) => (
-                    <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
-                      <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
-                      <td className="py-3 font-medium">{s.full_name}</td>
-                      <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
-                      <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
-                      <td className="py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
-                            Edit
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => setPinFor(s.id)}>
-                            PIN
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
-                            Enroll
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filtered.map((s) => {
+                    const hasComment = commentMap[s.id];
+                    return (
+                      <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                        <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
+                        <td className="py-3 font-medium">{s.full_name}</td>
+                        <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
+                        <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
+                        <td className="py-3">
+                          {hasComment === true ? (
+                            <Badge variant="success" className="gap-1 text-[10px]">
+                              <MessageSquare className="h-3 w-3" /> Entered
+                            </Badge>
+                          ) : hasComment === false ? (
+                            <Badge variant="warning" className="text-[10px]">Pending</Badge>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
+                              Edit
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setPinFor(s.id)}>
+                              PIN
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
+                              Enroll
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
