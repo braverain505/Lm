@@ -1,0 +1,304 @@
+/* ------------------------------------------------------------------ *
+ * Report Card Template Variants
+ *
+ * Each template overrides the base .rc-sheet CSS variables and specific
+ * selectors. Applied by adding a class like "rc-template-modern" to the
+ * .rc-sheet element.
+ * ------------------------------------------------------------------ */
+
+/* ---- Modern Template ---- */
+.rc-template-modern {
+  --rc-navy: #2563eb;
+  --rc-navy-deep: #1d4ed8;
+  --rc-navy-soft: #3b82f6;
+  --rc-gold: #2563eb;
+  --rc-gold-soft: #60a5fa;
+  --rc-green: #059669;
+  --rc-green-soft: #10b981;
+  --rc-cream: #ffffff;
+  --rc-cream-deep: #f8fafc;
+  --rc-ink: #0f172a;
+  --rc-muted: #64748b;
+  --rc-line: #e2e8f0;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.08);
+}
+
+.rc-template-modern::before {
+  border: none;
+  inset: 0;
+  border-radius: 16px;
+}
+
+.rc-template-modern .rc-school-name {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.5px;
+  text-transform: none;
+  font-size: 28px;
+}
+
+.rc-template-modern .rc-motto {
+  font-style: normal;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #64748b;
+}
+
+.rc-template-modern .rc-rule {
+  background: linear-gradient(90deg, transparent, #2563eb 20%, #2563eb 80%, transparent);
+  height: 3px;
+  border-radius: 2px;
+  width: 100px;
+}
+
+.rc-template-modern .rc-title {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 3px;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.rc-template-modern .rc-session {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 1px;
+  color: #94a3b8;
+}
+
+.rc-template-modern .rc-panel-header {
+  border-radius: 8px 8px 0 0;
+}
+
+.rc-template-modern .rc-panel-navy .rc-panel-header {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.rc-template-modern .rc-panel-green .rc-panel-header {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.rc-template-modern .rc-next {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.rc-template-modern .rc-comment-grid {
+  gap: 12px;
+}
+
+.rc-template-modern .rc-comment {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+/* ---- Elegant Template ---- */
+.rc-template-elegant {
+  --rc-navy: #5b21b6;
+  --rc-navy-deep: #4c1d95;
+  --rc-navy-soft: #7c3aed;
+  --rc-gold: #b8903a;
+  --rc-gold-soft: #d9b45e;
+  --rc-green: #047857;
+  --rc-green-soft: #059669;
+  --rc-cream: #fefcff;
+  --rc-cream-deep: #f5f3ff;
+  --rc-ink: #1e1b4b;
+  --rc-muted: #6b7280;
+  --rc-line: #ddd6fe;
+  border-radius: 14px;
+  border: 1px solid #ddd6fe;
+  box-shadow: 0 8px 30px rgba(91, 33, 182, 0.1);
+}
+
+.rc-template-elegant::before {
+  border: 1px solid #b8903a;
+  inset: 8px;
+  border-radius: 10px;
+}
+
+.rc-template-elegant .rc-school-name {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: 2px;
+  color: #5b21b6;
+}
+
+.rc-template-elegant .rc-rule {
+  background: linear-gradient(90deg, transparent, #b8903a 20%, #b8903a 80%, transparent);
+}
+
+.rc-template-elegant .rc-title {
+  letter-spacing: 5px;
+  color: #5b21b6;
+}
+
+.rc-template-elegant .rc-panel-navy .rc-panel-header {
+  background: linear-gradient(135deg, #5b21b6, #4c1d95);
+}
+
+.rc-template-elegant .rc-panel-green .rc-panel-header {
+  background: linear-gradient(135deg, #047857, #059669);
+}
+
+.rc-template-elegant .rc-avg {
+  color: #5b21b6;
+}
+
+.rc-template-elegant .rc-panel-green .rc-avg {
+  color: #047857;
+}
+
+.rc-template-elegant .rc-next {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #5b21b6, #4c1d95);
+}
+
+.rc-template-elegant .rc-awards {
+  border-color: #b8903a;
+}
+
+.rc-template-elegant .rc-awards h3 {
+  color: #b8903a;
+}
+
+.rc-template-elegant .rc-comment {
+  border-color: #ddd6fe;
+}
+
+.rc-template-elegant .rc-metric .v {
+  color: #5b21b6;
+}
+
+.rc-template-elegant .rc-photo,
+.rc-template-elegant .rc-logo {
+  border-color: #b8903a;
+}
+
+/* ---- Minimal Template ---- */
+.rc-template-minimal {
+  --rc-navy: #18181b;
+  --rc-navy-deep: #09090b;
+  --rc-navy-soft: #3f3f46;
+  --rc-gold: #18181b;
+  --rc-gold-soft: #71717a;
+  --rc-green: #16a34a;
+  --rc-green-soft: #22c55e;
+  --rc-cream: #ffffff;
+  --rc-cream-deep: #f4f4f5;
+  --rc-ink: #09090b;
+  --rc-muted: #71717a;
+  --rc-line: #e4e4e7;
+  border-radius: 10px;
+  border: 1px solid #e4e4e7;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.rc-template-minimal::before {
+  border: none;
+  inset: 0;
+  border-radius: 10px;
+}
+
+.rc-template-minimal .rc-school-name {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: -0.3px;
+  text-transform: none;
+  font-size: 26px;
+  font-weight: 800;
+  color: #09090b;
+}
+
+.rc-template-minimal .rc-motto {
+  font-style: normal;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: #a1a1aa;
+}
+
+.rc-template-minimal .rc-rule {
+  background: #09090b;
+  height: 1px;
+  width: 60px;
+}
+
+.rc-template-minimal .rc-title {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #09090b;
+}
+
+.rc-template-minimal .rc-session {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 1.5px;
+  color: #a1a1aa;
+}
+
+.rc-template-minimal .rc-panel-header {
+  border-radius: 0;
+}
+
+.rc-template-minimal .rc-panel-navy .rc-panel-header {
+  background: #18181b;
+}
+
+.rc-template-minimal .rc-panel-green .rc-panel-header {
+  background: #16a34a;
+}
+
+.rc-template-minimal .rc-photo,
+.rc-template-minimal .rc-logo {
+  border-color: #e4e4e7;
+}
+
+.rc-template-minimal .rc-photo-fallback,
+.rc-template-minimal .rc-logo-fallback {
+  color: #18181b;
+}
+
+.rc-template-minimal .rc-next {
+  border-radius: 8px;
+  background: #18181b;
+}
+
+.rc-template-minimal .rc-metric .v {
+  color: #09090b;
+}
+
+.rc-template-minimal .rc-comment {
+  border-radius: 8px;
+  border-color: #e4e4e7;
+}
+
+.rc-template-minimal .rc-awards {
+  border-color: #e4e4e7;
+}
+
+.rc-template-minimal .rc-awards h3 {
+  color: #71717a;
+}
+
+.rc-template-minimal .rc-band {
+  border-radius: 4px;
+  border-color: #e4e4e7;
+  background: #f4f4f5;
+}
+
+/* ---- Print overrides for all templates ---- */
+@media print {
+  .rc-template-modern,
+  .rc-template-elegant,
+  .rc-template-minimal {
+    max-width: none;
+    width: 100% !important;
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+  }
+
+  .rc-template-modern::before,
+  .rc-template-elegant::before,
+  .rc-template-minimal::before {
+    border: none !important;
+    inset: 0;
+    border-radius: 0;
+  }
+}

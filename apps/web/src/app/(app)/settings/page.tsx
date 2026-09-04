@@ -19,6 +19,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/toast";
+import { ReportTemplatePicker } from "@/components/report-template-picker";
 
 export default function SettingsPage() {
   const { user, activeSchool } = useAuth();
@@ -206,6 +207,17 @@ export default function SettingsPage() {
                 </dl>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Report Card Template */}
+        <Card className="premium-card">
+          <CardHeader>
+            <CardTitle className="text-[15px]">Report card style</CardTitle>
+            <CardDescription>Choose the visual template for report cards</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReportTemplatePicker />
           </CardContent>
         </Card>
 

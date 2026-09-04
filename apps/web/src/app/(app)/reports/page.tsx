@@ -19,6 +19,9 @@ import { cn } from "@/lib/utils";
 import { downloadPdf, downloadBulkPdf } from "@/lib/pdf";
 import { useToast } from "@/components/toast";
 import "@/app/report-card.css";
+import "@/app/report-card-templates.css";
+import { ReportTemplatePicker } from "@/components/report-template-picker";
+import { getSelectedTemplate } from "@/lib/report-templates";
 
 export default function ReportsPage() {
   const { data: sessions = [] } = useSessions();
@@ -31,6 +34,7 @@ export default function ReportsPage() {
   const [armId, setArmId] = useState("");
   const [studentId, setStudentId] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [templateId, setTemplateId] = useState(getSelectedTemplate());
 
   const { data: index = [], isLoading: indexLoading } = useReportIndex(armId || null, term?.id ?? null);
   const { data: card, isLoading: cardLoading, error } = useReportCard(studentId, term?.id ?? null);
@@ -217,6 +221,20 @@ export default function ReportsPage() {
         )}
       </div>
 
+      {/* Template picker (hidden on print) */}
+      <motion.div
+        className="print:hidden"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.12, ease }}
+      >
+        <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
+          <CardContent className="py-5">
+            <ReportTemplatePicker value={templateId} onChange={setTemplateId} />
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* The premium card */}
       {bulkOpen ? (
         <div className="space-y-6 print:space-y-0">
@@ -284,7 +302,7 @@ export default function ReportsPage() {
                     if (el) bulkRefs.current.set(c.enrollment_id, el);
                   }}
                 >
-                  <ReportCardDocument card={c} />
+                  <ReportCardDocument card={c} template={`rc-template-${templateId}`} />
                 </div>
               ))}
             </div>
@@ -318,7 +336,7 @@ export default function ReportsPage() {
           )}
           <CommentManager card={card} />
           <div ref={reportCardRef}>
-            <ReportCardDocument card={card} />
+            <ReportCardDocument card={card} template={`rc-template-${templateId}`} />
           </div>
         </motion.div>
       )}

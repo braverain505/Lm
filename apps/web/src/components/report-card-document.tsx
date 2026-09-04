@@ -87,7 +87,7 @@ function LogoFrame({ src, fallback }: { src?: string | null; fallback: string })
   );
 }
 
-export function ReportCardDocument({ card }: { card: ReportCard }) {
+export function ReportCardDocument({ card, template }: { card: ReportCard; template?: string }) {
   const summary = card.summary;
   const avgPct = summary.average ?? 0;
   const avgBand = card.grading_key.find(
@@ -102,7 +102,7 @@ export function ReportCardDocument({ card }: { card: ReportCard }) {
   const remark = summary.remark ?? avgBand?.remark ?? summary.grade_letter ?? "—";
 
   return (
-    <div className="rc-sheet">
+    <div className={`rc-sheet${template ? ` ${template}` : ""}`}>
       <div className="rc-pad">
         {/* -------- Header: photo | identity | logo -------- */}
         <header className="rc-header">
