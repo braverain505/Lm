@@ -53,8 +53,8 @@ export default function SettingsPage() {
       await api.uploadSchoolLogo(schoolId, file);
       void queryClient.invalidateQueries({ queryKey: ["school", schoolId] });
       toast("School logo updated");
-    } catch {
-      toast("Failed to upload logo", "error");
+    } catch (e) {
+      toast(e instanceof Error && e.message ? e.message : "Failed to upload logo", "error");
     } finally {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = "";

@@ -1081,9 +1081,58 @@ export const uploadStudentPhoto = async (schoolId: string, file: File) => {
   return (data as { photo_url: string }).photo_url;
 };
 
+const MAX_LOGO_BYTES = 5 * 1024 * 1024; // keep in sync with the API (storage_service.MAX_IMAGE_BYTES)
+const MAX_LOGO_DIMENSION = 640; // logos render small (sidebar + report cards); 640px covers retina/print
+const ALLOWED_LOGO_TYPES = /^image\/(jpeg|png|webp)$/;
+
+/**
+ * Downscale + re-encode an image in the browser before upload so the base64
+ * stored in the DB stays a few KB instead of the raw file size. Throws a
+ * user-facing Error for disallowed types and files over the 5 MB limit.
+ */
+async function prepareLogoForUpload(file: File): Promise<Blob> {
+  if (!ALLOWED_LOGO_TYPES.test(file.type)) {
+    throw new Error("Only JPEG, PNG and WebP images are allowed");
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    throw new Error("Image is too large (max 5 MB)");
+  }
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, MAX_LOGO_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file; // defensive: canvas unavailable, send the original
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    // WebP keeps alpha (PNG logos) and is small; fall back to JPEG for old browsers.
+    const webp = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", 0.85)
+    );
+    if (webp) return webp;
+
+    ctx.fillStyle = "#ffffff"; // white background so transparency isn't black in JPEG
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const jpeg = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.9)
+    );
+    return jpeg ?? file;
+  } finally {
+    bitmap.close();
+  }
+}
+
 export const uploadSchoolLogo = async (schoolId: string, file: File) => {
+  const prepared = await prepareLogoForUpload(file);
   const body = new FormData();
-  body.append("file", file);
+  body.append("file", prepared);
   const res = await fetchWithRefresh("/uploads/school-logo", {
     method: "POST",
     body,

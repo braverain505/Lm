@@ -25,7 +25,9 @@ class School(UUIDPkMixin, TimestampMixin, Base):
     address: Mapped[str | None] = mapped_column(Text)
     timezone: Mapped[str] = mapped_column(String(60), default="Africa/Lagos")
     currency: Mapped[str] = mapped_column(String(3), default="NGN")
-    logo_url: Mapped[str | None] = mapped_column(String(500))
+    # Base64 data URL of the school crest/logo (uploaded via /uploads/school-logo);
+    # must be Text — a data URL for even a small image far exceeds 500 chars.
+    logo_url: Mapped[str | None] = mapped_column(Text)
     state: Mapped[str | None] = mapped_column(String(120))
     country: Mapped[str] = mapped_column(String(2), default="NG")
     # Per-school configuration: result title format, grading defaults,
