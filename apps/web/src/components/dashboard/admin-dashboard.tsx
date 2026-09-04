@@ -25,6 +25,7 @@ import {
   PerformanceTrendChart,
   AttendanceOverviewChart,
   EnrollmentDonut,
+  ScoreEntryChart,
 } from "@/components/dashboard/premium-charts";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
@@ -323,6 +324,124 @@ export function AdminDashboard() {
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-[10px] text-muted-foreground/50">{item.label}</span>
                 <span className="text-[10px] font-semibold text-foreground/60 ml-auto">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Result Readiness Section ──────────────────────────────── */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        {/* Readiness KPI + Gauge */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.32, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Result Readiness</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Overall score entry progress</p>
+          </div>
+          {/* Circular gauge */}
+          <div className="relative mx-auto mb-5 h-36 w-36">
+            <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="hsl(var(--muted) / 0.3)" strokeWidth="8" />
+              <motion.circle
+                cx="60" cy="60" r="52" fill="none" stroke="#6366f1" strokeWidth="8" strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 52}
+                initial={{ strokeDashoffset: 2 * Math.PI * 52 }}
+                animate={{ strokeDashoffset: 2 * Math.PI * 52 * (1 - 0.68) }}
+                transition={{ duration: 1.2, delay: 0.5, ease: "easeOut" }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <p className="text-[28px] font-bold tracking-tight text-foreground">68%</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">complete</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl bg-emerald-50 px-3 py-2.5 text-center">
+              <p className="text-[18px] font-bold text-emerald-600">12</p>
+              <p className="text-[10px] text-emerald-600/60">Subjects done</p>
+            </div>
+            <div className="rounded-xl bg-amber-50 px-3 py-2.5 text-center">
+              <p className="text-[18px] font-bold text-amber-600">6</p>
+              <p className="text-[10px] text-amber-600/60">Pending</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Pending Scores by Subject */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.36, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Score Entry Progress</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">By subject — this term</p>
+          </div>
+          <ScoreEntryChart
+            data={[
+              { subject: "Mathematics", entered: 45, total: 45 },
+              { subject: "English", entered: 42, total: 45 },
+              { subject: "Biology", entered: 38, total: 45 },
+              { subject: "Chemistry", entered: 30, total: 45 },
+              { subject: "Physics", entered: 22, total: 45 },
+              { subject: "Civic Ed", entered: 10, total: 45 },
+            ]}
+            height={200}
+          />
+        </motion.div>
+
+        {/* Readiness by Level */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.40, ease }}
+          className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+        >
+          <div className="mb-4">
+            <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Readiness by Level</h3>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Result compilation status</p>
+          </div>
+          <div className="space-y-4">
+            {[
+              { level: "Primary", pct: 92, color: "#10b981", classes: 12, done: 11 },
+              { level: "Junior Secondary", pct: 74, color: "#6366f1", classes: 16, done: 12 },
+              { level: "Senior Secondary", pct: 45, color: "#f59e0b", classes: 14, done: 6 },
+            ].map((item, idx) => (
+              <div key={item.level}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[12px] font-medium text-foreground/70">{item.level}</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground/50">
+                    {item.done}/{item.classes} classes · {item.pct}%
+                  </span>
+                </div>
+                <div className="h-2.5 w-full rounded-full bg-muted/30 overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: item.color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${item.pct}%` }}
+                    transition={{ duration: 1, delay: 0.6 + idx * 0.15, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Summary cards */}
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            {[
+              { label: "Total Classes", value: "42", color: "bg-blue-50 text-blue-600" },
+              { label: "Compiled", value: "29", color: "bg-emerald-50 text-emerald-600" },
+              { label: "Pending", value: "13", color: "bg-amber-50 text-amber-600" },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl px-2.5 py-2 text-center">
+                <p className={cn("text-[16px] font-bold", s.color.split(" ")[1])}>{s.value}</p>
+                <p className="text-[9px] text-muted-foreground/50">{s.label}</p>
               </div>
             ))}
           </div>
