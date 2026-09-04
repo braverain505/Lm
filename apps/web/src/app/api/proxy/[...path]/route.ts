@@ -85,10 +85,11 @@ async function forwardRequest(
     let response: Response;
 
     if (isMultipart && request && ['POST', 'PUT', 'PATCH'].includes(method)) {
-      // For multipart uploads, forward the original Request directly so the
-      // browser preserves the Content-Type boundary and streams the body natively.
-      // Calling request.formData() would reconstruct the body with a new boundary
-      // that doesn't match the forwarded Content-Type, causing backend parse errors.
+      // Re-encode the incoming FormData and let the runtime generate a fresh
+      // multipart boundary. Passing the raw Request through (or copying the
+      // original Content-Type header) makes the backend receive either no
+      // boundary or a stale one that matches nothing, so it sees zero parts
+      // and rejects the upload with "file: Field required".
       const forwardHeaders = new Headers();
       const fwdAuth = request.headers.get('authorization');
       if (fwdAuth) forwardHeaders.set('Authorization', fwdAuth);
@@ -96,10 +97,11 @@ async function forwardRequest(
       if (fwdSchool) forwardHeaders.set('X-School-Id', fwdSchool);
       if (cookieHeader) forwardHeaders.set('Cookie', cookieHeader);
 
+      const form = await request.formData();
       response = await fetch(url.toString(), {
         method,
         headers: forwardHeaders,
-        body: request as unknown as BodyInit,
+        body: form,
       });
     } else {
       // Build request options for non-multipart requests
@@ -175,10 +177,15 @@ export async function POST(
   const searchParams = request.nextUrl.searchParams;
 
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    body = undefined;
+  // Never JSON-parse a multipart body: .json() drains the request stream even
+  // when the parse fails, so multipart uploads would be forwarded empty and the
+  // backend would reject them with "file: Field required" (ERR_VALIDATION 422).
+  if (!(request.headers.get('content-type') || '').includes('multipart/form-data')) {
+    try {
+      body = await request.json();
+    } catch {
+      body = undefined;
+    }
   }
 
   return forwardRequest('POST', pathname, searchParams, body, request);
@@ -196,10 +203,15 @@ export async function PUT(
   const searchParams = request.nextUrl.searchParams;
 
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    body = undefined;
+  // Never JSON-parse a multipart body: .json() drains the request stream even
+  // when the parse fails, so multipart uploads would be forwarded empty and the
+  // backend would reject them with "file: Field required" (ERR_VALIDATION 422).
+  if (!(request.headers.get('content-type') || '').includes('multipart/form-data')) {
+    try {
+      body = await request.json();
+    } catch {
+      body = undefined;
+    }
   }
 
   return forwardRequest('PUT', pathname, searchParams, body, request);
@@ -217,10 +229,15 @@ export async function PATCH(
   const searchParams = request.nextUrl.searchParams;
 
   let body;
-  try {
-    body = await request.json();
-  } catch {
-    body = undefined;
+  // Never JSON-parse a multipart body: .json() drains the request stream even
+  // when the parse fails, so multipart uploads would be forwarded empty and the
+  // backend would reject them with "file: Field required" (ERR_VALIDATION 422).
+  if (!(request.headers.get('content-type') || '').includes('multipart/form-data')) {
+    try {
+      body = await request.json();
+    } catch {
+      body = undefined;
+    }
   }
 
   return forwardRequest('PATCH', pathname, searchParams, body, request);
