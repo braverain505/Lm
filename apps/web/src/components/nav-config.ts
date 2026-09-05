@@ -81,7 +81,7 @@ export const PANEL_SECTIONS: NavSection[] = [
     items: [
       { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
       { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["principal", "vp_academics", "homeroom_teacher"] },
-      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
     ],
   },
   {

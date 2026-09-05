@@ -80,9 +80,12 @@ function LevelSelect({
 export function PsychomotorEditor({
   studentId,
   termId,
+  allowed,
 }: {
   studentId: string;
   termId: string;
+  /** Override from the report card payload (results.enter OR homeroom teacher). */
+  allowed?: boolean;
 }) {
   const canEnter = useCanEnterResults();
   const { data: rows = [], isLoading } = usePsychomotor(studentId, termId);
@@ -100,7 +103,7 @@ export function PsychomotorEditor({
     setDirty(true);
   };
 
-  if (!canEnter) return null;
+  if (!(allowed ?? canEnter)) return null;
 
   return (
     <Card className="print:hidden">

@@ -1275,6 +1275,28 @@ def _enrollment_for_term(
     return env
 
 
+def is_homeroom_teacher(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
+    student_id: uuid.UUID,
+    term_id: uuid.UUID,
+) -> bool:
+    """Whether the actor is the homeroom (class) teacher of the student's arm
+    for the given term — i.e. the arm's ``class_teacher`` account is theirs.
+    """
+    try:
+        env = _enrollment_for_term(db, school_id, student_id=student_id, term_id=term_id)
+    except NotFoundError:
+        return False
+    arm = db.get(ClassArm, env.class_arm_id)
+    if arm is None or arm.class_teacher_id is None:
+        return False
+    teacher = db.get(Staff, arm.class_teacher_id)
+    return teacher is not None and teacher.user_id == actor_user_id
+
+
 def can_comment_on(
     db: Session,
     school_id: uuid.UUID,
@@ -1291,15 +1313,9 @@ def can_comment_on(
     """
     if has_comment_perm:
         return True
-    try:
-        env = _enrollment_for_term(db, school_id, student_id=student_id, term_id=term_id)
-    except NotFoundError:
-        return False
-    arm = db.get(ClassArm, env.class_arm_id)
-    if arm is None or arm.class_teacher_id is None:
-        return False
-    teacher = db.get(Staff, arm.class_teacher_id)
-    return teacher is not None and teacher.user_id == actor_user_id
+    return is_homeroom_teacher(
+        db, school_id, actor_user_id=actor_user_id, student_id=student_id, term_id=term_id
+    )
 
 
 def list_psychomotor(

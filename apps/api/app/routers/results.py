@@ -329,6 +329,16 @@ def report_card(
         student_id=student_id,
         term_id=term_id,
     )
+    card["can_manage_psychomotor"] = (
+        RESULTS_ENTER in ctx.permission_codes
+        or results_service.is_homeroom_teacher(
+            db,
+            ctx.school.id,
+            actor_user_id=ctx.user.id,
+            student_id=student_id,
+            term_id=term_id,
+        )
+    )
     return ReportCard(**card)
 
 
@@ -351,6 +361,16 @@ def report_cards_bulk(
             has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
             student_id=uuid.UUID(card["student"]["student_id"]),
             term_id=term_id,
+        )
+        card["can_manage_psychomotor"] = (
+            RESULTS_ENTER in ctx.permission_codes
+            or results_service.is_homeroom_teacher(
+                db,
+                ctx.school.id,
+                actor_user_id=ctx.user.id,
+                student_id=uuid.UUID(card["student"]["student_id"]),
+                term_id=term_id,
+            )
         )
     return [ReportCard(**c) for c in cards]
 
@@ -640,15 +660,36 @@ def list_psychomotor(
     )
 
 
+def _require_psychomotor_access(db, ctx, student_id: uuid.UUID, term_id: uuid.UUID) -> None:
+    """Psychomotor rows may be entered by anyone holding ``results.enter``
+    (score-entry roles) or by the student's homeroom (class) teacher."""
+    if RESULTS_ENTER in ctx.permission_codes:
+        return
+    if results_service.is_homeroom_teacher(
+        db,
+        ctx.school.id,
+        actor_user_id=ctx.user.id,
+        student_id=student_id,
+        term_id=term_id,
+    ):
+        return
+    raise PermissionDeniedError(
+        "Only score-entry roles or the student's homeroom teacher can enter "
+        "psychomotor results"
+    )
+
+
 @router.put("/psychomotor")
 def save_psychomotor(
     payload: PsychomotorSaveRequest,
     db: DbSession,
-    ctx=Depends(require_permission(RESULTS_ENTER)),
+    ctx=Depends(require_permission(RESULTS_VIEW)),
 ):
     """Replace a student's psychomotor rows for a term (configurable areas
-    and achievement levels)."""
+    and achievement levels). Allowed for score-entry roles and the student's
+    homeroom (class) teacher."""
     _require_active_term(db, ctx.school.id, payload.term_id)
+    _require_psychomotor_access(db, ctx, payload.student_id, payload.term_id)
     rows = results_service.save_psychomotor(
         db,
         ctx.school.id,

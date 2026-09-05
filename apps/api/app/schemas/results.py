@@ -213,6 +213,7 @@ class ReportCard(BaseModel):
     summary: ReportSummary
     best_in_subjects: list[BestInSubjectRow] = []
     can_comment: bool = False
+    can_manage_psychomotor: bool = False
 
 
 class ReportIndexRow(BaseModel):

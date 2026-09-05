@@ -22,8 +22,12 @@ import "@/app/report-card.css";
 import "@/app/report-card-templates.css";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
 import { getSelectedTemplate } from "@/lib/report-templates";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function ReportsPage() {
+  const { activeSchool } = useAuth();
+  const role = activeSchool?.role?.code ?? "";
+  const isHomeroomTeacher = role === "homeroom_teacher";
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
@@ -332,9 +336,15 @@ export default function ReportsPage() {
           transition={{ duration: 0.35, delay: 0.04, ease }}
         >
           {studentId && term && (
-            <PsychomotorEditor studentId={studentId} termId={term.id} />
+            <PsychomotorEditor
+              studentId={studentId}
+              termId={term.id}
+              allowed={card.can_manage_psychomotor}
+            />
           )}
-          <CommentManager card={card} />
+          {/* Homeroom teachers only see/edit their own comment slot; other
+              roles keep the existing all-roles view. */}
+          <CommentManager card={card} userRole={isHomeroomTeacher ? role : undefined} />
           <div ref={reportCardRef}>
             <ReportCardDocument card={card} template={`rc-template-${templateId}`} />
           </div>

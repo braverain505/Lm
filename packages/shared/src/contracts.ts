@@ -494,6 +494,7 @@ export const ReportCardSchema = z.object({
     )
     .default([]),
   can_comment: z.boolean().default(false),
+  can_manage_psychomotor: z.boolean().default(false),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;
 
