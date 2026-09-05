@@ -15,6 +15,7 @@ import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { isSchoolAdminRole } from "@/lib/roles";
 
 interface NavigationPanelProps {
   open: boolean;
@@ -189,7 +190,7 @@ export function NavigationPanel({ open, onNavigate, isTablet = false }: Navigati
               )}
 
               <div className="px-1 py-1">
-                {canManageSchool && (
+                {canManageSchool && isSchoolAdminRole(activeSchool?.role?.code) && (
                   <>
                     <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
                       Profile

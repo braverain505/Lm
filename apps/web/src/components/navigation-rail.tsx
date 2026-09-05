@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { isSchoolAdminRole } from "@/lib/roles";
 
 interface NavigationRailProps {
   onTogglePanel: () => void;
@@ -96,8 +97,8 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
         })}
       </div>
 
-      {/* Bottom: avatar - Premium style */}
-      {canManageSchool ? (
+      {/* Bottom: avatar - Premium style (settings link is admin-only) */}
+      {canManageSchool && isSchoolAdminRole(activeSchool?.role?.code) ? (
         <Link
           href="/settings"
           className="group relative mt-auto flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 hover:bg-rail-active-bg/10 hover:scale-105"

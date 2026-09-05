@@ -21,6 +21,7 @@ import { useState } from "react";
 import { Dropdown } from "@/components/ui/dropdown";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
+import { isSchoolAdminRole } from "@/lib/roles";
 
 /* ─── Mock notifications (replace with real API when ready) ──────────── */
 
@@ -353,12 +354,16 @@ export function ProfileMenu() {
             <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40">Current role</p>
             <p className="mt-0.5 text-[12px] font-medium text-foreground/70 capitalize">{activeSchool?.role?.name ?? "Member"}</p>
           </div>
-          <div className="border-t border-border/20" />
-          <div className="p-1.5">
-            <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground">
-              Account settings
-            </Link>
-          </div>
+          {isSchoolAdminRole(activeSchool?.role?.code) && (
+            <>
+              <div className="border-t border-border/20" />
+              <div className="p-1.5">
+                <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground">
+                  Account settings
+                </Link>
+              </div>
+            </>
+          )}
           <div className="border-t border-border/20" />
           <div className="p-1.5">
             <button

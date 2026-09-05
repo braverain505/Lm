@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
+import { isSchoolAdminRole } from "@/lib/roles";
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/toast";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
@@ -206,6 +207,19 @@ export default function SettingsPage() {
   });
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
+
+  // School Settings is admin/principal only — teachers and other staff should
+  // not be able to reach it even by URL.
+  if (activeSchool && !isSchoolAdminRole(activeSchool?.role?.code)) {
+    return (
+      <div className="mx-auto max-w-xl py-16 text-center">
+        <h2 className="text-xl font-semibold">School Settings</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Only school admins can manage settings.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">

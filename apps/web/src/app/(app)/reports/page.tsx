@@ -23,11 +23,13 @@ import "@/app/report-card-templates.css";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
 import { getSelectedTemplate } from "@/lib/report-templates";
 import { useAuth } from "@/providers/auth-provider";
+import { isSchoolAdminRole } from "@/lib/roles";
 
 export default function ReportsPage() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
   const isHomeroomTeacher = role === "homeroom_teacher";
+  const isAdmin = isSchoolAdminRole(role);
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
@@ -38,7 +40,11 @@ export default function ReportsPage() {
   const [armId, setArmId] = useState("");
   const [studentId, setStudentId] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [templateId, setTemplateId] = useState(getSelectedTemplate());
+  // Only admins/principals may switch the report-card template; everyone else
+  // always gets the default.
+  const [templateId, setTemplateId] = useState(() =>
+    isAdmin ? getSelectedTemplate() : "classic"
+  );
 
   const { data: index = [], isLoading: indexLoading } = useReportIndex(armId || null, term?.id ?? null);
   const { data: card, isLoading: cardLoading, error } = useReportCard(studentId, term?.id ?? null);
@@ -225,19 +231,21 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* Template picker (hidden on print) */}
-      <motion.div
-        className="print:hidden"
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.12, ease }}
-      >
-        <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
-          <CardContent className="py-5">
-            <ReportTemplatePicker value={templateId} onChange={setTemplateId} />
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Template picker (admin/principal only, hidden on print) */}
+      {isAdmin && (
+        <motion.div
+          className="print:hidden"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.12, ease }}
+        >
+          <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
+            <CardContent className="py-5">
+              <ReportTemplatePicker value={templateId} onChange={setTemplateId} />
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* The premium card */}
       {bulkOpen ? (

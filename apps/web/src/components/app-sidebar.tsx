@@ -12,6 +12,7 @@ import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
+import { isSchoolAdminRole } from "@/lib/roles";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -145,9 +146,15 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
       <div className="shrink-0 border-t border-sidebar-border p-2.5">
         <div className={cn("rounded-lg", collapsed ? "flex justify-center" : "bg-white/[0.03] p-2")}>
           <div className={cn("flex items-center", collapsed ? "flex-col" : "gap-2")}>
-            <Link href="/settings" className="rounded-full" onClick={onNavigate} title={collapsed ? user?.full_name ?? "Profile" : undefined}>
-              <Avatar name={user?.full_name} initials={initials} className="h-7 w-7 bg-gradient-to-br from-indigo-500 to-indigo-600 text-[10px] text-white" />
-            </Link>
+            {isSchoolAdminRole(activeSchool?.role?.code) ? (
+              <Link href="/settings" className="rounded-full" onClick={onNavigate} title={collapsed ? user?.full_name ?? "Profile" : undefined}>
+                <Avatar name={user?.full_name} initials={initials} className="h-7 w-7 bg-gradient-to-br from-indigo-500 to-indigo-600 text-[10px] text-white" />
+              </Link>
+            ) : (
+              <div className="rounded-full" title={collapsed ? user?.full_name ?? "Profile" : undefined}>
+                <Avatar name={user?.full_name} initials={initials} className="h-7 w-7 bg-gradient-to-br from-indigo-500 to-indigo-600 text-[10px] text-white" />
+              </div>
+            )}
             {!collapsed && (
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[12px] font-medium text-white/80">{user?.full_name}</p>

@@ -114,7 +114,15 @@ export const PANEL_SECTIONS: NavSection[] = [
   },
   {
     label: "Settings",
-    items: [{ href: "/settings", label: "School Settings", icon: Settings, perm: "school.manage" }],
+    items: [
+      {
+        href: "/settings",
+        label: "School Settings",
+        icon: Settings,
+        perm: "school.manage",
+        roles: ["super_admin", "director", "admin", "principal"],
+      },
+    ],
   },
 ];
 
