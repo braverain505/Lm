@@ -72,6 +72,14 @@ class Settings(BaseSettings):
     storage_driver: str = "local"  # local | s3 (s3 later)
     storage_base_dir: str = ".storage"
 
+    # --- LLM (Groq) ---
+    # When GROQ_API_KEY is unset the AI engines keep working with their
+    # deterministic template fallbacks (no external calls, cost $0).
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    groq_timeout_seconds: float = 60.0
+
     # --- Seeding ---
     seed_demo_school: bool = True
 

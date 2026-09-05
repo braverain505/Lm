@@ -39,6 +39,11 @@ def _test_database_url() -> str:
 
 TEST_DATABASE_URL = _test_database_url()
 
+# Tests must stay hermetic and offline: never call the real LLM even when a
+# Groq key is present in .env. AI generation tests then always exercise the
+# deterministic template fallback (and stay fast + deterministic).
+settings.groq_api_key = ""
+
 engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 

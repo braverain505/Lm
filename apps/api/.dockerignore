@@ -1,0 +1,14 @@
+# Never let local secrets or dev artifacts into the image.
+# Secrets come from Render service env vars, not from the repo.
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+tests/
+.storage/
+.git/
