@@ -24,6 +24,20 @@ import {
 } from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
 
+/** Resolve a stored photo URL to a loadable <img> src.
+ * data:/blob:/http(s): URLs pass through; backend-relative /api/uploads/...
+ * paths map onto the same API base the rest of the app uses (same-origin
+ * /api/proxy on Vercel), so previews work in production. */
+function photoSrc(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  if (url.startsWith("/api/")) {
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy").replace(/\/$/, "");
+    return `${base}${url.slice(4)}`;
+  }
+  return url;
+}
+
 export default function StudentsPage() {
   const schoolId = useActiveSchoolId();
   const { data = [], isLoading } = useStudents();
@@ -284,7 +298,7 @@ export default function StudentsPage() {
                   <Label>Photo (optional)</Label>
                   <div className="flex items-center gap-3">
                     {form.photo_url ? (
-                      <img src={form.photo_url} alt="Student preview" className="h-14 w-14 rounded-full border object-cover" />
+                      <img src={photoSrc(form.photo_url)} alt="Student preview" className="h-14 w-14 rounded-full border object-cover" />
                     ) : (
                       <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/40 text-muted-foreground/40">
                         <UserPlus className="h-5 w-5" />
@@ -559,7 +573,7 @@ export default function StudentsPage() {
                   <div className="flex items-center gap-3">
                     {editForm.photo_url ? (
                       <img
-                        src={editForm.photo_url.startsWith("http") ? editForm.photo_url : `${(process.env.NEXT_PUBLIC_API_URL ?? "https://schoolos-api-5066.onrender.com/api").replace(/\/api$/, "")}${editForm.photo_url}`}
+                        src={photoSrc(editForm.photo_url)}
                         alt="Student preview"
                         className="h-14 w-14 rounded-full border object-cover"
                       />

@@ -1063,8 +1063,9 @@ export const deleteStudent = (schoolId: string, studentId: string) =>
   schoolFetch<void>(schoolId, `/students/${studentId}`, { method: "DELETE" });
 
 export const uploadStudentPhoto = async (schoolId: string, file: File) => {
+  const prepared = await prepareImageForUpload(file);
   const body = new FormData();
-  body.append("file", file);
+  body.append("file", prepared);
   const res = await fetchWithRefresh("/uploads/student-photo", {
     method: "POST",
     body,
@@ -1081,26 +1082,30 @@ export const uploadStudentPhoto = async (schoolId: string, file: File) => {
   return (data as { photo_url: string }).photo_url;
 };
 
-const MAX_LOGO_BYTES = 5 * 1024 * 1024; // keep in sync with the API (storage_service.MAX_IMAGE_BYTES)
-const MAX_LOGO_DIMENSION = 640; // logos render small (sidebar + report cards); 640px covers retina/print
-const ALLOWED_LOGO_TYPES = /^image\/(jpeg|png|webp)$/;
+// Keep the byte limit in sync with the API (storage_service.MAX_IMAGE_BYTES).
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+// Logos and student photos render small (sidebar, avatars, report cards);
+// 640px covers retina/print while keeping the stored base64 a few KB.
+const MAX_IMAGE_DIMENSION = 640;
+const ALLOWED_IMAGE_TYPES = /^image\/(jpeg|png|webp)$/;
 
 /**
  * Downscale + re-encode an image in the browser before upload so the base64
  * stored in the DB stays a few KB instead of the raw file size. Throws a
  * user-facing Error for disallowed types and files over the 5 MB limit.
+ * Shared by logo and student-photo uploads (both are stored as data URLs).
  */
-async function prepareLogoForUpload(file: File): Promise<Blob> {
-  if (!ALLOWED_LOGO_TYPES.test(file.type)) {
+async function prepareImageForUpload(file: File): Promise<Blob> {
+  if (!ALLOWED_IMAGE_TYPES.test(file.type)) {
     throw new Error("Only JPEG, PNG and WebP images are allowed");
   }
-  if (file.size > MAX_LOGO_BYTES) {
+  if (file.size > MAX_IMAGE_BYTES) {
     throw new Error("Image is too large (max 5 MB)");
   }
 
   const bitmap = await createImageBitmap(file);
   try {
-    const scale = Math.min(1, MAX_LOGO_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
 
@@ -1130,7 +1135,7 @@ async function prepareLogoForUpload(file: File): Promise<Blob> {
 }
 
 export const uploadSchoolLogo = async (schoolId: string, file: File) => {
-  const prepared = await prepareLogoForUpload(file);
+  const prepared = await prepareImageForUpload(file);
   const body = new FormData();
   body.append("file", prepared);
   const res = await fetchWithRefresh("/uploads/school-logo", {

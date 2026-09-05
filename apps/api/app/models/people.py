@@ -50,7 +50,9 @@ class Staff(TenantScopedBase, Base):
     employment_status: Mapped[EmploymentStatus] = mapped_column(
         String(16), default=EmploymentStatus.ACTIVE.value, nullable=False
     )
-    photo_url: Mapped[str | None] = mapped_column(String(500))
+    # Text: photos are stored as Base64 data URLs (Render free-tier has
+    # ephemeral storage, so file-backed URLs would vanish on restart).
+    photo_url: Mapped[str | None] = mapped_column(Text)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False)
 
     assignments: Mapped[list["SubjectAssignment"]] = relationship(
@@ -76,7 +78,9 @@ class Student(TenantScopedBase, Base):
     middle_name: Mapped[str | None] = mapped_column(String(80))
     gender: Mapped[str] = mapped_column(String(16), nullable=False)
     date_of_birth: Mapped[date | None] = mapped_column(Date)
-    photo_url: Mapped[str | None] = mapped_column(String(500))
+    # Text: photos are stored as Base64 data URLs (Render free-tier has
+    # ephemeral storage, so file-backed URLs would vanish on restart).
+    photo_url: Mapped[str | None] = mapped_column(Text)
     address: Mapped[str | None] = mapped_column(Text)
     state: Mapped[str | None] = mapped_column(String(80))
     lga: Mapped[str | None] = mapped_column(String(80))

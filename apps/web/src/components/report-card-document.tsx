@@ -1,19 +1,30 @@
 "use client";
 
+import { useState } from "react";
+
 import type { ReportCard } from "@schoolos/shared";
 
+// Same base the API client uses (@schoolos/shared): same-origin /api/proxy on
+// Vercel (a Next route that forwards to the backend), or a direct API URL when
+// NEXT_PUBLIC_API_URL is set.
 const API_BASE = (
   process.env.NEXT_PUBLIC_API_URL ??
-  "https://schoolos-api-5066.onrender.com/api"
+  "/api/proxy"
 ).replace(/\/$/, "");
 
-/** Resolve relative API URLs to absolute URLs for cross-origin image loading. */
+/** Resolve a backend image URL to something a browser <img> can load.
+ *
+ * - data:/blob:/http(s): URLs are absolute and load as-is — school logos are
+ *   stored as base64 data URLs, and mangling them (e.g. prepending an origin)
+ *   produces a src that can never load.
+ * - backend-rooted paths like /api/uploads/... (student photos) are mapped onto
+ *   the same API base the rest of the app uses, so they stay same-origin and
+ *   work with canvas-based PDF export. */
 function resolveUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
-  if (url.startsWith("http")) return url;
-  // Relative path like /api/uploads/... → prepend API base without /api suffix
-  const base = API_BASE.replace(/\/api$/, "");
-  return `${base}${url}`;
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  if (url.startsWith("/api/")) return `${API_BASE}${url.slice(4)}`;
+  return url.startsWith("/") ? `${API_BASE}${url}` : url;
 }
 
 /* ---- date/ordinal helpers (pure, small) ---- */
@@ -61,28 +72,36 @@ function initials(name: string): string {
 
 function PhotoFrame({ src, fallback }: { src?: string | null; fallback: string }) {
   const resolvedSrc = resolveUrl(src);
+  const [failed, setFailed] = useState(false);
+  if (!resolvedSrc || failed) {
+    return (
+      <div className="rc-photo">
+        <span className="rc-photo-fallback">{fallback}</span>
+      </div>
+    );
+  }
   return (
     <div className="rc-photo">
-      {resolvedSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={resolvedSrc} alt="Student" />
-      ) : (
-        <span className="rc-photo-fallback">{fallback}</span>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={resolvedSrc} alt="Student" onError={() => setFailed(true)} />
     </div>
   );
 }
 
 function LogoFrame({ src, fallback }: { src?: string | null; fallback: string }) {
   const resolvedSrc = resolveUrl(src);
+  const [failed, setFailed] = useState(false);
+  if (!resolvedSrc || failed) {
+    return (
+      <div className="rc-logo">
+        <span className="rc-logo-fallback">{fallback}</span>
+      </div>
+    );
+  }
   return (
     <div className="rc-logo">
-      {resolvedSrc ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={resolvedSrc} alt="School crest" />
-      ) : (
-        <span className="rc-logo-fallback">{fallback}</span>
-      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={resolvedSrc} alt="School crest" onError={() => setFailed(true)} />
     </div>
   );
 }

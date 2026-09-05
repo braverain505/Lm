@@ -23,12 +23,13 @@ async def upload_student_photo(
     ctx=Depends(require_permission(STUDENTS_CREATE)),
 ):
     """Upload a student photo ahead of creating/updating the student record.
-    Returns the served ``photo_url`` to store on the student."""
+    Returns a Base64 data URL (like school logos) to store on the student —
+    kept in the database so photos survive Render's ephemeral filesystem."""
     data = await file.read()
-    rel = storage_service.save_image_upload(
-        data, file.content_type or "", str(ctx.school.id), kind="students"
-    )
-    return UploadOut(photo_url=f"/api/uploads/{rel}")
+    # Store as Base64 data URL in database (Render free-tier has ephemeral
+    # storage, so file-backed uploads vanish on restart).
+    photo_url = storage_service.save_image_as_base64(data, file.content_type or "")
+    return UploadOut(photo_url=photo_url)
 
 
 @router.post("/school-logo", response_model=UploadOut)
