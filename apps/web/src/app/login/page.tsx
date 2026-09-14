@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { FlintwireCredit } from "@/components/flintwire-credit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -308,6 +309,11 @@ export default function LoginPage() {
           <p className="text-[11px] tracking-wide text-muted-foreground/60">
             Secure school management for modern institutions
           </p>
+        </div>
+
+        {/* Attribution */}
+        <div className="mt-5">
+          <FlintwireCredit />
         </div>
       </motion.div>
     </div>

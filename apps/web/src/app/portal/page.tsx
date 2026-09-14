@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { api, publicReportCard } from "@schoolos/shared";
 import type { PinCheckOut, ReportCard, SchoolBrief } from "@schoolos/shared";
+import { FlintwireCredit } from "@/components/flintwire-credit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -247,6 +248,10 @@ export default function PortalPage() {
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <FlintwireCredit />
+        </div>
       </div>
     </div>
   );

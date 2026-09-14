@@ -50,7 +50,7 @@ export const MeResponseSchema = z.object({
 });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
 
-// --- Platform (Lumo admin) -----------------------------------------------------
+// --- Platform (Clearis admin) -----------------------------------------------------
 export const PlatformSchoolSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),

@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
+import { FlintwireCredit } from "@/components/flintwire-credit";
 import { PlatformHeader } from "@/components/platform-header";
 import { PlatformSidebar } from "@/components/platform-sidebar";
 
@@ -75,6 +76,10 @@ export function PlatformShell({ children }: { children: ReactNode }) {
         >
           {children}
         </motion.main>
+
+        <footer className="mx-auto w-full max-w-[1600px] px-5 pb-5 pt-1 sm:px-6 lg:px-8 print:hidden">
+          <FlintwireCredit />
+        </footer>
       </div>
     </div>
   );

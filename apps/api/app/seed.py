@@ -616,11 +616,11 @@ def seed_demo_data(db: Session, school_id: uuid.UUID) -> None:
     db.flush()
 
 
-PLATFORM_ADMIN_EMAIL = "admin@lumo.app"
-PLATFORM_ADMIN_PASSWORD = os.getenv("SEED_PLATFORM_PASSWORD", "Lumo#2026")
+PLATFORM_ADMIN_EMAIL = "admin@clearis.app"
+PLATFORM_ADMIN_PASSWORD = os.getenv("SEED_PLATFORM_PASSWORD", "Clearis#2026")
 
 # Warn if using default platform credentials in non-development environments
-if PLATFORM_ADMIN_PASSWORD == "Lumo#2026" and os.getenv("DEBUG", "").lower() != "true":
+if PLATFORM_ADMIN_PASSWORD == "Clearis#2026" and os.getenv("DEBUG", "").lower() != "true":
     warnings.warn(
         "WARNING: Using default platform seed password in production! "
         "Set SEED_PLATFORM_PASSWORD environment variable.",
@@ -1068,14 +1068,14 @@ def seed_platform_demo(db: Session, platform_admin: User) -> None:
 
 
 def ensure_platform_admin(db: Session) -> User:
-    """Lumo's own platform admin (``is_superadmin``) — the account that runs the
-    global admin dashboard and flips premium AI on for paying schools."""
+    """Clearis's own platform admin (``is_superadmin``) — the account that runs
+    the global admin dashboard and flips premium AI on for paying schools."""
     admin = db.scalar(select(User).where(User.email == PLATFORM_ADMIN_EMAIL))
     if admin is None:
         admin = User(
             email=PLATFORM_ADMIN_EMAIL,
             password_hash=hash_password(PLATFORM_ADMIN_PASSWORD),
-            full_name="Lumo Platform Admin",
+            full_name="Clearis Platform Admin",
             is_superadmin=True,
         )
         db.add(admin)

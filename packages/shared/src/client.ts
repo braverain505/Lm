@@ -392,7 +392,7 @@ export async function me(): Promise<MeResponse> {
   return request("/auth/me", { zod: MeResponseSchema.parse });
 }
 
-// --- Platform (Lumo admin dashboard) -------------------------------------------
+// --- Platform (Clearis admin dashboard) -------------------------------------------
 export async function fetchPlatformSchools(): Promise<PlatformSchool[]> {
   return request("/platform/schools", {
     zod: PlatformSchoolSchema.array().parse,

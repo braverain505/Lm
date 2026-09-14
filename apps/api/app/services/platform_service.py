@@ -1,4 +1,4 @@
-"""Lumo platform administration: schools registry, premium toggles, suspension,
+"""Clearis platform administration: schools registry, premium toggles, suspension,
 and cross-tenant account management.
 
 The platform admin (a user with ``User.is_superadmin``) owns every tenant. This
@@ -22,13 +22,13 @@ def school_ai_enabled(school: School) -> bool:
     """Whether the school has subscribed to the premium AI plan.
 
     Stored in the school's ``settings`` JSONB bucket (feature toggles), defaulting
-    to disabled until the Lumo admin flips it on after payment.
+    to disabled until the Clearis admin flips it on after payment.
     """
     return bool((school.settings or {}).get("ai_enabled", False))
 
 
 def school_suspended(school: School) -> bool:
-    """Whether the Lumo admin has disabled this school completely."""
+    """Whether the Clearis admin has disabled this school completely."""
     return bool((school.settings or {}).get("suspended", False))
 
 
@@ -70,7 +70,7 @@ def list_schools(db: Session) -> list[dict]:
 
 
 def set_school_ai(db: Session, school_id: uuid.UUID, enabled: bool) -> School:
-    """Enable/disable the premium AI plan for a school (Lumo admin only)."""
+    """Enable/disable the premium AI plan for a school (Clearis admin only)."""
     school = _require_school(db, school_id)
     settings = dict(school.settings or {})
     settings["ai_enabled"] = bool(enabled)
@@ -80,7 +80,7 @@ def set_school_ai(db: Session, school_id: uuid.UUID, enabled: bool) -> School:
 
 
 def set_school_suspended(db: Session, school_id: uuid.UUID, suspended: bool) -> School:
-    """Disable/enable a school completely (Lumo admin only). While suspended,
+    """Disable/enable a school completely (Clearis admin only). While suspended,
     every tenant-scoped API call for that school returns 403 ERR_SCHOOL_SUSPENDED."""
     school = _require_school(db, school_id)
     settings = dict(school.settings or {})
@@ -94,7 +94,7 @@ def create_school_admin(
     db: Session, school_id: uuid.UUID, full_name: str, email: str, password: str | None
 ) -> dict:
     """Create a school admin (super_admin role) for a registered school. If no
-    password is supplied, a random one is generated and returned once so the Lumo
+    password is supplied, a random one is generated and returned once so the Clearis
     admin can hand it to the school owner."""
     school = _require_school(db, school_id)
     from ..core.errors import ConflictError, ValidationError
@@ -132,7 +132,7 @@ def create_school_admin(
 def list_teachers(db: Session) -> list[dict]:
     """Every teacher account across all registered schools.
 
-    "Credentials" means the account identity Lumo can see for support/recovery —
+    "Credentials" means the account identity Clearis can see for support/recovery —
     passwords are hashed and never exposed; use create/recovery flows instead.
     """
     rows = db.execute(

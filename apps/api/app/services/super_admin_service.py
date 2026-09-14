@@ -788,7 +788,7 @@ def school_detail(db: Session, school_id: uuid.UUID) -> dict:
                 "action": "ai_usage",
                 "entity_type": usage.feature,
                 "details": f"{usage.model or 'generated'} · {usage.tokens_in + usage.tokens_out} tokens",
-                "actor": actor or "Lumo AI",
+                "actor": actor or "Clearis AI",
             }
         )
     for ev, actor in result_events:
@@ -1291,7 +1291,7 @@ def activity(db: Session, limit: int = 30, category: str | None = None) -> list[
                 "ts": usage.created_at.isoformat(),
                 "school_id": str(usage.school_id),
                 "school_name": school_name or "Unknown",
-                "actor": actor or "Lumo AI",
+                "actor": actor or "Clearis AI",
                 "action": "ai_generation",
                 "category": "ai",
                 "severity": "info",

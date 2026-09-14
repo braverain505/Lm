@@ -50,7 +50,7 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
         {schoolProfile?.logo_url ? (
           <img src={schoolProfile.logo_url} alt="Logo" className="h-7 w-7 rounded object-contain" />
         ) : (
-          <Image src="/clearisbg.png" alt="Lumo" width={96} height={96} priority className="h-7 w-auto object-contain opacity-90" />
+          <Image src="/clearisbg.png" alt="Clearis" width={96} height={96} priority className="h-7 w-auto object-contain opacity-90" />
         )}
         {/* Premium Tooltip */}
         <span className="pointer-events-none absolute left-full ml-3 rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium text-background shadow-elevated opacity-0 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-1 whitespace-nowrap z-50">

@@ -1,4 +1,4 @@
-"""Lumo platform administration schemas (global admin dashboard)."""
+"""Clearis platform administration schemas (global admin dashboard)."""
 from datetime import datetime
 
 from pydantic import BaseModel

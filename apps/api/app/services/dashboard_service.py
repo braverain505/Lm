@@ -353,7 +353,7 @@ def activity(db: Session, school_id: uuid.UUID, limit: int = 10) -> list[dict]:
                 "kind": "ai",
                 "title": f"AI {usage.feature.replace('_', ' ')}",
                 "detail": f"{usage.model or 'generated'}",
-                "actor_name": "Lumo AI",
+                "actor_name": "Clearis AI",
                 "created_at": usage.created_at,
                 "href": "/copilot",
             }

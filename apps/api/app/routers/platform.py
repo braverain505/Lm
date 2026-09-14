@@ -1,7 +1,7 @@
-"""Lumo platform administration: the global admin's view across all schools.
+"""Clearis platform administration: the global admin's view across all schools.
 
 Every route requires a platform admin (``User.is_superadmin``) — no school
-context. This is where Lumo sees every registered school, turns the premium
+context. This is where Clearis sees every registered school, turns the premium
 (AI) plan on/off after a school subscribes, disables a school outright, creates
 school admin accounts, and reviews every teacher account on the platform.
 """

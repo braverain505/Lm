@@ -206,7 +206,7 @@ def require_platform_admin(
     request: Request,
     user: Annotated[User, Depends(get_current_user)],
 ) -> User:
-    """Platform-level access: only Lumo's own super admins (``is_superadmin``)
+    """Platform-level access: only Clearis's own super admins (``is_superadmin``)
     may list/change tenant settings across schools. No school context is used —
     these routes are not scoped to a single tenant.
 
@@ -220,7 +220,7 @@ def require_platform_admin(
             "Platform administration is disabled while impersonating a school",
         )
     if not user.is_superadmin:
-        raise PermissionDeniedError("Lumo platform admin access required")
+        raise PermissionDeniedError("Clearis platform admin access required")
     return user
 
 
@@ -229,7 +229,7 @@ def ensure_ai(
 ) -> MembershipContext:
     """Premium gate for AI features. Unlike permissions (identity-based), this is
     a billing toggle on the school itself, so even the school owner is blocked
-    until the Lumo admin enables the plan after payment."""
+    until the Clearis admin enables the plan after payment."""
     if not bool((ctx.school.settings or {}).get("ai_enabled", False)):
         raise PremiumRequiredError()
     return ctx

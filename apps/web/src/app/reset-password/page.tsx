@@ -11,6 +11,7 @@ import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { FlintwireCredit } from "@/components/flintwire-credit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -175,6 +176,11 @@ function ResetPasswordForm() {
               Back to sign in
             </Link>
           </p>
+        </div>
+
+        {/* Attribution */}
+        <div className="mt-5">
+          <FlintwireCredit />
         </div>
       </motion.div>
     </div>

@@ -1,1 +1,1 @@
-"""Lumo API package."""
+"""Clearis API package."""

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import { FlintwireCredit } from "@/components/flintwire-credit";
 import { NavigationPanel } from "@/components/navigation-panel";
 import { SessionTermProvider } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
@@ -101,6 +102,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             {children}
           </motion.main>
+
+          <footer className="mx-auto w-full max-w-[1400px] px-4 pb-6 pt-1 sm:px-6 md:px-7 lg:px-8 print:hidden">
+            <FlintwireCredit />
+          </footer>
         </motion.div>
       </div>
     </SessionTermProvider>

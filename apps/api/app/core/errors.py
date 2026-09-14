@@ -52,7 +52,7 @@ ERR_FEATURE_DISABLED = "ERR_FEATURE_DISABLED"
 ERR_ASSIGNMENT = "ERR_ASSIGNMENT"  # 403: actor not assigned to this arm/subject
 ERR_AI_NOT_CONFIGURED = "ERR_AI_NOT_CONFIGURED"  # 503: provider key missing
 ERR_PREMIUM_REQUIRED = "ERR_PREMIUM_REQUIRED"  # 403: AI features are a paid add-on
-ERR_SCHOOL_SUSPENDED = "ERR_SCHOOL_SUSPENDED"  # 403: school disabled by the Lumo admin
+ERR_SCHOOL_SUSPENDED = "ERR_SCHOOL_SUSPENDED"  # 403: school disabled by the Clearis admin
 ERR_PIN_INVALID = "ERR_PIN_INVALID"  # 404: neutral — admission no / PIN mismatch
 
 
@@ -91,9 +91,11 @@ class PremiumRequiredError(APIError):
 
 
 class SchoolSuspendedError(APIError):
-    """The school has been disabled by the Lumo platform admin."""
+    """The school has been disabled by the Clearis platform admin."""
 
-    def __init__(self, message: str = "This school has been disabled. Contact Lumo support.") -> None:
+    def __init__(
+        self, message: str = "This school has been disabled. Contact Clearis support."
+    ) -> None:
         super().__init__(403, ERR_SCHOOL_SUSPENDED, message)
 
 
