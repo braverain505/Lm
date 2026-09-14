@@ -88,7 +88,10 @@ ADMIN_EMAIL = "admin@brightfield.edu"
 ADMIN_PASSWORD = os.getenv("SEED_ADMIN_PASSWORD", "Brightfield#2026")
 
 # Warn if using default credentials in non-development environments
-if ADMIN_PASSWORD == "Brightfield#2026" and not os.getenv("DEBUG", "").lower() == "true":
+# Warn if using default credentials in non-development environments
+# (the original guard read `not X == "true"`, which parses as
+# `(not X) == "true"` and was always true — the warning fired everywhere).
+if ADMIN_PASSWORD == "Brightfield#2026" and os.getenv("DEBUG", "").lower() != "true":
     warnings.warn(
         "WARNING: Using default seed password in production! "
         "Set SEED_ADMIN_PASSWORD environment variable.",
@@ -617,7 +620,7 @@ PLATFORM_ADMIN_EMAIL = "admin@lumo.app"
 PLATFORM_ADMIN_PASSWORD = os.getenv("SEED_PLATFORM_PASSWORD", "Lumo#2026")
 
 # Warn if using default platform credentials in non-development environments
-if PLATFORM_ADMIN_PASSWORD == "Lumo#2026" and not os.getenv("DEBUG", "").lower() == "true":
+if PLATFORM_ADMIN_PASSWORD == "Lumo#2026" and os.getenv("DEBUG", "").lower() != "true":
     warnings.warn(
         "WARNING: Using default platform seed password in production! "
         "Set SEED_PLATFORM_PASSWORD environment variable.",

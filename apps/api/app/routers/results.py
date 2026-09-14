@@ -176,11 +176,15 @@ def submit(
 def compile_results(
     payload: SubjectSubmitRequest,
     db: DbSession,
-    ctx=Depends(require_permission(RESULTS_ENTER)),
+    ctx=Depends(require_permission(RESULTS_VERIFY)),
+    _approve=Depends(require_permission(RESULTS_APPROVE)),
+    _publish=Depends(require_permission(RESULTS_PUBLISH)),
 ):
     """One-click compile: submit → verify → approve → publish for one arm ×
-    subject × term. The admin clicks this to finalize results and generate
-    report cards."""
+    subject × term. Finalizes results and generates report cards, so the
+    caller must hold the verify, approve AND publish permissions — a plain
+    score-entering teacher can still submit via /submit but cannot push
+    results past review."""
     _require_active_term(db, ctx.school.id, payload.term_id)
     result = results_service.compile_arm_subject(
         db, ctx.school.id,
@@ -457,8 +461,9 @@ def preview_result_comment(
     ctx=Depends(require_permission(RESULTS_VIEW)),
     _ai=Depends(ensure_ai),
 ):
-    """Compose the AI draft for review WITHOUT saving or metering. The writer
-    can iterate on role/tone/focus, then save (edited or as-is)."""
+    """Compose the AI draft for review WITHOUT saving or metering (a
+    spent-out school can't draft at all). The writer can iterate on role/tone/
+    focus, then save (edited or as-is)."""
     _require_active_term(db, ctx.school.id, payload.term_id)
     _require_comment_access(db, ctx, student_id, payload.term_id)
     body = ai_service.preview_result_comment(

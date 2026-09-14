@@ -5,20 +5,29 @@ robust while Postgres does the real work. If profiling ever shows the threadpool
 becoming the bottleneck, swapping to an async engine is a contained change.
 """
 from collections.abc import Iterator
+import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from ..config import settings
 
+# Pool sizing is env-driven so a small Render instance doesn't open 60
+# connections it doesn't need (managed Postgres plans have hard limits).
+# Conservative defaults: 5 pooled + 5 overflow = ~10 connections per worker.
+_pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
+_max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "5"))
+_pool_timeout = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+_statement_timeout_ms = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "30000"))
+
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    pool_size=20,  # Increased for production load
-    max_overflow=40,  # Total: 60 concurrent connections
-    pool_timeout=30,  # Wait up to 30s for a connection
+    pool_size=_pool_size,
+    max_overflow=_max_overflow,
+    pool_timeout=_pool_timeout,
     connect_args={
-        "options": "-c statement_timeout=30000"  # 30s query timeout
+        "options": f"-c statement_timeout={_statement_timeout_ms}"
     },
     echo=False,
 )

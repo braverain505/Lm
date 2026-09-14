@@ -31,7 +31,10 @@ REFRESH_COOKIE = "schoolos_refresh"
 
 
 def _set_cookies(response: Response, result: auth_service.AuthResult) -> None:
-    samesite = "none" if settings.cookie_secure else "lax"
+    # Lax by default (the proxy keeps everything same-origin); a deployment
+    # that genuinely needs cross-site cookies sets COOKIE_SAMESITE=none
+    # (+ COOKIE_SECURE, enforced in config validation).
+    samesite = settings.cookie_samesite
     response.set_cookie(
         settings.cookie_name,
         result.access_token,

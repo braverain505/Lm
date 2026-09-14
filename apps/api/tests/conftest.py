@@ -24,16 +24,20 @@ def _test_database_url() -> str:
 
     pytest drops and recreates every table, so it must NEVER point at the dev
     (or prod) database. The documented dev default ``schoolos_dev`` maps to
-    ``schoolos_test``; an explicitly configured URL is left alone only if it
-    already looks like a test database (``_test`` suffix). Anything else is
-    treated as the test target (the caller chose it deliberately).
+    ``schoolos_test``; an explicitly configured URL is accepted only if its
+    database name ends with ``_test``. Anything else raises immediately —
+    a misconfigured DATABASE_URL must not wipe a real database.
     """
     parts = urlsplit(settings.database_url)
     dbname = parts.path.lstrip("/")
     if dbname == "schoolos_dev":
         dbname = "schoolos_test"
-    elif dbname.endswith("_test") or dbname == "schoolos_test":
-        pass
+    if not dbname.endswith("_test"):
+        raise RuntimeError(
+            f"Refusing to run tests against database {dbname!r}: the test suite "
+            "drops and recreates every table. Point DATABASE_URL (or the "
+            "schoolos_dev default) at a database whose name ends in '_test'."
+        )
     return urlunsplit(parts._replace(path=f"/{dbname}"))
 
 

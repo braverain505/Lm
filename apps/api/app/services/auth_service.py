@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,6 +17,7 @@ from ..core.errors import (
     ERR_ACCOUNT_LOCKED,
     ERR_AUTH_FAILED,
     ERR_NOT_FOUND,
+    ERR_RATE_LIMITED,
     ERR_TOKEN_EXPIRED,
     ERR_TOKEN_REUSED,
     APIError,
@@ -40,6 +41,14 @@ class AuthResult:
     access_token: str
     refresh_token: str
     refresh_token_id: uuid.UUID
+
+
+# Login brute-force policy: after MAX_FAILED_LOGINS consecutive failures the
+# account is temporarily cooled down for LOCKOUT_MINUTES. (The per-IP limiter
+# in the router is the first line of defense; this closes the distributed /
+# per-account gap.)
+MAX_FAILED_LOGINS = 10
+LOCKOUT_MINUTES = 15
 
 
 def _issue_tokens(
@@ -143,12 +152,35 @@ def login(
 ) -> AuthResult:
     email = email.strip().lower()
     user = db.scalar(select(User).where(User.email == email))
+
+    # Transient auto-lock: after repeated failures the account cools down for
+    # a window, which defuses password guessing without a support ticket.
+    if user is not None and user.locked_until is not None:
+        if user.locked_until > security.utcnow():
+            raise APIError(429, ERR_RATE_LIMITED, "Too many failed attempts. Try again later.")
+        user.locked_until = None
+        user.failed_login_count = 0
+
     if user is None or not security.verify_password(password, user.password_hash):
+        if user is not None and user.status != "disabled":
+            user.failed_login_count = (user.failed_login_count or 0) + 1
+            if user.failed_login_count >= MAX_FAILED_LOGINS:
+                user.locked_until = security.utcnow() + timedelta(
+                    minutes=LOCKOUT_MINUTES
+                )
+                user.failed_login_count = 0
+            # The raise below rolls the request back — persist the counter
+            # explicitly so repeated failures actually accumulate.
+            db.commit()
         raise APIError(401, ERR_AUTH_FAILED, "Invalid email or password")
     if user.status == "disabled":
         raise APIError(403, ERR_ACCOUNT_DISABLED, "Account disabled")
     if user.status == "locked":
         raise APIError(403, ERR_ACCOUNT_LOCKED, "Account locked")
+    # Success clears the failure counter.
+    if user.failed_login_count or user.locked_until:
+        user.failed_login_count = 0
+        user.locked_until = None
     result = _issue_tokens(db, user, device=device, ip=ip)
     _log_auth(db, user, "login", ip=ip, details="Platform login" if user.is_superadmin else "School login")
     # committed by the router (single commit point per request)

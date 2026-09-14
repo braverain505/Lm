@@ -6,7 +6,7 @@ dashboards; the frontend mounts it under ``/super-admin``.
 """
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from ..core.deps import DbSession, require_platform_admin
 from ..schemas.super_admin import (
@@ -98,7 +98,7 @@ def geo(db: DbSession, _admin: User = PlatformAdmin):
 @router.get("/activity")
 def activity(
     db: DbSession,
-    limit: int = 30,
+    limit: int = Query(30, ge=1, le=200),
     category: str | None = None,
     _admin: User = PlatformAdmin,
 ):
@@ -120,8 +120,8 @@ def list_schools(
     plan: str | None = None,
     state: str | None = None,
     sort: str = "created_desc",
-    page: int = 1,
-    per_page: int = 20,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     _admin: User = PlatformAdmin,
 ):
     return super_admin_service.list_schools(
@@ -321,8 +321,8 @@ def audit(
     q: str | None = None,
     action: str | None = None,
     entity: str | None = None,
-    page: int = 1,
-    per_page: int = 30,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(30, ge=1, le=200),
     _admin: User = PlatformAdmin,
 ):
     return super_admin_service.audit(

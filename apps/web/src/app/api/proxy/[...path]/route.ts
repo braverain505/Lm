@@ -13,10 +13,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Read and clean the API_URL environment variable
-const API_URL = (process.env.API_URL || 'https://schoolos-api-5066.onrender.com/api')
-  .trim()
-  .replace(/\/$/, '');
+// Read the API_URL environment variable. There is deliberately no hardcoded
+// fallback: if the deployment forgot to set API_URL, every proxied request
+// must fail loudly here rather than silently hitting one dev's Render
+// instance (which the browser would then treat as this app's data source).
+const API_URL = (process.env.API_URL || '').trim().replace(/\/$/, '');
 
 
 

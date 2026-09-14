@@ -6,11 +6,10 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+# Dev convenience only: localhost. Any hosted frontend must set CORS_ORIGINS
+# explicitly — the API no longer ships other sites' origins as a silent default.
 _DEFAULT_CORS = [
     "http://localhost:3000",
-    "https://demolumo.vercel.app",
-    "https://clearis.site",
-    "https://www.clearis.site",
 ]
 
 
@@ -59,6 +58,12 @@ class Settings(BaseSettings):
     refresh_token_days: int = 30
     cookie_name: str = "schoolos_session"
     cookie_secure: bool = False  # True behind TLS
+    # Cookies default to Lax: the web app talks to the API same-origin through
+    # its /api/proxy rewrite, so cross-site sending (SameSite=None, which
+    # widens CSRF exposure) is never needed implicitly. A deployment that
+    # really does call the API cross-site from a browser may set
+    # COOKIE_SAMESITE=none — validation below then also requires COOKIE_SECURE.
+    cookie_samesite: str = "lax"
     impersonation_cookie: str = "schoolos_impersonation"
     cookie_domain: str | None = None
 
@@ -83,13 +88,31 @@ class Settings(BaseSettings):
     # --- Seeding ---
     seed_demo_school: bool = True
 
+    @field_validator("cookie_samesite")
+    @classmethod
+    def _samesite_value(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ("lax", "strict", "none"):
+            raise ValueError("COOKIE_SAMESITE must be one of: lax, strict, none")
+        return v
+
     def validate_production_config(self) -> None:
         """Validate that critical settings are production-ready.
 
-        Raises ValueError if production requirements are not met.
+        Raises ValueError if production requirements are not met. DEBUG alone
+        cannot skip the checks any more: a deployment that sets
+        COOKIE_SECURE=true is declaring itself a (TLS-served) production
+        instance and must pass validation even if DEBUG was left on.
         """
-        if self.debug:
-            # Debug mode enabled - skip production validation
+        # SameSite=None without Secure is rejected outright by every modern
+        # browser — reject the misconfiguration regardless of environment.
+        if self.cookie_samesite == "none" and not self.cookie_secure:
+            raise ValueError(
+                "COOKIE_SAMESITE=none requires COOKIE_SECURE=true"
+            )
+
+        if self.debug and not self.cookie_secure:
+            # Local development (plain http, cookies not marked Secure).
             return
 
         errors = []

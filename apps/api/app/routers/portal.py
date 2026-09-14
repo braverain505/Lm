@@ -7,11 +7,12 @@ at a single school.
 """
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 
 from ..core.deps import DbSession
 from ..core.errors import NotFoundError
+from ..core.rate_limit import limiter
 from ..core.security import decode_portal_token
 from ..models import School
 from ..schemas.portal import PinCheck, PinCheckOut, SchoolBrief
@@ -29,7 +30,8 @@ def public_schools(db: DbSession):
 
 
 @router.post("/pin-check", response_model=PinCheckOut)
-def pin_check(body: PinCheck, db: DbSession):
+@limiter.limit("5/minute")  # Per-IP backstop to the per-student PIN lockout
+def pin_check(body: PinCheck, request: Request, db: DbSession):
     """Exchange admission no + PIN for a short-lived portal token."""
     school, student = portal_service.resolve_pin(
         db, school_slug=body.school_slug, admission_no=body.admission_no, pin=body.pin

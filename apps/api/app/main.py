@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from .config import settings
@@ -58,16 +59,18 @@ async def lifespan(app: FastAPI):
     """Startup: validate production config, reconcile existing schools' system roles
     with the current templates so policy changes (e.g. finance moving to Accountant only)
     apply to orgs provisioned before the change."""
-    # Validate production configuration
+    # Validate production configuration. The validator itself decides when a
+    # config is "production" (COOKIE_SECURE=true forces validation even under
+    # DEBUG), so a failure is fatal unless this is plain local dev.
     try:
         settings.validate_production_config()
         logger.info("Production configuration validated successfully")
     except ValueError as e:
-        if not settings.debug:
+        if settings.debug and not settings.cookie_secure:
+            logger.warning(f"Production validation skipped (local dev): {e}")
+        else:
             logger.error(f"Production configuration validation failed: {e}")
             raise
-        else:
-            logger.warning(f"Production validation skipped (debug mode): {e}")
 
     # Reconcile role templates
     try:
@@ -159,8 +162,13 @@ for module in (
 
 
 @app.get("/api/health", tags=["meta"])
-def health() -> dict:
-    """Health check endpoint with database connectivity verification."""
+def health() -> JSONResponse:
+    """Health check endpoint with database connectivity verification.
+
+    Returns 503 when the database is unreachable so orchestrators (Render
+    health checks, k8s probes, docker-compose) actually take the instance out
+    of rotation instead of trusting a 200.
+    """
     db = SessionLocal()
     try:
         # Test database connectivity
@@ -172,14 +180,17 @@ def health() -> dict:
     finally:
         db.close()
 
-    status = "ok" if db_status == "connected" else "unhealthy"
+    ok = db_status == "connected"
 
-    return {
-        "status": status,
-        "service": "clearis-api",
-        "version": "0.1.0",
-        "database": db_status,
-    }
+    return JSONResponse(
+        status_code=200 if ok else 503,
+        content={
+            "status": "ok" if ok else "unhealthy",
+            "service": "clearis-api",
+            "version": "0.1.0",
+            "database": db_status,
+        },
+    )
 
 
 @app.get("/", include_in_schema=False)

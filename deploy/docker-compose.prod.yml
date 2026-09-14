@@ -20,6 +20,9 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
+    # Kept for future background jobs; the API does not consume it yet
+    # (there is no app.tasks / Celery module, so the old `worker` service
+    # would crash-loop and has been removed).
 
   api:
     build: ../apps/api
@@ -39,13 +42,6 @@ services:
     command: >
       sh -c "alembic upgrade head &&
              uvicorn app.main:app --host 0.0.0.0 --port 8000"
-
-  worker:
-    build: ../apps/api
-    command: celery -A app.tasks.celery_app worker --loglevel=info
-    depends_on:
-      - redis
-      - db
 
   web:
     build: ../apps/web

@@ -13,7 +13,7 @@ The portal is deliberately minimal and defensive:
 import hashlib
 import hmac
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -27,6 +27,10 @@ from .results_service import report_card
 
 PIN_MIN = 4
 PIN_MAX = 6
+
+# PIN brute-force defense: N wrong guesses per student cool the PIN down.
+MAX_PIN_ATTEMPTS = 5
+PIN_LOCKOUT_MINUTES = 15
 
 
 def _utcnow() -> datetime:
@@ -105,9 +109,26 @@ def resolve_pin(
         .order_by(StudentPin.created_at.desc())
         .limit(1)
     )
-    if row is None or not hmac.compare_digest(
-        row.pin_hash, _pin_hash(school.id, student.id, pin)
-    ):
+    if row is not None:
+        # Per-student PIN lockout: 4–6 digit PINs are low-entropy, so repeated
+        # failures cool the PIN down instead of staying guessable forever.
+        now = _utcnow()
+        if row.pin_locked_until is not None and row.pin_locked_until > now:
+            db.commit()  # persist attempt bookkeeping before the neutral 404
+            raise _bad_credentials()
+        if not hmac.compare_digest(
+            row.pin_hash, _pin_hash(school.id, student.id, pin)
+        ):
+            row.failed_pin_count = (row.failed_pin_count or 0) + 1
+            if row.failed_pin_count >= MAX_PIN_ATTEMPTS:
+                row.pin_locked_until = now + timedelta(minutes=PIN_LOCKOUT_MINUTES)
+                row.failed_pin_count = 0
+            db.commit()  # survive the rollback that the raise triggers
+            raise _bad_credentials()
+        # Correct PIN: clear counters and stamp last-used.
+        row.failed_pin_count = 0
+        row.pin_locked_until = None
+    else:
         raise _bad_credentials()
 
     row.last_used_at = _utcnow()

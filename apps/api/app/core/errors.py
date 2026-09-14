@@ -130,3 +130,14 @@ def register_exception_handlers(app: FastAPI) -> None:
             status_code=500,
             content=_envelope("ERR_INTERNAL", "An unexpected error occurred", None),
         )
+
+    from slowapi.errors import RateLimitExceeded
+
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(_: Request, exc: RateLimitExceeded) -> JSONResponse:
+        return JSONResponse(
+            status_code=429,
+            content=_envelope(
+                ERR_RATE_LIMITED, "Too many attempts. Please try again later."
+            ),
+        )

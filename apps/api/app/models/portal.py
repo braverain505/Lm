@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TenantScopedBase
@@ -30,6 +30,8 @@ class StudentPin(TenantScopedBase, Base):
         ForeignKey("students.id", ondelete="CASCADE"), index=True
     )
     pin_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    failed_pin_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")
     )

@@ -28,13 +28,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..core.errors import NotFoundError
+from ..core.errors import APIError, NotFoundError, PremiumRequiredError
 from .llm_client import complete_json, complete_text
 from ..models import (
     AiUsage,
     LessonPlan,
     QuestionBank,
     ResultComment,
+    SchoolSubscription,
     StudentEnrollment,
     UsageMeter,
 )
@@ -604,6 +605,7 @@ def generate_result_comment(
     card = report_card(db, school_id, student_id=student_id, term_id=term_id)
     env = _enrollment_for(db, school_id, student_id=student_id, term_id=term_id)
 
+    _check_ai_quota(db, school_id)
     out = _llm_comment(card, role=role, focus=focus, tone=tone)
     if out is None:
         started = time.perf_counter()
@@ -673,13 +675,15 @@ def preview_result_comment(
     Powers the "review before you save" AI modal: the writer can iterate on
     role/tone/focus, read the draft, edit it, and only save when satisfied
     (either back to this engine via ``generate_result_comment`` or as a manual
-    comment with ``provider=manual``).
+    comment with ``provider=manual``). Drafts are free, but once the school's
+    purchased AI credits are spent the endpoint is gated off entirely.
     """
     if role not in COMMENT_ROLES:
         raise NotFoundError(f"Unknown comment role: {role}")
     from .results_service import report_card
 
     card = report_card(db, school_id, student_id=student_id, term_id=term_id)
+    _check_ai_quota(db, school_id)
     out = _llm_comment(card, role=role, focus=focus, tone=tone)
     if out is not None:
         return out[0]
@@ -894,6 +898,7 @@ def generate_lesson_plan(
     arm = get_arm(db, school_id, class_arm_id)
     term = get_term(db, school_id, term_id)
 
+    _check_ai_quota(db, school_id)
     out = _llm_lesson_plan(
         subject_name=subject.name,
         class_name=arm.full_name,
@@ -1111,6 +1116,7 @@ def generate_question_bank(
     arm = get_arm(db, school_id, class_arm_id)
     term = get_term(db, school_id, term_id)
 
+    _check_ai_quota(db, school_id)
     out = _llm_question_bank(
         subject_name=subject.name,
         class_name=arm.full_name,
@@ -1209,6 +1215,26 @@ _FEATURE_MODEL = {
 }
 
 
+def _check_ai_quota(db: Session, school_id: uuid.UUID) -> None:
+    """Billing gate called *before* any provider round-trip.
+
+    Fails closed once a school's subscription has consumed its purchased
+    credits. A school with no subscription row, or whose plan carries no
+    credit allotment (``total <= 0``), keeps the legacy unmetered behaviour —
+    the ``ai_enabled`` admin toggle remains the source of truth for those.
+    """
+    from .subscription_service import get_active_subscription
+
+    sub = get_active_subscription(db, school_id)
+    if sub is None:
+        return
+    total = float(sub.ai_credits_total or 0)
+    if total > 0 and float(sub.ai_credits_used or 0) >= total:
+        raise PremiumRequiredError(
+            "This school has used all its AI credits. Kindly subscribe for more."
+        )
+
+
 def _meter_inc(
     db: Session,
     school_id: uuid.UUID,
@@ -1258,3 +1284,12 @@ def _meter_inc(
         )
         db.add(meter)
     meter.count = float(meter.count or 0) + 1
+
+    # Bill the generation against the school's purchased AI credits so the
+    # quota gate in _check_ai_quota reflects reality.
+    from .subscription_service import get_active_subscription
+
+    sub = get_active_subscription(db, school_id)
+    if sub is not None and float(sub.ai_credits_total or 0) > 0:
+        sub.ai_credits_used = float(sub.ai_credits_used or 0) + 1
+    db.flush()

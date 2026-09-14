@@ -46,7 +46,7 @@ from ..models import (
     Term,
 )
 from ..models.enums import ResultStatus
-from .ai_service import AI_FEATURE_COPILOT, _meter_inc
+from .ai_service import AI_FEATURE_COPILOT, _check_ai_quota, _meter_inc
 from .academics_service import (
     current_term,
     get_term,
@@ -755,6 +755,7 @@ def ask_copilot(
     question = (question or "").strip()
     if not question:
         raise ValidationError("Question is required")
+    _check_ai_quota(db, school_id)  # credits gate: copilot turns are metered below
 
     conversation: CopilotConversation | None = None
     if conversation_id:
