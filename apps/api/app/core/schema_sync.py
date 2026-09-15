@@ -8,8 +8,21 @@ the squashed baseline skips tables that already exist, and the first ORM query
 that selects the new column dies with
 ``column users.failed_login_count does not exist`` (a 500 on every login).
 
-The upgrade runs under a Postgres advisory lock so that several Uvicorn workers
-booting at once serialise on one migration instead of racing.
+Two layers, deliberately:
+
+1. ``alembic upgrade head`` — the real mechanism, which also keeps the recorded
+   revision in step with the schema. It runs under a Postgres advisory lock so
+   that several Uvicorn workers booting at once serialise on one migration
+   instead of racing. The Alembic config is *searched for* rather than assumed:
+   the app package may be imported from its source tree (dev, Docker) or from
+   ``site-packages`` (``pip install .`` copies it there), and Render's service
+   root directory may be the repo root or ``apps/api``.
+
+2. ``_ensure_required_columns()`` — a safety net for the columns the app cannot
+   serve a request without. It uses the app's own engine, which is known to work
+   because ``/api/health`` reports the database as connected, so the login can be
+   restored even when the Alembic path is unusable in a given deployment. It
+   only issues DDL for columns that are genuinely absent.
 
 Set ``AUTO_MIGRATE=0`` to disable (for a deployment that runs migrations
 out-of-band).
@@ -20,33 +33,40 @@ import logging
 import os
 from pathlib import Path
 
-from alembic import command
-from alembic.config import Config
-from alembic.runtime.migration import MigrationContext
-from alembic.script import ScriptDirectory
 from sqlalchemy import inspect
 
 from .database import engine
 
-logger = logging.getLogger(__name__)
+# Alembic is a declared runtime dependency, but its absence must never stop the
+# API from booting — that would turn "login is broken" into "the whole site is
+# down". Layer 2 below does not need it.
+try:
+    from alembic import command
+    from alembic.config import Config
+    from alembic.runtime.migration import MigrationContext
+    from alembic.script import ScriptDirectory
+except ImportError:  # pragma: no cover
+    command = Config = MigrationContext = ScriptDirectory = None  # type: ignore[assignment]
 
-# Resolved from this file, never the cwd: the API is started from different
-# working directories (Docker's /srv/api, Render's build root) and a relative
-# "alembic" would silently locate nothing.
-_API_DIR = Path(__file__).resolve().parents[1]
-_ALEMBIC_INI = _API_DIR / "alembic.ini"
-_ALEMBIC_DIR = _API_DIR / "alembic"
+logger = logging.getLogger(__name__)
 
 # Arbitrary but fixed: every worker of every deploy must contend on the *same*
 # key, or two boots could run DDL concurrently.
 _ADVISORY_LOCK_KEY = 0x5C4A001
 
-# Columns that were added to the models without an incremental revision reaching
-# already-provisioned databases. Verified after the upgrade so a silent no-op is
-# reported in the deploy log instead of resurfacing as a mystery 500.
-_EXPECTED_COLUMNS: dict[str, tuple[str, ...]] = {
-    "users": ("failed_login_count", "locked_until"),
-    "student_pins": ("failed_pin_count", "pin_locked_until"),
+# Columns added to the models without an incremental revision reaching
+# already-provisioned databases, plus the exact DDL Alembic revision
+# 0011_login_lockout_columns applies. Types mirror the model declarations:
+# mapped_column(Integer, default=0, nullable=False) and DateTime(timezone=True).
+_REQUIRED_COLUMNS: dict[str, dict[str, str]] = {
+    "users": {
+        "failed_login_count": "INTEGER NOT NULL DEFAULT 0",
+        "locked_until": "TIMESTAMPTZ",
+    },
+    "student_pins": {
+        "failed_pin_count": "INTEGER NOT NULL DEFAULT 0",
+        "pin_locked_until": "TIMESTAMPTZ",
+    },
 }
 
 _DISABLED = {"0", "false", "no", "off"}
@@ -56,15 +76,84 @@ def _enabled() -> bool:
     return os.getenv("AUTO_MIGRATE", "1").strip().lower() not in _DISABLED
 
 
-def _alembic_config() -> Config:
-    cfg = Config(str(_ALEMBIC_INI))
-    cfg.set_main_option("script_location", str(_ALEMBIC_DIR))
-    # The app configured logging at import (see app/main.py). Alembic's env.py
-    # calls fileConfig() unless asked not to, which would reset the root logger
-    # to WARN and blank the API's own INFO logs — including the deploy log this
-    # module reports to.
+def _describe(missing: dict[str, list[str]]) -> str:
+    return ", ".join(
+        f"{table}.{column}" for table, columns in missing.items() for column in columns
+    )
+
+
+# --- Layer 1: Alembic -------------------------------------------------------
+
+
+def _find_alembic() -> tuple[Path, Path] | None:
+    """Locate the shipped ``alembic.ini`` and script directory.
+
+    Two things vary between deployments and neither is knowable from inside the
+    app: whether ``app`` was imported from its source tree or from
+    ``site-packages`` (``pip install .`` copies it), and whether the working
+    directory is the repo root or ``apps/api``. So search the plausible spots
+    instead of assuming one, and log which one won.
+    """
+    here = Path(__file__).resolve()
+    roots = [Path.cwd(), *here.parents[1:4]]
+    candidates = [root for root in roots]
+    candidates += [root / "apps" / "api" for root in roots]
+
+    seen: set[Path] = set()
+    for base in candidates:
+        if base in seen:
+            continue
+        seen.add(base)
+        ini = base / "alembic.ini"
+        if ini.is_file() and (base / "alembic").is_dir():
+            return ini, base / "alembic"
+    return None
+
+
+def _alembic_config() -> Config | None:
+    if Config is None:
+        logger.warning("Alembic is not installed; skipping it and using the column repair")
+        return None
+
+    found = _find_alembic()
+    if found is None:
+        logger.error(
+            "Could not find alembic.ini next to the app (searched from cwd=%s and %s); "
+            "skipping Alembic and relying on the direct column repair",
+            Path.cwd(),
+            Path(__file__).resolve().parent,
+        )
+        return None
+
+    ini, scripts = found
+    logger.info("Running Alembic from %s", ini)
+    cfg = Config(str(ini))
+    cfg.set_main_option("script_location", str(scripts))
+    # The app configured logging at import (see app/main.py). env.py would
+    # otherwise call fileConfig(), resetting the root logger to WARN and
+    # blanking the API's own INFO logs — including the deploy log this module
+    # reports to.
     cfg.attributes["skip_logging_config"] = True
     return cfg
+
+
+def _recorded_revision(conn) -> str | None:
+    """The revision the database has recorded, or ``None`` when it has never
+    been migrated (no ``alembic_version`` table yet — the normal state of a
+    freshly provisioned database). A read failure is treated as "unknown" and
+    left for ``upgrade`` to resolve, rather than aborting the whole sync.
+    """
+    try:
+        revision = MigrationContext.configure(conn).get_current_revision()
+    except Exception:
+        logger.warning("Could not read the recorded revision; assuming none", exc_info=True)
+        # A failed statement aborts the Postgres transaction, and the caller's
+        # commit() would then raise PendingRollbackError — skipping the sync
+        # entirely, which is the exact failure this module exists to prevent.
+        # The advisory lock is session-scoped, so a rollback does not drop it.
+        conn.rollback()
+        return None
+    return revision
 
 
 def _recover_obsolete_revision(cfg: Config, script: ScriptDirectory, current: str) -> None:
@@ -89,85 +178,106 @@ def _recover_obsolete_revision(cfg: Config, script: ScriptDirectory, current: st
     command.stamp(cfg, base)
 
 
-def _recorded_revision(conn) -> str | None:
-    """The revision the database has recorded, or ``None`` when it has never
-    been migrated (no ``alembic_version`` table yet — the normal state of a
-    freshly provisioned database). A read failure is treated as "unknown" and
-    left for ``upgrade`` to resolve, rather than aborting the whole sync.
-    """
+def _run_alembic_upgrade(lock_conn) -> None:
+    """Upgrade to head. Never raises."""
     try:
-        revision = MigrationContext.configure(conn).get_current_revision()
+        cfg = _alembic_config()
+        if cfg is None:
+            return
+        script = ScriptDirectory.from_config(cfg)
+
+        current = _recorded_revision(lock_conn)
+        lock_conn.commit()
+        known = {rev.revision for rev in script.walk_revisions()}
+        if current and current not in known:
+            _recover_obsolete_revision(cfg, script, current)
+
+        command.upgrade(cfg, "head")
+        logger.info("Alembic upgrade complete (head: %s)", script.get_current_head())
     except Exception:
-        logger.warning("Could not read the recorded revision; assuming none", exc_info=True)
-        # A failed statement aborts the Postgres transaction, and the caller's
-        # commit() would then raise PendingRollbackError — skipping the sync
-        # entirely, which is the exact failure this module exists to prevent.
-        # The advisory lock is session-scoped, so a rollback does not drop it.
-        conn.rollback()
-        return None
-    return revision
+        logger.exception(
+            "Alembic upgrade failed; falling back to the direct column repair"
+        )
 
 
-def _verify_columns() -> None:
-    """Report the login/PIN lockout columns in the logs after the upgrade."""
+# --- Layer 2: the safety net ------------------------------------------------
+
+
+def _missing_required_columns() -> dict[str, list[str]]:
     inspector = inspect(engine)
-    missing: list[str] = []
-    for table, columns in _EXPECTED_COLUMNS.items():
+    missing: dict[str, list[str]] = {}
+    for table, columns in _REQUIRED_COLUMNS.items():
         if not inspector.has_table(table):
-            missing.append(f"{table} (whole table)")
+            missing[table] = list(columns)
             continue
         present = {c["name"] for c in inspector.get_columns(table)}
-        missing += [f"{table}.{c}" for c in columns if c not in present]
+        absent = [column for column in columns if column not in present]
+        if absent:
+            missing[table] = absent
+    return missing
 
-    if missing:
-        logger.error(
-            "Schema sync finished but these columns are still missing: %s. "
-            "Login and the PIN portal will keep failing until they exist.",
-            ", ".join(missing),
-        )
-    else:
-        logger.info("Schema sync verified: login/PIN lockout columns present")
+
+def _ensure_required_columns() -> None:
+    """Guarantee the columns the app cannot serve a request without.
+
+    Idempotent, and only issues DDL for columns that are genuinely absent, so a
+    healthy boot costs two inspector queries and no table locks. Table and
+    column names come from ``_REQUIRED_COLUMNS`` (never from input), so the
+    interpolation into DDL is safe. Never raises.
+    """
+    try:
+        missing = _missing_required_columns()
+        if not missing:
+            logger.info("Schema check: every required column is present")
+            return
+
+        logger.warning("Schema check: missing %s — applying the column repair", _describe(missing))
+        with engine.begin() as conn:
+            for table, columns in missing.items():
+                for column in columns:
+                    conn.exec_driver_sql(
+                        f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS '
+                        f'"{column}" {_REQUIRED_COLUMNS[table][column]}'
+                    )
+
+        still_missing = _missing_required_columns()
+        if still_missing:
+            logger.error(
+                "Column repair did not stick; still missing: %s. Login and the "
+                "PIN portal will keep failing until these exist.",
+                _describe(still_missing),
+            )
+        else:
+            logger.info(
+                "Schema check: repaired %s — login and the PIN portal should work now",
+                _describe(missing),
+            )
+    except Exception:
+        logger.exception("Required-column check failed; login may keep failing")
 
 
 def sync_schema() -> None:
-    """Upgrade the database to head.
+    """Bring the schema to head, then guarantee the columns the app needs.
 
     Never raises: a failed migration must not stop the API from starting, since
-    endpoints that don't need the new schema keep working. Failures are logged
-    with a traceback for the deploy log.
+    endpoints that don't need the new schema keep working. Everything is logged
+    for the deploy log.
     """
     if not _enabled():
         logger.info("Schema sync skipped (AUTO_MIGRATE is off)")
         return
 
     try:
-        cfg = _alembic_config()
-        script = ScriptDirectory.from_config(cfg)
-
         with engine.connect() as lock_conn:
-            # Session-scoped lock: it survives the commit below and covers the
-            # upgrade, which Alembic runs on its own connection.
-            lock_conn.exec_driver_sql(
-                "SELECT pg_advisory_lock(%s)", (_ADVISORY_LOCK_KEY,)
-            )
+            # Session-scoped lock: it survives the commit below and covers both
+            # layers, which run on their own connections.
+            lock_conn.exec_driver_sql("SELECT pg_advisory_lock(%s)", (_ADVISORY_LOCK_KEY,))
             lock_conn.commit()
             try:
-                current = _recorded_revision(lock_conn)
-                lock_conn.commit()
-                known = {rev.revision for rev in script.walk_revisions()}
-                if current and current not in known:
-                    _recover_obsolete_revision(cfg, script, current)
-                command.upgrade(cfg, "head")
+                _run_alembic_upgrade(lock_conn)
+                _ensure_required_columns()
             finally:
-                lock_conn.exec_driver_sql(
-                    "SELECT pg_advisory_unlock(%s)", (_ADVISORY_LOCK_KEY,)
-                )
+                lock_conn.exec_driver_sql("SELECT pg_advisory_unlock(%s)", (_ADVISORY_LOCK_KEY,))
                 lock_conn.commit()
-
-        logger.info("Schema sync complete (head: %s)", script.get_current_head())
-        _verify_columns()
     except Exception:
-        logger.exception(
-            "Schema sync failed; starting with whatever schema the database "
-            "already has"
-        )
+        logger.exception("Schema sync could not run")
