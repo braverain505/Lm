@@ -91,6 +91,23 @@ async def lifespan(app: FastAPI):
     except Exception:  # never take the API down over role reconciliation
         logger.exception("Role template reconciliation failed")
 
+    # Reconcile display names written before the Clearis rename. The seeded
+    # platform admin's full_name is only written when its row is created, so an
+    # existing database keeps greeting its admin as "Lumo Platform Admin".
+    try:
+        from .seed import reconcile_platform_admin_branding
+
+        db = SessionLocal()
+        try:
+            renamed = reconcile_platform_admin_branding(db)
+            if renamed:
+                db.commit()
+                logger.info("Renamed %d platform admin(s) to Clearis", renamed)
+        finally:
+            db.close()
+    except Exception:  # never take the API down over a display name
+        logger.exception("Platform admin branding reconciliation failed")
+
     # Render starts Uvicorn directly and does not run the standalone seed
     # command. Keep the platform login provisioned when its password is set.
     if os.getenv("SEED_PLATFORM_PASSWORD"):

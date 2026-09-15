@@ -618,6 +618,13 @@ def seed_demo_data(db: Session, school_id: uuid.UUID) -> None:
 
 PLATFORM_ADMIN_EMAIL = "admin@clearis.app"
 PLATFORM_ADMIN_PASSWORD = os.getenv("SEED_PLATFORM_PASSWORD", "Clearis#2026")
+PLATFORM_ADMIN_NAME = "Clearis Platform Admin"
+
+# Pre-rebrand name. Databases provisioned before the Clearis rename still carry
+# it, and the admin's display name is only written when the row is created, so
+# the rename needs an explicit data update (see
+# reconcile_platform_admin_branding).
+LEGACY_PLATFORM_ADMIN_NAME = "Lumo Platform Admin"
 
 # Warn if using default platform credentials in non-development environments
 if PLATFORM_ADMIN_PASSWORD == "Clearis#2026" and os.getenv("DEBUG", "").lower() != "true":
@@ -1075,7 +1082,7 @@ def ensure_platform_admin(db: Session) -> User:
         admin = User(
             email=PLATFORM_ADMIN_EMAIL,
             password_hash=hash_password(PLATFORM_ADMIN_PASSWORD),
-            full_name="Clearis Platform Admin",
+            full_name=PLATFORM_ADMIN_NAME,
             is_superadmin=True,
         )
         db.add(admin)
@@ -1085,6 +1092,28 @@ def ensure_platform_admin(db: Session) -> User:
         if os.getenv("SEED_PLATFORM_PASSWORD"):
             admin.password_hash = hash_password(PLATFORM_ADMIN_PASSWORD)
     return admin
+
+
+def reconcile_platform_admin_branding(db: Session) -> int:
+    """Rename a platform admin still carrying the pre-rebrand name.
+
+    ``ensure_platform_admin`` writes ``full_name`` only when it *creates* the
+    row, so a database provisioned before the Clearis rename kept greeting its
+    admin as "Lumo Platform Admin" — the rebrand commit flagged that data
+    update and left it outstanding.
+
+    Matching on the exact legacy name rather than on the legacy email still
+    catches the row when it is keyed by the old address (the rename moved the
+    address too, so an email lookup would miss it and seed a second admin), and
+    it can never clobber a name an operator set deliberately. Returns the number
+    of rows renamed.
+    """
+    stale = db.scalars(
+        select(User).where(User.full_name == LEGACY_PLATFORM_ADMIN_NAME)
+    ).all()
+    for admin in stale:
+        admin.full_name = PLATFORM_ADMIN_NAME
+    return len(stale)
 
 
 def main() -> None:
