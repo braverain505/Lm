@@ -10,7 +10,14 @@ from app.models import Base  # noqa: F401 — imported for accurate metadata
 
 config = context.config
 
-if config.config_file_name is not None:
+# The API's startup schema sync (app/core/schema_sync.py) imports this env
+# *in-process* and sets skip_logging_config. fileConfig() would otherwise
+# replace the root handler and drop the process to WARN, silencing every INFO
+# log the app emits for the rest of its life — including the ones the Render
+# deploy log is read for. The app has already configured logging, so leave it.
+if config.config_file_name is not None and not config.attributes.get(
+    "skip_logging_config", False
+):
     fileConfig(config.config_file_name)
 
 # Inject the runtime URL (from env / .env) instead of the INI placeholder.

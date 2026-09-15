@@ -6,6 +6,7 @@ dedicated database (schoolos_test) so tests can freely drop/create tables.
 """
 from __future__ import annotations
 
+import os
 from urllib.parse import urlsplit, urlunsplit
 
 import pytest
@@ -17,6 +18,12 @@ from app.config import settings
 from app.core.database import get_db
 from app.main import app
 from app.models import Base
+
+# The TestClient fixture enters the app's lifespan, which runs the startup
+# schema sync. Migrations here would target settings.database_url (the app's
+# engine) while the suite builds its tables on the derived *_test database, so
+# the sync is switched off for tests.
+os.environ["AUTO_MIGRATE"] = "0"
 
 
 def _test_database_url() -> str:

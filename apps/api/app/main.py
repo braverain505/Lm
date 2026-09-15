@@ -19,6 +19,7 @@ from .config import settings
 from .core.errors import register_exception_handlers
 from .core.database import SessionLocal
 from .core.rate_limit import limiter
+from .core.schema_sync import sync_schema
 from .services.tenancy_service import sync_all_school_role_templates
 from .routers import (
     academics,
@@ -71,6 +72,12 @@ async def lifespan(app: FastAPI):
         else:
             logger.error(f"Production configuration validation failed: {e}")
             raise
+
+    # Bring the schema up to head before anything queries it. Render starts
+    # Uvicorn directly and a free instance has no shell, pre-deploy command or
+    # one-off jobs, so a pending migration has no other way to reach the
+    # database. sync_schema() never raises.
+    sync_schema()
 
     # Reconcile role templates
     try:
