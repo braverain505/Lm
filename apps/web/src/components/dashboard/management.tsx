@@ -88,6 +88,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/students",
       sub: `${data?.distribution.total ?? 0} enrolled this session`,
       show: canStudents,
+      tone: "blue" as const,
       delay: 0.06,
     },
     {
@@ -97,6 +98,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/teachers",
       sub: `${kpis?.staff ?? 0} staff in total`,
       show: true,
+      tone: "emerald" as const,
       delay: 0.08,
     },
     {
@@ -106,6 +108,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/classes",
       sub: `${kpis?.subjects ?? 0} subjects offered`,
       show: can("academics.view"),
+      tone: "violet" as const,
       delay: 0.1,
     },
     {
@@ -115,6 +118,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/attendance",
       sub: "This month",
       show: canAttendance,
+      tone: "cyan" as const,
       delay: 0.12,
     },
     {
@@ -124,6 +128,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/billing",
       sub: "Unpaid invoices",
       show: canFees,
+      tone: "amber" as const,
       delay: 0.14,
     },
     {
@@ -133,6 +138,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       href: "/readiness",
       sub: `${kpis?.readiness_pending ?? 0} entries pending`,
       show: canResults,
+      tone: "rose" as const,
       delay: 0.16,
     },
   ].filter((card) => card.show);
@@ -194,6 +200,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
                 icon={card.icon}
                 sub={card.sub}
                 href={card.href}
+                tone={card.tone}
                 loading={isLoading}
               />
             </motion.div>

@@ -135,6 +135,40 @@ export function WidgetCard({
 // KPI card — clean, typographic
 // ---------------------------------------------------------------------------
 
+/**
+ * Tinted tile palette. Each tone tints the surface and the icon chip with a
+ * semantic token, so the colour follows the theme automatically — the values
+ * behind these tokens brighten under `.dark` and the tints stay visible.
+ */
+const KPI_TONES = {
+  blue: {
+    card: "border-primary/20 bg-primary/[0.07] hover:border-primary/40",
+    chip: "bg-primary/20 text-primary",
+  },
+  violet: {
+    card: "border-accent/20 bg-accent/[0.07] hover:border-accent/40",
+    chip: "bg-accent/20 text-accent",
+  },
+  emerald: {
+    card: "border-success/20 bg-success/[0.07] hover:border-success/40",
+    chip: "bg-success/20 text-success",
+  },
+  amber: {
+    card: "border-warning/25 bg-warning/[0.09] hover:border-warning/45",
+    chip: "bg-warning/25 text-warning",
+  },
+  rose: {
+    card: "border-chart-4/20 bg-chart-4/[0.07] hover:border-chart-4/40",
+    chip: "bg-chart-4/20 text-chart-4",
+  },
+  cyan: {
+    card: "border-chart-6/20 bg-chart-6/[0.07] hover:border-chart-6/40",
+    chip: "bg-chart-6/20 text-chart-6",
+  },
+} as const;
+
+export type KpiTone = keyof typeof KPI_TONES;
+
 export function KpiCard({
   label,
   value,
@@ -144,6 +178,7 @@ export function KpiCard({
   deltaLabel,
   loading,
   href,
+  tone,
 }: {
   label: string;
   value: ReactNode;
@@ -153,10 +188,18 @@ export function KpiCard({
   deltaLabel?: string;
   loading?: boolean;
   href: string;
+  tone?: KpiTone;
 }) {
   const up = (delta ?? 0) >= 0;
+  const theme = tone ? KPI_TONES[tone] : null;
   return (
-    <Link href={href} className="group block rounded-xl border border-border/40 bg-card px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:border-border/60 hover:shadow-card hover:-translate-y-[1px]">
+    <Link
+      href={href}
+      className={cn(
+        "group block rounded-xl border px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:shadow-card hover:-translate-y-[1px]",
+        theme ? theme.card : "border-border/40 bg-card hover:border-border/60",
+      )}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">{label}</p>
@@ -181,7 +224,12 @@ export function KpiCard({
             <p className="mt-2 text-[11px] text-muted-foreground/45">{sub}</p>
           )}
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground/40 transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary/70">
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
+            theme ? theme.chip : "bg-muted/40 text-muted-foreground/40 group-hover:bg-primary/10 group-hover:text-primary/70",
+          )}
+        >
           <Icon className="h-4 w-4" />
         </span>
       </div>
