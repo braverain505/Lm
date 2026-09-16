@@ -10,7 +10,7 @@ import { PlatformSidebar } from "@/components/platform-sidebar";
 
 const SIDEBAR_WIDTH = 260;
 const SIDEBAR_WIDTH_COLLAPSED = 76;
-const COLLAPSE_KEY = "schoolos.sidebar-collapsed";
+const COLLAPSE_KEY = "clearis.sidebar-collapsed";
 
 export function PlatformShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

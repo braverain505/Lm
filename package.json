@@ -1,13 +1,13 @@
 {
-  "name": "schoolos",
+  "name": "clearis",
   "private": true,
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@schoolos/web",
-    "dev": "npm run dev --workspace=@schoolos/web"
+    "build": "npm run build --workspace=@clearis/web",
+    "dev": "npm run dev --workspace=@clearis/web"
   },
   "devDependencies": {
     "@types/estree": "^1.0.9",

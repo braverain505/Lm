@@ -6,9 +6,15 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from ..core.deps import DbSession, require_permission
+from ..core.deps import DbSession, require_accountant, require_permission
 from ..core.errors import NotFoundError, ValidationError
-from ..core.permissions import FEES_VIEW, FEES_CREATE, FEES_EDIT, FEES_PAY
+from ..core.permissions import (
+    ACCOUNTING_VIEW,
+    FEES_VIEW,
+    FEES_CREATE,
+    FEES_EDIT,
+    FEES_PAY,
+)
 from ..models import Payment
 from ..schemas.fees import (
     FeeStructureIn,
@@ -18,9 +24,12 @@ from ..schemas.fees import (
     PaymentIn,
     PaymentOut,
     PaymentStatusOut,
+    ReceiptEmailIn,
+    ReceiptEmailOut,
     ReceiptOut,
     StudentFeeBalanceOut,
 )
+from ..services import email_service
 from ..services.fees_service import (
     create_fee_structure,
     update_fee_structure,
@@ -173,6 +182,7 @@ def record_payment_endpoint(
         school_id=ctx.school.id,
         payment_reference=payload.payment_reference,
         transaction_id=payload.transaction_id,
+        cash_account_id=payload.cash_account_id,
         recorded_by=ctx.user.id,
     )
     db.commit()
@@ -213,10 +223,41 @@ def get_payment_endpoint(
 def get_payment_receipt_endpoint(
     payment_id: uuid.UUID,
     db: DbSession,
-    ctx=Depends(require_permission(FEES_VIEW)),
+    ctx=Depends(require_accountant(ACCOUNTING_VIEW)),
 ):
-    """Printable receipt data for a recorded payment."""
+    """Printable receipt data for a recorded payment.
+
+    Receipts are part of the accountant's desk, so this is gated on the school's
+    Accountant role (not merely on the fees permission a bursar also holds).
+    """
     return get_receipt(db, ctx.school.id, payment_id)
+
+
+@router.post("/payments/{payment_id}/receipt/email", response_model=ReceiptEmailOut)
+def email_payment_receipt_endpoint(
+    payment_id: uuid.UUID,
+    payload: ReceiptEmailIn,
+    db: DbSession,
+    ctx=Depends(require_accountant(ACCOUNTING_VIEW)),
+):
+    """Email a payment receipt to the guardian (or an explicit address)."""
+    receipt = get_receipt(db, ctx.school.id, payment_id)
+    recipient = (str(payload.to).strip().lower() if payload.to else None) or (
+        receipt.get("student", {}).get("guardian_email")
+    )
+    if not recipient:
+        raise ValidationError(
+            "No guardian email is on file for this student — provide a recipient."
+        )
+
+    subject, html, text = email_service.build_receipt_email(receipt)
+    result = email_service.send_email(to=recipient, subject=subject, html=html, text=text)
+    return ReceiptEmailOut(
+        receipt_number=receipt.get("receipt_number"),
+        recipient=recipient,
+        delivered=result.delivered,
+        dev_skipped=result.dev_skipped,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────

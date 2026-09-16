@@ -1,4 +1,4 @@
-"""SchoolOS Super Admin schemas: platform-level command center request/response
+"""Clearis Super Admin schemas: platform-level command center request/response
 shapes. Responses are largely passthrough dicts from ``super_admin_service`` so
 only request bodies are strictly typed here."""
 import uuid

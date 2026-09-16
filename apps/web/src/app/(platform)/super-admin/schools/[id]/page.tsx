@@ -27,7 +27,7 @@ import {
   useSaUpdateSubscription,
 } from "@/hooks/use-superadmin";
 import { useAuth } from "@/providers/auth-provider";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function SchoolDetailPage() {
@@ -81,7 +81,7 @@ export default function SchoolDetailPage() {
       await impersonateStart.mutateAsync(session.token);
       await refreshMe();
       try {
-        localStorage.setItem("schoolos.impersonating", "1");
+        localStorage.setItem("clearis.impersonating", "1");
       } catch {
         /* ignore */
       }

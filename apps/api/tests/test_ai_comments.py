@@ -66,7 +66,7 @@ def test_generate_writes_comment_and_metering(client, db):
     assert body["student_id"] == student_id
     assert body["term_id"] == w["term_id"]
     assert body["provider"] == "local"
-    assert body["model"] == "schoolos-comment-v1"
+    assert body["model"] == "clearis-comment-v1"
     assert body["revision"] == 1
 
     # The comment is data-grounded: Aisha Bello, the term, the class, the
@@ -79,7 +79,7 @@ def test_generate_writes_comment_and_metering(client, db):
     assert len(usage) == 1
     assert usage[0].feature == "ai.result.comment"
     assert usage[0].provider == "local"
-    assert usage[0].model == "schoolos-comment-v1"
+    assert usage[0].model == "clearis-comment-v1"
     assert usage[0].tokens_out >= 1
     meter = db.scalars(select(UsageMeter)).all()
     assert len(meter) == 1

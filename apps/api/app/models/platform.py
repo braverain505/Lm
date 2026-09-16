@@ -1,4 +1,4 @@
-"""Platform-level entities for the SchoolOS Super Admin command center.
+"""Platform-level entities for the Clearis Super Admin command center.
 
 These tables are intentionally NOT tenant-scoped: they describe the SaaS
 platform itself (regions, announcements, support tickets, platform

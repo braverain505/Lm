@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, MessageSquare, Plus, Search, UserPlus } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

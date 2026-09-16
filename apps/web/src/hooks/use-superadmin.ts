@@ -12,9 +12,9 @@ import type {
   SaSubscriptionUpdate,
   SaTicketCreate,
   SaTicketUpdate,
-} from "@schoolos/shared";
+} from "@clearis/shared";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { useAuth } from "@/providers/auth-provider";
 
 function usePlatformEnabled() {

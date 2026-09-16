@@ -23,6 +23,7 @@ from .core.schema_sync import sync_schema
 from .services.tenancy_service import sync_all_school_role_templates
 from .routers import (
     academics,
+    accounting,
     attendance,
     auth,
     copilot,
@@ -178,8 +179,8 @@ API_PREFIX = "/api"
 
 for module in (
     auth, schools, roles, academics, staff, students, results, lesson_plans,
-    question_banks, portal, copilot, imports, fees, attendance, timetable,
-    payroll, inventory, library, dashboard, uploads, platform,
+    question_banks, portal, copilot, imports, fees, accounting, attendance,
+    timetable, payroll, inventory, library, dashboard, uploads, platform,
     super_admin,
 ):
     app.include_router(module.router, prefix=API_PREFIX)

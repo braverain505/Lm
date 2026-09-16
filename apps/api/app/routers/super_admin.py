@@ -1,4 +1,4 @@
-"""SchoolOS Super Admin endpoints: the platform owner's command center.
+"""Clearis Super Admin endpoints: the platform owner's command center.
 
 Every route is guarded by ``require_platform_admin`` (``User.is_superadmin``) —
 no school context is involved. This is intentionally separate from the school

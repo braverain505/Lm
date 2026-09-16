@@ -51,6 +51,8 @@ ERR_RATE_LIMITED = "ERR_RATE_LIMITED"
 ERR_FEATURE_DISABLED = "ERR_FEATURE_DISABLED"
 ERR_ASSIGNMENT = "ERR_ASSIGNMENT"  # 403: actor not assigned to this arm/subject
 ERR_AI_NOT_CONFIGURED = "ERR_AI_NOT_CONFIGURED"  # 503: provider key missing
+ERR_EMAIL_NOT_CONFIGURED = "ERR_EMAIL_NOT_CONFIGURED"  # 503: email provider key missing
+ERR_EMAIL_SEND_FAILED = "ERR_EMAIL_SEND_FAILED"  # 502: provider rejected the send
 ERR_PREMIUM_REQUIRED = "ERR_PREMIUM_REQUIRED"  # 403: AI features are a paid add-on
 ERR_SCHOOL_SUSPENDED = "ERR_SCHOOL_SUSPENDED"  # 403: school disabled by the Clearis admin
 ERR_PIN_INVALID = "ERR_PIN_INVALID"  # 404: neutral — admission no / PIN mismatch
@@ -83,6 +85,19 @@ class NotMemberError(APIError):
         super().__init__(404, ERR_NOT_MEMBER, "School not found")
 
 
+class EmailNotConfiguredError(APIError):
+    """No transactional email provider is configured for this deployment."""
+
+    def __init__(
+        self,
+        message: str = (
+            "Email is not configured on this deployment. "
+            "Set RESEND_API_KEY to send receipts to guardians."
+        ),
+    ) -> None:
+        super().__init__(503, ERR_EMAIL_NOT_CONFIGURED, message)
+
+
 class PremiumRequiredError(APIError):
     """The school has not subscribed to the premium (AI) feature plan."""
 
@@ -99,7 +114,9 @@ class SchoolSuspendedError(APIError):
         super().__init__(403, ERR_SCHOOL_SUSPENDED, message)
 
 
-def _envelope(code: str, message: str, details: dict[str, Any] | None) -> dict[str, Any]:
+def _envelope(
+    code: str, message: str, details: dict[str, Any] | None = None
+) -> dict[str, Any]:
     return {"error": {"code": code, "message": message, "details": details or {}}}
 
 

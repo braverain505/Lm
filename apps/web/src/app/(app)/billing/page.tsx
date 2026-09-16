@@ -55,6 +55,9 @@ const PAYMENT_METHODS = ["cash", "bank_transfer", "card", "pos", "other"];
 export default function BillingPage() {
   const { activeSchool } = useAuth();
   const canView = activeSchool?.permissions?.includes("fees.view") ?? false;
+  // Receipts are the Accountant's desk: the API refuses them for any other role,
+  // so the UI must not offer the button to a bursar who merely collects fees.
+  const isAccountant = activeSchool?.role?.code === "accountant";
 
   const { data: structures = [], isLoading: loadingStructures } = useFeeStructures();
   const { data: students = [] } = useStudents();
@@ -500,9 +503,13 @@ export default function BillingPage() {
                         <td className="py-3 capitalize text-muted-foreground">{p.payment_method}</td>
                         <td className="py-3 text-right tabular-nums font-medium">₦{p.amount.toLocaleString()}</td>
                         <td className="py-3 text-right">
-                          <Button size="sm" variant="outline" onClick={() => setReceiptPaymentId(p.id)} className="gap-1">
-                            <Printer className="h-3.5 w-3.5" /> View
-                          </Button>
+                          {isAccountant ? (
+                            <Button size="sm" variant="outline" onClick={() => setReceiptPaymentId(p.id)} className="gap-1">
+                              <Printer className="h-3.5 w-3.5" /> View
+                            </Button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground/60">Accountant only</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -514,7 +521,9 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      <ReceiptDialog paymentId={receiptPaymentId} onClose={() => setReceiptPaymentId(null)} />
+      {isAccountant && (
+        <ReceiptDialog paymentId={receiptPaymentId} onClose={() => setReceiptPaymentId(null)} />
+      )}
     </div>
   );
 }

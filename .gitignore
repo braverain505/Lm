@@ -1,4 +1,4 @@
-# SchoolOS
+# Clearis
 node_modules/
 .next/
 out/
@@ -9,6 +9,7 @@ dist/
 __pycache__/
 *.pyc
 .venv/
+.pgdata/
 .pytest_cache/
 .coverage
 htmlcov/

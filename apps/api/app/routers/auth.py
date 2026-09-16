@@ -27,7 +27,7 @@ from ..services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-REFRESH_COOKIE = "schoolos_refresh"
+REFRESH_COOKIE = "clearis_refresh"
 
 
 def _set_cookies(response: Response, result: auth_service.AuthResult) -> None:

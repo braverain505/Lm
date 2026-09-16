@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-import type { ReportCard } from "@schoolos/shared";
+import type { ReportCard } from "@clearis/shared";
 
-// Same base the API client uses (@schoolos/shared): same-origin /api/proxy on
+// Same base the API client uses (@clearis/shared): same-origin /api/proxy on
 // Vercel (a Next route that forwards to the backend), or a direct API URL when
 // NEXT_PUBLIC_API_URL is set.
 const API_BASE = (

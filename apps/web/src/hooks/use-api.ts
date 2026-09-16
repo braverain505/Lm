@@ -75,9 +75,30 @@ import type {
   WeekScheduleOut,
   WorkbenchRow,
   SchoolAdminCreate,
-} from "@schoolos/shared";
+  AccountingSummary,
+  Accountant,
+  AccountantIn,
+  CashAccount,
+  CashAccountIn,
+  Cashbook,
+  CashPosition,
+  CollectionReport,
+  CreditNote,
+  CreditNoteIn,
+  Debtors,
+  Discount,
+  DiscountIn,
+  Expense,
+  ExpenseCategory,
+  ExpenseIn,
+  ExpenseList,
+  IncomeExpenditure,
+  ReceiptEmailResult,
+  Refund,
+  RefundIn,
+} from "@clearis/shared";
 
-import { api, reviewResults, compileResults, type ResultAction } from "@schoolos/shared";
+import { api, reviewResults, compileResults, type ResultAction } from "@clearis/shared";
 import { useAuth } from "@/providers/auth-provider";
 
 export function useCanComment(): boolean {
@@ -952,6 +973,470 @@ export function useFeeStatus(opts?: { termId?: string; armId?: string }) {
     queryKey: ["fee-status", schoolId, opts?.termId ?? null, opts?.armId ?? null],
     enabled: !!schoolId,
     queryFn: async () => api.fetchFeeStatus(schoolId!, opts),
+  });
+}
+
+// --- Accounting (Accountant's desk) ------------------------------------------------
+
+export function useAccountingSummary(termId?: string) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["accounting-summary", schoolId, termId ?? null],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchAccountingSummary(schoolId!, termId),
+  });
+}
+
+export function useCashAccounts(activeOnly = false) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["cash-accounts", schoolId, activeOnly],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchCashAccounts(schoolId!, activeOnly),
+  });
+}
+
+export function useCreateCashAccount() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CashAccountIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createCashAccount(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-accounts", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["cash-position", schoolId] });
+    },
+  });
+}
+
+export function useUpdateCashAccount() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ accountId, input }: { accountId: string; input: CashAccountIn }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateCashAccount(schoolId, accountId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-accounts", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["cash-position", schoolId] });
+    },
+  });
+}
+
+export function useExpenseCategories(activeOnly = false) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["expense-categories", schoolId, activeOnly],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchExpenseCategories(schoolId!, activeOnly),
+  });
+}
+
+export function useCreateExpenseCategory() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; description?: string | null }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createExpenseCategory(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expense-categories", schoolId] });
+    },
+  });
+}
+
+export function useExpenses(opts?: {
+  status?: string;
+  categoryId?: string;
+  termId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["expenses", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchExpenses(schoolId!, opts),
+  });
+}
+
+function useAccountingInvalidate() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of [
+      "expenses",
+      "cashbook",
+      "accounting-summary",
+      "cash-position",
+      "income-expenditure",
+      "collection-report",
+      "debtors",
+    ]) {
+      queryClient.invalidateQueries({ queryKey: [key, schoolId] });
+    }
+  };
+}
+
+export function useCreateExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: (input: ExpenseIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createExpense(schoolId, input);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: ({ expenseId, input }: { expenseId: string; input: ExpenseIn }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateExpense(schoolId, expenseId, input);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useApproveExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: (expenseId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.approveExpense(schoolId, expenseId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRejectExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: ({ expenseId, reason }: { expenseId: string; reason?: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.rejectExpense(schoolId, expenseId, reason);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function usePayExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: (expenseId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.payExpense(schoolId, expenseId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteExpense() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: (expenseId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteExpense(schoolId, expenseId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useCashbook(opts?: {
+  cashAccountId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  onlyUnreconciled?: boolean;
+}) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["cashbook", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchCashbook(schoolId!, opts),
+  });
+}
+
+export function useReconcileCashbookEntry() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  return useMutation({
+    mutationFn: (input: {
+      source_type: "payment" | "expense" | "refund";
+      source_id: string;
+      reconciled: boolean;
+      bank_reference?: string | null;
+    }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.reconcileCashbookEntry(schoolId, input);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useDiscounts(opts?: { studentId?: string; activeOnly?: boolean }) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["discounts", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchDiscounts(schoolId!, opts),
+  });
+}
+
+export function useCreateDiscount() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: DiscountIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createDiscount(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discounts", schoolId] });
+    },
+  });
+}
+
+export function useUpdateDiscount() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ discountId, input }: { discountId: string; input: DiscountIn }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateDiscount(schoolId, discountId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discounts", schoolId] });
+    },
+  });
+}
+
+export function useDeleteDiscount() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (discountId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteDiscount(schoolId, discountId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["discounts", schoolId] });
+    },
+  });
+}
+
+export function useCreditNotes(opts?: { studentId?: string; status?: string }) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["credit-notes", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchCreditNotes(schoolId!, opts),
+  });
+}
+
+export function useCreateCreditNote() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreditNoteIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createCreditNote(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-notes", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function useApplyCreditNote() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ noteId, invoiceId }: { noteId: string; invoiceId: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.applyCreditNote(schoolId, noteId, invoiceId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-notes", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["invoices", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function useVoidCreditNote() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (noteId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.voidCreditNote(schoolId, noteId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-notes", schoolId] });
+    },
+  });
+}
+
+export function useRefunds(opts?: { studentId?: string; status?: string }) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["refunds", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchRefunds(schoolId!, opts),
+  });
+}
+
+export function useCreateRefund() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RefundIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createRefund(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["refunds", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function useApproveRefund() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (refundId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.approveRefund(schoolId, refundId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["refunds", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function useRejectRefund() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ refundId, reason }: { refundId: string; reason?: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.rejectRefund(schoolId, refundId, reason);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["refunds", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function usePayRefund() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useAccountingInvalidate();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ refundId, refundDate }: { refundId: string; refundDate?: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.payRefund(schoolId, refundId, refundDate);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["refunds", schoolId] });
+      invalidate();
+    },
+  });
+}
+
+export function useDebtors(opts?: { termId?: string; armId?: string }) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["debtors", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchDebtors(schoolId!, opts),
+  });
+}
+
+export function useIncomeExpenditure(opts?: {
+  termId?: string;
+  sessionId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["income-expenditure", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchIncomeExpenditure(schoolId!, opts),
+  });
+}
+
+export function useCollectionReport(opts?: { termId?: string; sessionId?: string }) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["collection-report", schoolId, JSON.stringify(opts ?? {})],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchCollectionReport(schoolId!, opts),
+  });
+}
+
+export function useCashPosition() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["cash-position", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchCashPosition(schoolId!),
+  });
+}
+
+export function useAccountants() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["accountants", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchAccountants(schoolId!),
+  });
+}
+
+export function useCreateAccountant() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AccountantIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createAccountant(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accountants", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["staff", schoolId] });
+    },
+  });
+}
+
+export function useEmailReceipt() {
+  const schoolId = useActiveSchoolId();
+  return useMutation({
+    mutationFn: ({ paymentId, to }: { paymentId: string; to?: string | null }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.emailReceipt(schoolId, paymentId, { to });
+    },
   });
 }
 

@@ -59,7 +59,7 @@ import type {
   TaskItem,
   WorkbenchRow,
   ResultCell,
-} from "@schoolos/shared";
+} from "@clearis/shared";
 
 // ---------------------------------------------------------------------------
 // Segmented control

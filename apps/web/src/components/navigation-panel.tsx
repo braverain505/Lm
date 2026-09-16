@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { motion } from "framer-motion";
 import { LogOut, ChevronRight } from "lucide-react";
 import Image from "next/image";

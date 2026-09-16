@@ -1,6 +1,6 @@
-# SchoolOS - Quick Start Guide
+# Clearis - Quick Start Guide
 
-## 🚀 Starting SchoolOS (Backend + Frontend)
+## 🚀 Starting Clearis (Backend + Frontend)
 
 ### Prerequisites Check
 ```bash
@@ -21,7 +21,7 @@ npm --version
 ### 1. Install Dependencies (First Time Only)
 
 ```bash
-cd ~/schoolos/apps/api
+cd ~/clearis/apps/api
 
 # Create virtual environment (if not exists)
 python3 -m venv ../../.venv
@@ -51,7 +51,7 @@ bash ../../scripts/migrate.sh seed
 ### 3. Start Backend Server
 
 ```bash
-cd ~/schoolos/apps/api
+cd ~/clearis/apps/api
 source ../../.venv/bin/activate
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -67,7 +67,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ### 1. Install Dependencies (First Time Only)
 
 ```bash
-cd ~/schoolos/apps/web
+cd ~/clearis/apps/web
 
 # Install Node modules (takes 3-5 minutes)
 npm install
@@ -78,7 +78,7 @@ npm install
 ### 2. Configure Environment
 
 ```bash
-cd ~/schoolos/apps/web
+cd ~/clearis/apps/web
 
 # Copy environment template
 cp .env.example .env
@@ -95,7 +95,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 ### 3. Start Frontend Server
 
 ```bash
-cd ~/schoolos/apps/web
+cd ~/clearis/apps/web
 npm run dev
 ```
 
@@ -107,7 +107,7 @@ npm run dev
 
 ### Terminal 1 - Backend:
 ```bash
-cd ~/schoolos/apps/api
+cd ~/clearis/apps/api
 source ../../.venv/bin/activate || python3 -m venv ../../.venv && source ../../.venv/bin/activate
 pip install -e ".[dev]" 2>&1 | grep -E "(Successfully|already|Requirement)"
 uvicorn app.main:app --reload --port 8000
@@ -115,7 +115,7 @@ uvicorn app.main:app --reload --port 8000
 
 ### Terminal 2 - Frontend:
 ```bash
-cd ~/schoolos/apps/web
+cd ~/clearis/apps/web
 npm install 2>&1 | tail -10
 npm run dev
 ```
@@ -127,7 +127,7 @@ npm run dev
 ### 1. Check Backend Health
 ```bash
 curl http://localhost:8000/api/health
-# Should return: {"status":"ok","service":"lumo-api","version":"0.1.0","database":"connected"}
+# Should return: {"status":"ok","service":"clearis-api","version":"0.1.0","database":"connected"}
 ```
 
 ### 2. Access API Documentation
@@ -149,7 +149,7 @@ Open browser: http://localhost:3000
 
 **Issue:** `ModuleNotFoundError: No module named 'slowapi'` or `'nh3'`
 ```bash
-cd ~/schoolos/apps/api
+cd ~/clearis/apps/api
 source ../../.venv/bin/activate
 pip install slowapi nh3
 ```
@@ -177,7 +177,7 @@ uvicorn app.main:app --port 8001
 
 **Issue:** `sh: 1: next: not found`
 ```bash
-cd ~/schoolos/apps/web
+cd ~/clearis/apps/web
 npm install
 ```
 
@@ -211,29 +211,29 @@ npm run dev -- -p 3001
 ### Using tmux (Recommended)
 ```bash
 # Start tmux session
-tmux new -s schoolos
+tmux new -s clearis
 
 # Split panes: Ctrl+B then "
 # Switch panes: Ctrl+B then arrow keys
 
 # Pane 1 - Backend
-cd ~/schoolos/apps/api && source ../../.venv/bin/activate && uvicorn app.main:app --reload
+cd ~/clearis/apps/api && source ../../.venv/bin/activate && uvicorn app.main:app --reload
 
 # Pane 2 - Frontend  
-cd ~/schoolos/apps/web && npm run dev
+cd ~/clearis/apps/web && npm run dev
 
 # Detach: Ctrl+B then D
-# Reattach: tmux attach -t schoolos
+# Reattach: tmux attach -t clearis
 ```
 
 ### Using nohup
 ```bash
 # Backend
-cd ~/schoolos/apps/api
+cd ~/clearis/apps/api
 nohup uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &
 
 # Frontend
-cd ~/schoolos/apps/web  
+cd ~/clearis/apps/web  
 nohup npm run dev > /tmp/frontend.log 2>&1 &
 
 # Check logs
@@ -256,7 +256,7 @@ For production deployment, see:
 
 - API Documentation: http://localhost:8000/api/docs
 - Test Health: `curl http://localhost:8000/api/health`
-- Check Logs: `tail -f /tmp/schoolos-*.log`
+- Check Logs: `tail -f /tmp/clearis-*.log`
 - Run Tests: `cd apps/api && pytest -v`
 
 **Everything is ready to go! Just install dependencies and start the servers.** 🚀

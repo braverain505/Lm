@@ -1,6 +1,6 @@
-# SchoolOS Production Deployment Guide
+# Clearis Production Deployment Guide
 
-This guide covers deploying SchoolOS to production. Follow ALL steps in order.
+This guide covers deploying Clearis to production. Follow ALL steps in order.
 
 ---
 
@@ -40,8 +40,8 @@ sudo apt install certbot python3-certbot-nginx -y
 ### 1.2 Create Application User
 
 ```bash
-sudo useradd -m -s /bin/bash schoolos
-sudo usermod -aG sudo schoolos
+sudo useradd -m -s /bin/bash clearis
+sudo usermod -aG sudo clearis
 ```
 
 ---
@@ -54,12 +54,12 @@ sudo usermod -aG sudo schoolos
 sudo -u postgres psql
 
 -- In PostgreSQL console:
-CREATE USER schoolos_prod WITH PASSWORD 'STRONG_PASSWORD_HERE';
-CREATE DATABASE schoolos_prod OWNER schoolos_prod;
-GRANT ALL PRIVILEGES ON DATABASE schoolos_prod TO schoolos_prod;
+CREATE USER clearis_prod WITH PASSWORD 'STRONG_PASSWORD_HERE';
+CREATE DATABASE clearis_prod OWNER clearis_prod;
+GRANT ALL PRIVILEGES ON DATABASE clearis_prod TO clearis_prod;
 
 -- Enable required extensions
-\c schoolos_prod
+\c clearis_prod
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 \q
 ```
@@ -95,10 +95,10 @@ sudo systemctl restart postgresql
 ### 3.1 Clone Repository
 
 ```bash
-sudo su - schoolos
-cd /home/schoolos
-git clone https://github.com/yourusername/schoolos.git
-cd schoolos
+sudo su - clearis
+cd /home/clearis
+git clone https://github.com/yourusername/clearis.git
+cd clearis
 ```
 
 ### 3.2 Backend Setup
@@ -131,7 +131,7 @@ nano .env  # Edit with production values
 
 ```bash
 # Set DATABASE_URL for migrations
-export DATABASE_URL="postgresql+psycopg2://schoolos_prod:PASSWORD@localhost:5432/schoolos_prod"
+export DATABASE_URL="postgresql+psycopg2://clearis_prod:PASSWORD@localhost:5432/clearis_prod"
 
 # Run migrations
 alembic upgrade head
@@ -158,20 +158,20 @@ pytest -v
 
 ### 4.1 Create Systemd Service
 
-Create `/etc/systemd/system/schoolos-api.service`:
+Create `/etc/systemd/system/clearis-api.service`:
 
 ```ini
 [Unit]
-Description=SchoolOS API
+Description=Clearis API
 After=network.target postgresql.service
 
 [Service]
 Type=notify
-User=schoolos
-Group=schoolos
-WorkingDirectory=/home/schoolos/schoolos/apps/api
-Environment="PATH=/home/schoolos/schoolos/apps/api/venv/bin"
-ExecStart=/home/schoolos/schoolos/apps/api/venv/bin/uvicorn app.main:app \
+User=clearis
+Group=clearis
+WorkingDirectory=/home/clearis/clearis/apps/api
+Environment="PATH=/home/clearis/clearis/apps/api/venv/bin"
+ExecStart=/home/clearis/clearis/apps/api/venv/bin/uvicorn app.main:app \
     --host 127.0.0.1 \
     --port 8000 \
     --workers 4 \
@@ -198,14 +198,14 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable schoolos-api
-sudo systemctl start schoolos-api
+sudo systemctl enable clearis-api
+sudo systemctl start clearis-api
 
 # Check status
-sudo systemctl status schoolos-api
+sudo systemctl status clearis-api
 
 # View logs
-sudo journalctl -u schoolos-api -f
+sudo journalctl -u clearis-api -f
 ```
 
 ---
@@ -214,7 +214,7 @@ sudo journalctl -u schoolos-api -f
 
 ### 5.1 Configure Reverse Proxy
 
-Create `/etc/nginx/sites-available/schoolos`:
+Create `/etc/nginx/sites-available/clearis`:
 
 ```nginx
 # Rate limiting zones
@@ -222,7 +222,7 @@ limit_req_zone $binary_remote_addr zone=login_limit:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=api_limit:10m rate=100r/m;
 
 # Upstream API
-upstream schoolos_api {
+upstream clearis_api {
     server 127.0.0.1:8000 max_fails=3 fail_timeout=30s;
 }
 
@@ -259,7 +259,7 @@ server {
         # Rate limiting
         limit_req zone=api_limit burst=20 nodelay;
 
-        proxy_pass http://schoolos_api;
+        proxy_pass http://clearis_api;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -275,7 +275,7 @@ server {
     location /api/auth/login {
         limit_req zone=login_limit burst=2 nodelay;
         
-        proxy_pass http://schoolos_api;
+        proxy_pass http://clearis_api;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -284,13 +284,13 @@ server {
 
     # Health check
     location /api/health {
-        proxy_pass http://schoolos_api;
+        proxy_pass http://clearis_api;
         access_log off;
     }
 
     # Frontend (if serving from same domain)
     location / {
-        root /home/schoolos/schoolos/apps/web/out;
+        root /home/clearis/clearis/apps/web/out;
         try_files $uri $uri/ /index.html;
     }
 }
@@ -300,7 +300,7 @@ server {
 
 ```bash
 # Enable site
-sudo ln -s /etc/nginx/sites-available/schoolos /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clearis /etc/nginx/sites-enabled/
 sudo nginx -t  # Test configuration
 sudo systemctl reload nginx
 
@@ -317,19 +317,19 @@ sudo certbot renew --dry-run
 
 ### 6.1 Create Backup Script
 
-Create `/home/schoolos/scripts/backup-db.sh`:
+Create `/home/clearis/scripts/backup-db.sh`:
 
 ```bash
 #!/bin/bash
 set -e
 
 # Configuration
-DB_NAME="schoolos_prod"
-DB_USER="schoolos_prod"
-BACKUP_DIR="/home/schoolos/backups"
+DB_NAME="clearis_prod"
+DB_USER="clearis_prod"
+BACKUP_DIR="/home/clearis/backups"
 RETENTION_DAYS=30
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/schoolos_${DATE}.sql.gz"
+BACKUP_FILE="${BACKUP_DIR}/clearis_${DATE}.sql.gz"
 
 # Create backup directory
 mkdir -p $BACKUP_DIR
@@ -341,7 +341,7 @@ pg_dump -U $DB_USER -h localhost $DB_NAME | gzip > $BACKUP_FILE
 # aws s3 cp $BACKUP_FILE s3://your-backup-bucket/
 
 # Delete old backups
-find $BACKUP_DIR -name "schoolos_*.sql.gz" -mtime +$RETENTION_DAYS -delete
+find $BACKUP_DIR -name "clearis_*.sql.gz" -mtime +$RETENTION_DAYS -delete
 
 echo "✓ Backup completed: $BACKUP_FILE"
 ```
@@ -349,23 +349,23 @@ echo "✓ Backup completed: $BACKUP_FILE"
 ### 6.2 Schedule Backup Cron Job
 
 ```bash
-chmod +x /home/schoolos/scripts/backup-db.sh
+chmod +x /home/clearis/scripts/backup-db.sh
 
 # Add to crontab
 crontab -e
 
 # Add this line (daily at 2 AM)
-0 2 * * * /home/schoolos/scripts/backup-db.sh >> /home/schoolos/logs/backup.log 2>&1
+0 2 * * * /home/clearis/scripts/backup-db.sh >> /home/clearis/logs/backup.log 2>&1
 ```
 
 ### 6.3 Test Backup and Restore
 
 ```bash
 # Test backup
-/home/schoolos/scripts/backup-db.sh
+/home/clearis/scripts/backup-db.sh
 
 # Test restore (to a test database)
-gunzip -c /home/schoolos/backups/schoolos_YYYYMMDD_HHMMSS.sql.gz | psql -U schoolos_prod -d schoolos_test
+gunzip -c /home/clearis/backups/clearis_YYYYMMDD_HHMMSS.sql.gz | psql -U clearis_prod -d clearis_test
 ```
 
 ---
@@ -489,7 +489,7 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 
 ```bash
 # Check logs
-sudo journalctl -u schoolos-api -n 100
+sudo journalctl -u clearis-api -n 100
 
 # Common fixes:
 # - Verify DATABASE_URL is correct
@@ -505,7 +505,7 @@ sudo journalctl -u schoolos-api -n 100
 sudo systemctl status postgresql
 
 # Test connection manually
-psql -U schoolos_prod -h localhost -d schoolos_prod
+psql -U clearis_prod -h localhost -d clearis_prod
 
 # Check connection limits
 sudo -u postgres psql -c "SHOW max_connections;"
@@ -515,7 +515,7 @@ sudo -u postgres psql -c "SHOW max_connections;"
 
 ```bash
 # Check if API is running
-sudo systemctl status schoolos-api
+sudo systemctl status clearis-api
 
 # Check nginx error logs
 sudo tail -f /var/log/nginx/error.log
@@ -528,12 +528,12 @@ curl http://127.0.0.1:8000/api/health
 
 ```bash
 # Check worker count (reduce if needed)
-sudo nano /etc/systemd/system/schoolos-api.service
+sudo nano /etc/systemd/system/clearis-api.service
 # Change --workers 4 to --workers 2
 
 # Restart service
 sudo systemctl daemon-reload
-sudo systemctl restart schoolos-api
+sudo systemctl restart clearis-api
 ```
 
 ---
@@ -544,13 +544,13 @@ If deployment fails:
 
 ```bash
 # 1. Stop the service
-sudo systemctl stop schoolos-api
+sudo systemctl stop clearis-api
 
 # 2. Restore database from backup
-gunzip -c /home/schoolos/backups/schoolos_LATEST.sql.gz | psql -U schoolos_prod -d schoolos_prod
+gunzip -c /home/clearis/backups/clearis_LATEST.sql.gz | psql -U clearis_prod -d clearis_prod
 
 # 3. Checkout previous working version
-cd /home/schoolos/schoolos
+cd /home/clearis/clearis
 git checkout PREVIOUS_TAG
 
 # 4. Rollback database migrations (if needed)
@@ -559,7 +559,7 @@ source venv/bin/activate
 alembic downgrade -1  # Or specific revision
 
 # 5. Restart service
-sudo systemctl start schoolos-api
+sudo systemctl start clearis-api
 ```
 
 ---
@@ -588,10 +588,10 @@ sudo systemctl start schoolos-api
 
 ```bash
 # 1. Backup database first
-/home/schoolos/scripts/backup-db.sh
+/home/clearis/scripts/backup-db.sh
 
 # 2. Pull latest code
-cd /home/schoolos/schoolos
+cd /home/clearis/clearis
 git pull origin main
 
 # 3. Update dependencies
@@ -603,7 +603,7 @@ pip install -e ".[dev]" --upgrade
 alembic upgrade head
 
 # 5. Restart service
-sudo systemctl restart schoolos-api
+sudo systemctl restart clearis-api
 
 # 6. Verify health
 curl https://yourdomain.com/api/health
@@ -615,7 +615,7 @@ curl https://yourdomain.com/api/health
 
 For deployment issues:
 - Documentation: `/docs/PRODUCTION_SECURITY.md`
-- GitHub Issues: https://github.com/yourusername/schoolos/issues
+- GitHub Issues: https://github.com/yourusername/clearis/issues
 - Email: support@yourdomain.com
 
 ---

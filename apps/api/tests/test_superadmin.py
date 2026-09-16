@@ -1,4 +1,4 @@
-"""SchoolOS Super Admin platform tests.
+"""Clearis Super Admin platform tests.
 
 Pinned behavior:
 * Every ``/api/superadmin/*`` route requires a platform admin
@@ -25,9 +25,9 @@ SUPER = "/api/superadmin"
 
 def _create_platform_admin(db):
     user = User(
-        email=f"lumo-admin-{uuid.uuid4().hex[:8]}@lumo.app",
+        email=f"clearis-admin-{uuid.uuid4().hex[:8]}@clearis.app",
         password_hash=hash_password("Str0ng!Pass"),
-        full_name="Lumo Admin",
+        full_name="Clearis Admin",
         is_superadmin=True,
     )
     db.add(user)

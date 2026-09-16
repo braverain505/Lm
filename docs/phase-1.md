@@ -1,4 +1,4 @@
-# SchoolOS — Phase 1: Core Academic vertical slice
+# Clearis — Phase 1: Core Academic vertical slice
 
 **Status:** built, code-audited, and **runtime-verified** — backend suite green
 (17 tests), live API E2E smoke 7/7, cross-school isolation confirmed on a running
@@ -15,7 +15,7 @@ with a working results engine — not a CRUD demo. It includes:
 | Area | What you get |
 | --- | --- |
 | **Multi-tenancy** | Shared-schema tenancy: one Postgres DB, `school_id` on every tenant table, app-layer mandatory scoping. Global users + per-school `school_memberships`. Neutral `ERR_NOT_MEMBER` 404 on cross-school access. |
-| **Auth** | Register school → founding super admin, login/logout/me/refresh. Short-lived JWT (15 min, `sub` only) + rotating single-use hashed refresh tokens in `httpOnly` cookies (`schoolos_session`, `schoolos_refresh`). Refresh-reuse detection revokes the whole family. |
+| **Auth** | Register school → founding super admin, login/logout/me/refresh. Short-lived JWT (15 min, `sub` only) + rotating single-use hashed refresh tokens in `httpOnly` cookies (`clearis_session`, `clearis_refresh`). Refresh-reuse detection revokes the whole family. |
 | **RBAC** | Global permission catalog (`permissions.code`), school-scoped roles provisioned from templates, role-permission editor, `require_permission(...)` FastAPI dependency. Super admin bypasses. The frontend is never trusted for authorization. |
 | **Academics** | Sessions (one current per school), terms, school-configured class levels (JSS 1…custom), arms with `full_name`, subjects, subject offerings (level×subject), teacher assignments (arm×subject→teacher). |
 | **People** | Staff (teachers + non-teaching), students (soft delete), per-session student enrollments (status: active/graduated/withdrawn/on_hold), guardians + student–guardian links with `is_primary`. |
@@ -85,8 +85,8 @@ notifications, subscriptions/credits.
 ### Backend
 
 ```bash
-cd ~/schoolos
-bash scripts/dev-db.sh                 # create role + schoolos_dev / schoolos_test
+cd ~/clearis
+bash scripts/dev-db.sh                 # create role + clearis_dev / clearis_test
 cd apps/api
 python3 -m venv ../../.venv
 ../../.venv/bin/pip install -e ".[dev]"
@@ -114,7 +114,7 @@ server-side, so the httpOnly cookies flow with no CORS.
 
 ```bash
 cd apps/api
-DATABASE_URL=postgresql+psycopg2://schoolos:schoolos@localhost:5432/schoolos_test \
+DATABASE_URL=postgresql+psycopg2://clearis:clearis@localhost:5432/clearis_test \
   ../../.venv/bin/python -m pytest -q
 ```
 
@@ -150,20 +150,20 @@ metering), and a **public PIN-check** result portal.
 
 | Check | Result |
 | --- | --- |
-| `pytest -q` (`schoolos_test`) | **17 passed** — auth/refresh/logout, tenancy canary (list/direct-id/write/suspended), grade boundaries, weight-sum, score clamp, submit lock, readiness. |
-| Live API boot (`schoolos_dev`, migrated + seeded) | `GET /api/health` → 200; demo login → `200` + JWT + `user.status = active`. |
+| `pytest -q` (`clearis_test`) | **17 passed** — auth/refresh/logout, tenancy canary (list/direct-id/write/suspended), grade boundaries, weight-sum, score clamp, submit lock, readiness. |
+| Live API boot (`clearis_dev`, migrated + seeded) | `GET /api/health` → 200; demo login → `200` + JWT + `user.status = active`. |
 | E2E smoke (`scripts/smoke-e2e.sh`) | **7/7 passed**: health, demo login, sessions, arms, 5 students, **cross-school isolation (2nd school → 1st school session = neutral `ERR_NOT_FOUND` 404)**, readiness (24 arm×subject rows, 5 enrolled / 0 entered / 5 pending). |
 | Web dev server (`next dev` on :3000) | Boots on `http://127.0.0.1:3000`; `/api/*` rewrite proxies to :8000. |
 
 To reproduce: follow "How to run" above, then
 
 ```bash
-cd apps/api && DATABASE_URL=...schoolos_test ../../.venv/bin/python -m pytest -q   # 17 passed
-bash ~/schoolos/scripts/smoke-e2e.sh                                               # 7 passed, 0 failed
+cd apps/api && DATABASE_URL=...clearis_test ../../.venv/bin/python -m pytest -q   # 17 passed
+bash ~/clearis/scripts/smoke-e2e.sh                                               # 7 passed, 0 failed
 ```
 
 > Note: the login 401 seen mid-session was a stale uvicorn process pointed at the
 > pytest database (left empty by teardown). Restarting the API pinned to
-> `schoolos_dev` (`DATABASE_URL=postgresql+psycopg2://schoolos:schoolos@localhost:5432/schoolos_dev`)
+> `clearis_dev` (`DATABASE_URL=postgresql+psycopg2://clearis:clearis@localhost:5432/clearis_dev`)
 > resolved it — a reminder to always start the dev server from `apps/api` with
 > the `dev` database in scope.

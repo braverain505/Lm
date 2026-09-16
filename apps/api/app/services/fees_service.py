@@ -11,9 +11,11 @@ from sqlalchemy.orm import Session
 from ..core.errors import ConflictError, NotFoundError, ValidationError
 from ..models import (
     ClassArm,
+    Guardian,
     School,
     Student,
     StudentEnrollment,
+    StudentGuardian,
     FeeStructure,
     Invoice,
     Payment,
@@ -216,11 +218,22 @@ def create_invoice(
             return existing
         return existing
 
-    # Calculate amounts
-    subtotal = float(fee_structure.amount)
-    discount_amount = Decimal("0")
+    # Calculate amounts. Any active scholarship/discount/waiver for this student
+    # (and this fee or all fees) is applied here, so the discount a guardian sees
+    # on the invoice is the one on record rather than a manual adjustment.
+    from .accounting_service import discount_for
+
+    subtotal = Decimal(str(fee_structure.amount))
+    discount_amount, _applied_discounts = discount_for(
+        db,
+        school_id,
+        student_id=student_id,
+        fee_structure_id=fee_structure_id,
+        term_id=term_id,
+        subtotal=subtotal,
+    )
     tax_amount = Decimal("0")
-    total_amount = subtotal + float(discount_amount) + float(tax_amount)
+    total_amount = max(subtotal - discount_amount + tax_amount, Decimal("0"))
 
     # Generate batch/reference numbers
     import uuid as uuid_mod
@@ -237,8 +250,8 @@ def create_invoice(
         batch_number=batch_number,
         reference_number=ref,
         subtotal=subtotal,
-        discount_amount=float(discount_amount),
-        tax_amount=float(tax_amount),
+        discount_amount=discount_amount,
+        tax_amount=tax_amount,
         total_amount=total_amount,
         status="draft",
         issue_date=now.isoformat(),
@@ -300,6 +313,7 @@ def record_payment(
     school_id: uuid.UUID,
     payment_reference: str | None = None,
     transaction_id: str | None = None,
+    cash_account_id: uuid.UUID | None = None,
     recorded_by: uuid.UUID,
 ) -> Payment:
     """Record a payment against an invoice, updating the invoice status."""
@@ -333,6 +347,14 @@ def record_payment(
     else:
         status = invoice.status  # keep existing
 
+    # Post the money to a cash/bank account so the cashbook can attribute it.
+    # Without a chosen account the school's default one is used, so collecting a
+    # fee never fails for want of a bank account being configured first.
+    from .accounting_service import default_account as _default_cash_account
+
+    if cash_account_id is None:
+        cash_account_id = _default_cash_account(db, school_id).id
+
     payment = Payment(
         school_id=school_id,
         invoice_id=invoice_id,
@@ -343,6 +365,7 @@ def record_payment(
         transaction_id=transaction_id,
         payment_date=datetime.utcnow().strftime("%Y-%m-%d"),
         receipt_number=f"RCP-{school_id.hex[:6].upper()}-{uuid.uuid4().hex[:8].upper()}",
+        cash_account_id=cash_account_id,
     )
     db.add(payment)
 
@@ -397,6 +420,15 @@ def get_receipt(
     fee_structure = db.get(FeeStructure, invoice.fee_structure_id)
     school = db.get(School, school_id)
 
+    # The primary guardian on record is who a receipt is normally sent to.
+    guardian = db.scalar(
+        select(Guardian)
+        .join(StudentGuardian, StudentGuardian.guardian_id == Guardian.id)
+        .where(StudentGuardian.student_id == student.id)
+        .order_by(StudentGuardian.is_primary.desc())
+        .limit(1)
+    )
+
     # All payments recorded against this invoice (for the paid/balance view).
     invoice_payments = list(
         db.scalars(
@@ -444,6 +476,9 @@ def get_receipt(
             "id": str(student.id),
             "admission_no": student.admission_no,
             "full_name": student.full_name,
+            "guardian_name": guardian.full_name if guardian else None,
+            "guardian_phone": guardian.phone if guardian else None,
+            "guardian_email": guardian.email if guardian else None,
         },
         "invoice_payments": [
             {

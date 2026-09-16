@@ -19,7 +19,7 @@ import {
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import type { ReportCard } from "@schoolos/shared";
+import type { ReportCard } from "@clearis/shared";
 
 function StudentCommentRow({
   card,

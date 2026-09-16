@@ -1,8 +1,8 @@
 "use client";
 
-import type { MembershipOut, MeResponse, UserSummary } from "@schoolos/shared";
+import type { MembershipOut, MeResponse, UserSummary } from "@clearis/shared";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import {
   createContext,
   ReactNode,

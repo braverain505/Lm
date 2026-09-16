@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCompile, useResultAction, useSessions, useTerms, useWorkbench, type ReviewInput } from "@/hooks/use-api";
 import { Check, Loader2, Lock, RotateCcw, X } from "lucide-react";
-import type { WorkbenchRow } from "@schoolos/shared";
+import type { WorkbenchRow } from "@clearis/shared";
 import { cn } from "@/lib/utils";
 import { useSessionTerm } from "@/providers/session-context";
 import { useToast } from "@/components/toast";

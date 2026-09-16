@@ -6,8 +6,8 @@
 import { Printer, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
-import { api, publicReportCard } from "@schoolos/shared";
-import type { PinCheckOut, ReportCard, SchoolBrief } from "@schoolos/shared";
+import { api, publicReportCard } from "@clearis/shared";
+import type { PinCheckOut, ReportCard, SchoolBrief } from "@clearis/shared";
 import { FlintwireCredit } from "@/components/flintwire-credit";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

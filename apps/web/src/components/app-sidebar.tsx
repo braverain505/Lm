@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { ChevronLeft, PanelLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";

@@ -3,7 +3,7 @@
 import { Bot, MessageSquare, Plus, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 
-import type { CopilotMessage } from "@schoolos/shared";
+import type { CopilotMessage } from "@clearis/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PremiumLock, useAiEnabled } from "@/components/premium-lock";

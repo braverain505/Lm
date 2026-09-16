@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SchoolOS Phase 1 E2E smoke against the running API (:8000).
+# Clearis Phase 1 E2E smoke against the running API (:8000).
 # Usage: bash scripts/smoke-e2e.sh
 set -u
 API="${API:-http://127.0.0.1:8000}"

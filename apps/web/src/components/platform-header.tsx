@@ -12,7 +12,7 @@ import { Dropdown, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/dr
 import { useSaNotifications, useSaMarkNotificationsRead } from "@/hooks/use-superadmin";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 
 const SEVERITY_TONE: Record<string, string> = {
   critical: "bg-destructive/10 text-destructive",

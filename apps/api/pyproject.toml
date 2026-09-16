@@ -1,7 +1,7 @@
 [project]
-name = "schoolos-api"
+name = "clearis-api"
 version = "0.1.0"
-description = "SchoolOS — multi-tenant school management platform (Phase 1: core academic)"
+description = "Clearis — multi-tenant school management platform (Phase 1: core academic)"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

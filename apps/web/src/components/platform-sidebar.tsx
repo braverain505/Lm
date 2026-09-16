@@ -9,7 +9,7 @@ import { PLATFORM_NAV } from "@/components/platform-nav";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 
 interface PlatformSidebarProps {
   collapsed: boolean;

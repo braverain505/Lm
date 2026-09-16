@@ -1,4 +1,4 @@
-# Lumo Premium UI Redesign - Next Steps
+# Clearis Premium UI Redesign - Next Steps
 
 ## ✅ Completed
 
@@ -52,7 +52,7 @@ Next.js build crashes with `SIGBUS` during optimization phase.
 
 **Option 1: Complete Reinstall**
 ```bash
-cd /home/tuwa/lumo
+cd /home/tuwa/clearis
 rm -rf node_modules package-lock.json
 npm install
 npm run build
@@ -200,7 +200,7 @@ Monitor memory/CPU during build — SIGBUS can indicate out-of-memory.
 ### Priority 1: Resolve Build Crash
 **Action:** Try Option 1 (complete reinstall) first
 ```bash
-cd /home/tuwa/lumo
+cd /home/tuwa/clearis
 rm -rf node_modules package-lock.json
 npm install
 npm run build

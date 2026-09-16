@@ -6,7 +6,7 @@ import { KeyRound, Mail, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
-import { api, type Staff } from "@schoolos/shared";
+import { api, type Staff } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

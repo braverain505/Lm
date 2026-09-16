@@ -1,6 +1,6 @@
-# SchoolOS Production Security Guide
+# Clearis Production Security Guide
 
-**IMPORTANT:** This document outlines critical security measures that MUST be implemented before deploying SchoolOS to production.
+**IMPORTANT:** This document outlines critical security measures that MUST be implemented before deploying Clearis to production.
 
 ---
 

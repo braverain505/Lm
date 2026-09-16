@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# SchoolOS Database Backup Script
+# Clearis Database Backup Script
 # Performs automated PostgreSQL backup with compression and optional S3 upload
 #
 # Usage: ./backup-db.sh [--upload-s3]
@@ -13,16 +13,16 @@ set -e  # Exit on error
 # ============================================================================
 
 # Database credentials (override via environment variables)
-DB_NAME="${DB_NAME:-schoolos_prod}"
-DB_USER="${DB_USER:-schoolos_prod}"
+DB_NAME="${DB_NAME:-clearis_prod}"
+DB_USER="${DB_USER:-clearis_prod}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 
 # Backup settings
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/schoolos}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/clearis}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/schoolos_${DATE}.sql.gz"
+BACKUP_FILE="${BACKUP_DIR}/clearis_${DATE}.sql.gz"
 
 # S3 settings (optional)
 S3_BUCKET="${S3_BUCKET:-}"
@@ -101,10 +101,10 @@ upload_to_s3() {
 cleanup_old_backups() {
     log "Cleaning up backups older than $RETENTION_DAYS days..."
 
-    local count=$(find "$BACKUP_DIR" -name "schoolos_*.sql.gz" -mtime +"$RETENTION_DAYS" | wc -l)
+    local count=$(find "$BACKUP_DIR" -name "clearis_*.sql.gz" -mtime +"$RETENTION_DAYS" | wc -l)
 
     if [[ $count -gt 0 ]]; then
-        find "$BACKUP_DIR" -name "schoolos_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
+        find "$BACKUP_DIR" -name "clearis_*.sql.gz" -mtime +"$RETENTION_DAYS" -delete
         log "✓ Removed $count old backup(s)"
     else
         log "✓ No old backups to remove"
@@ -127,7 +127,7 @@ show_summary() {
     log "==================================="
     log "File: $BACKUP_FILE"
     log "Size: $(du -h "$BACKUP_FILE" | cut -f1)"
-    log "Backups in $BACKUP_DIR: $(ls -1 "$BACKUP_DIR"/schoolos_*.sql.gz 2>/dev/null | wc -l)"
+    log "Backups in $BACKUP_DIR: $(ls -1 "$BACKUP_DIR"/clearis_*.sql.gz 2>/dev/null | wc -l)"
     log "==================================="
 }
 
@@ -136,7 +136,7 @@ show_summary() {
 # ============================================================================
 
 main() {
-    log "SchoolOS Database Backup Script"
+    log "Clearis Database Backup Script"
     log "==================================="
 
     # Check for required tools

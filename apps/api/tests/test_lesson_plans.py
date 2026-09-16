@@ -83,7 +83,7 @@ def test_generate_writes_plan_and_metering(client, db):
     assert body["class_arm_id"] == w["arm_id"]
     assert body["topic"] == "Linear Equations"
     assert body["provider"] == "local"
-    assert body["model"] == "schoolos-lesson-v1"
+    assert body["model"] == "clearis-lesson-v1"
     assert body["revision"] == 1
     assert body["generated_at"]
 
@@ -105,7 +105,7 @@ def test_generate_writes_plan_and_metering(client, db):
     assert len(usage) == 1
     assert usage[0].feature == "ai.lesson.plan"
     assert usage[0].provider == "local"
-    assert usage[0].model == "schoolos-lesson-v1"
+    assert usage[0].model == "clearis-lesson-v1"
     assert usage[0].tokens_in >= 1
     meter = db.scalars(select(UsageMeter)).all()
     assert len(meter) == 1

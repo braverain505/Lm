@@ -1,10 +1,11 @@
 """Fees, payments, invoices, and billing."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import (
     Boolean,
+    DateTime,
     ForeignKey,
     Integer,
     Numeric,
@@ -157,8 +158,16 @@ class Payment(TenantScopedBase, Base):
     payment_date: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD
     receipt_number: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
-    # Related records (optional)
-    # Could link to a bank transfer, check, etc.
+    # Accounting: the cash/bank account the money landed in, plus the bank
+    # reconciliation marks. The cashbook is a read model over the documents that
+    # already exist (payments in, expenses/refunds out) rather than a second
+    # ledger that could drift, so each document carries its own state.
+    cash_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("cash_accounts.id", ondelete="SET NULL"), nullable=True
+    )
+    reconciled: Mapped[bool] = mapped_column(Boolean, default=False)
+    reconciled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    bank_reference: Mapped[str | None] = mapped_column(String(100))
 
     def __repr__(self) -> str:
         return f"Payment(id={self.id}, invoice={self.invoice_id}, amount={self.amount}, method={self.payment_method})"

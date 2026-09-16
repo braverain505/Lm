@@ -27,7 +27,7 @@ import {
   useSaveRoleComment,
   useGenerateRoleComment,
 } from "@/hooks/use-api";
-import type { ReportCard } from "@schoolos/shared";
+import type { ReportCard } from "@clearis/shared";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/toast";
 

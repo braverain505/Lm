@@ -1,8 +1,8 @@
 """Pytest fixtures: transaction-rolled-back DB sessions per test, plus a
-TestClient bound to the SchoolOS app with the session dependency overridden.
+TestClient bound to the Clearis app with the session dependency overridden.
 
 Database: the Postgres URL from settings. In CI/dev the convention is a
-dedicated database (schoolos_test) so tests can freely drop/create tables.
+dedicated database (clearis_test) so tests can freely drop/create tables.
 """
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 from app.core.database import get_db
+from app.core.rate_limit import limiter
 from app.main import app
 from app.models import Base
 
@@ -25,25 +26,32 @@ from app.models import Base
 # the sync is switched off for tests.
 os.environ["AUTO_MIGRATE"] = "0"
 
+# Every test talks to the app from the same client address, so the per-IP limits
+# on register / login / password-reset (3 per hour, 5 per 15 minutes) would start
+# returning 429 for the rest of the run after the first few tests. The limits are
+# a deployment control rather than the behaviour under test, so they are off for
+# the suite; the 429 envelope itself is covered where it is raised.
+limiter.enabled = False
+
 
 def _test_database_url() -> str:
     """Derive a dedicated *test* database from settings.database_url.
 
     pytest drops and recreates every table, so it must NEVER point at the dev
-    (or prod) database. The documented dev default ``schoolos_dev`` maps to
-    ``schoolos_test``; an explicitly configured URL is accepted only if its
+    (or prod) database. The documented dev default ``clearis_dev`` maps to
+    ``clearis_test``; an explicitly configured URL is accepted only if its
     database name ends with ``_test``. Anything else raises immediately —
     a misconfigured DATABASE_URL must not wipe a real database.
     """
     parts = urlsplit(settings.database_url)
     dbname = parts.path.lstrip("/")
-    if dbname == "schoolos_dev":
-        dbname = "schoolos_test"
+    if dbname == "clearis_dev":
+        dbname = "clearis_test"
     if not dbname.endswith("_test"):
         raise RuntimeError(
             f"Refusing to run tests against database {dbname!r}: the test suite "
             "drops and recreates every table. Point DATABASE_URL (or the "
-            "schoolos_dev default) at a database whose name ends in '_test'."
+            "clearis_dev default) at a database whose name ends in '_test'."
         )
     return urlunsplit(parts._replace(path=f"/{dbname}"))
 
@@ -126,7 +134,7 @@ def active_school_id(client: TestClient) -> str:
 
 def enable_premium(db, school_id: str) -> None:
     """Flip a school's premium (AI) plan on directly via the DB session, so AI
-    tests can exercise the gated endpoints without going through the Lumo admin."""
+    tests can exercise the gated endpoints without going through the Clearis admin."""
     from app.models import School
 
     school = db.get(School, school_id)

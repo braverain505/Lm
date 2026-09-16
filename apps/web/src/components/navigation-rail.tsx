@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";

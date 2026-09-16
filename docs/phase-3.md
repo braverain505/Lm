@@ -1,4 +1,4 @@
-# SchoolOS — Phase 3: Fees & billing → attendance → timetable scheduling
+# Clearis — Phase 3: Fees & billing → attendance → timetable scheduling
 
 **Status:** built and verified. The three leftover roadmap rows — **finances,
 attendance and scheduling** — are now real modules behind their own permission

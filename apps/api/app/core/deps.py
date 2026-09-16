@@ -34,6 +34,7 @@ from .errors import (
     PermissionDeniedError,
     PremiumRequiredError,
 )
+from .permissions import ACCOUNTING_ROLES
 from .security import decode_access_token, hash_token, utcnow
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -196,6 +197,61 @@ def require_permission(permission: str) -> Callable:
         return ctx
 
     return checker
+
+
+def require_role(
+    *role_codes: str,
+    permission: str | None = None,
+    message: str | None = None,
+) -> Callable:
+    """Dependency factory enforcing the caller's *school-scoped role code*.
+
+    Permissions answer "what may you do"; this answers "who are you" — needed
+    where a capability belongs to one office regardless of the permission set.
+    The accounting ledger is the Accountant's alone, so a bursar handed the very
+    same finance permissions still cannot post to the books.
+
+    Roles are resolved from the membership of the school in ``X-School-Id``, so
+    an accountant is the accountant of that one school only. Platform super
+    admins bypass the check (they own the platform); while impersonating, the
+    request resolves to the impersonated membership, so the bypass does not
+    leak into a school.
+    """
+    allowed = frozenset(role_codes)
+
+    def checker(
+        ctx: Annotated[MembershipContext, Depends(get_school_context)],
+    ) -> MembershipContext:
+        # Platform super admins own the platform and bypass the role gate. While
+        # impersonating, get_current_user resolves to the impersonated user
+        # (is_superadmin=False), so the gate still applies inside the school.
+        if ctx.user.is_superadmin:
+            return ctx
+        if ctx.role_code not in allowed:
+            raise PermissionDeniedError(
+                message or "Your school role does not grant access to this area"
+            )
+        if permission and permission not in ctx.permission_codes:
+            raise PermissionDeniedError(
+                f"You need the '{permission}' permission for this action"
+            )
+        return ctx
+
+    return checker
+
+
+def require_accountant(permission: str | None = None) -> Callable:
+    """Accountant-only gate for the accounting desk (role code + permission).
+
+    Both are checked: the role makes the desk the Accountant's own, and the
+    permission lets the school still scope *which* accounting actions that
+    accountant may take when it customises the role.
+    """
+    return require_role(
+        *ACCOUNTING_ROLES,
+        permission=permission,
+        message="This is the Accountant's desk — only the school Accountant can do this.",
+    )
 
 
 AnyUser = Annotated[User, Depends(get_current_user)]

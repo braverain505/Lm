@@ -1,4 +1,4 @@
-# SchoolOS web — Next.js build.
+# Clearis web — Next.js build.
 # Build context must be the monorepo root (docker build -f apps/web/Dockerfile .)
 FROM node:22-alpine AS deps
 WORKDIR /repo

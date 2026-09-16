@@ -5,7 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional, List
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, EmailStr, Field, validator
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -128,6 +128,9 @@ class PaymentIn(BaseModel):
     )
     payment_reference: Optional[str] = Field(None, max_length=100)
     transaction_id: Optional[str] = Field(None, max_length=100)
+    cash_account_id: Optional[uuid.UUID] = Field(
+        None, description="Cash/bank account the money was received into"
+    )
 
 
 class PaymentOut(BaseModel):
@@ -142,6 +145,7 @@ class PaymentOut(BaseModel):
     transaction_id: Optional[str]
     receipt_number: Optional[str]
     payment_date: date
+    cash_account_id: Optional[uuid.UUID] = None
 
     class Config:
         from_attributes = True
@@ -198,6 +202,28 @@ class ReceiptStudent(BaseModel):
     id: uuid.UUID
     admission_no: str
     full_name: str
+    # Who the receipt is normally addressed to, so it can be shared or emailed
+    # without a second lookup.
+    guardian_name: Optional[str] = None
+    guardian_phone: Optional[str] = None
+    guardian_email: Optional[str] = None
+
+
+class ReceiptEmailIn(BaseModel):
+    """Where to send a receipt. Blank sends it to the primary guardian on file."""
+
+    to: Optional[EmailStr] = Field(
+        None, description="Override recipient; defaults to the guardian's email"
+    )
+
+
+class ReceiptEmailOut(BaseModel):
+    receipt_number: Optional[str]
+    recipient: str
+    delivered: bool
+    # True when the deployment has no email provider and this is a dev instance,
+    # so the UI can say "not actually sent" rather than claiming success.
+    dev_skipped: bool = False
 
 
 class ReceiptOut(BaseModel):

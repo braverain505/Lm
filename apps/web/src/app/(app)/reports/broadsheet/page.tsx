@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { api, type ReportCard } from "@schoolos/shared";
+import { api, type ReportCard } from "@clearis/shared";
 import { Printer } from "lucide-react";
 import { useState } from "react";
 

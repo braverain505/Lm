@@ -1,4 +1,4 @@
-"""SchoolOS Super Admin platform analytics.
+"""Clearis Super Admin platform analytics.
 
 Every metric here is computed server-side from the real database — never
 hard-coded. The platform admin (``User.is_superadmin``) is the only caller;

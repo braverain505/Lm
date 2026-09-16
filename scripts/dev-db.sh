@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SchoolOS dev database bootstrap: roles + databases for app / test.
+# Clearis dev database bootstrap: roles + databases for app / test.
 # Run once after Postgres is installed:  bash scripts/dev-db.sh
 #
 # Auth: tries `sudo -u postgres` (peer auth, the Linux default) first. If that
@@ -8,10 +8,10 @@
 #     PGPASSWORD=your_pg_password bash scripts/dev-db.sh
 set -euo pipefail
 
-DB_ROLE="${DB_ROLE:-schoolos}"
-DB_PASSWORD="${DB_PASSWORD:-schoolos}"
-DB_NAME="${DB_NAME:-schoolos_dev}"
-TEST_DB="${TEST_DB:-schoolos_test}"
+DB_ROLE="${DB_ROLE:-clearis}"
+DB_PASSWORD="${DB_PASSWORD:-clearis}"
+DB_NAME="${DB_NAME:-clearis_dev}"
+TEST_DB="${TEST_DB:-clearis_test}"
 
 # Pick a command prefix that can talk to the postgres superuser.
 PSQL_PREFIX=()

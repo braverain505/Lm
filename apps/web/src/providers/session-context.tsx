@@ -1,6 +1,6 @@
 "use client";
 
-import type { AcademicSession, Term } from "@schoolos/shared";
+import type { AcademicSession, Term } from "@clearis/shared";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/providers/auth-provider";
@@ -22,7 +22,7 @@ interface SessionTermState {
 
 const SessionTermContext = createContext<SessionTermState | null>(null);
 
-const STORAGE_KEY = "schoolos.active-term";
+const STORAGE_KEY = "clearis.active-term";
 
 export function SessionTermProvider({ children }: { children: ReactNode }) {
   const { activeSchool } = useAuth();

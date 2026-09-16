@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, Loader2, Lock } from "lucide-react";
 import Image from "next/image";

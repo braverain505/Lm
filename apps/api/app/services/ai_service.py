@@ -47,10 +47,10 @@ AI_FEATURE_LESSON_PLAN = "ai.lesson.plan"
 AI_FEATURE_QUESTION_BANK = "ai.question.bank"
 AI_FEATURE_COPILOT = "ai.copilot"
 PROVIDER = "local"
-MODEL_COMMENT = "schoolos-comment-v1"
-MODEL_LESSON = "schoolos-lesson-v1"
-MODEL_QUESTION = "schoolos-question-v1"
-MODEL_COPILOT = "schoolos-copilot-v1"
+MODEL_COMMENT = "clearis-comment-v1"
+MODEL_LESSON = "clearis-lesson-v1"
+MODEL_QUESTION = "clearis-question-v1"
+MODEL_COPILOT = "clearis-copilot-v1"
 
 # WAEC-style descriptors already arrive on the card ("Credit", "Pass", ...).
 _STRENGTH_SCORE = 70.0  # snapshot total >= this is a standout subject
@@ -61,8 +61,8 @@ _ATTENTION_SCORE = 50.0  # snapshot total < this is a focus area
 COMMENT_ROLES = ("principal", "vice_principal", "homeroom")
 _ROLE_MODEL = {
     "principal": MODEL_COMMENT,
-    "vice_principal": "schoolos-comment-academic-v1",
-    "homeroom": "schoolos-comment-homeroom-v1",
+    "vice_principal": "clearis-comment-academic-v1",
+    "homeroom": "clearis-comment-homeroom-v1",
 }
 
 

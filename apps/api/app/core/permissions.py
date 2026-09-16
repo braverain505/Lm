@@ -51,11 +51,20 @@ BILLING_VIEW = "billing.view"
 PAYROLL_VIEW = "payroll.view"
 PAYROLL_MANAGE = "payroll.manage"
 
+# --- Accounting (the accountant's ledger) -------------------------------------
+ACCOUNTING_VIEW = "accounting.view"
+ACCOUNTING_EXPENSES = "accounting.expenses"    # record/approve/pay expenses + petty cash
+ACCOUNTING_AMEND = "accounting.amend"          # discounts/waivers, credit notes, refunds
+ACCOUNTING_RECONCILE = "accounting.reconcile"  # cashbook + bank statement reconciliation
+ACCOUNTING_REPORTS = "accounting.reports"      # income & expenditure and collection reports
+
 # Accounting is the Accountant's domain: finance codes must never leak onto the
 # general school-admin roles. Keep this set in sync with the finance codes above.
 FINANCE_PERMISSIONS: frozenset[str] = frozenset({
     FEES_VIEW, FEES_COLLECT, FEES_CREATE, FEES_EDIT, FEES_PAY,
     BILLING_VIEW, PAYROLL_VIEW, PAYROLL_MANAGE,
+    ACCOUNTING_VIEW, ACCOUNTING_EXPENSES, ACCOUNTING_AMEND,
+    ACCOUNTING_RECONCILE, ACCOUNTING_REPORTS,
 })
 
 # --- Inventory ----------------------------------------------------------------------
@@ -114,6 +123,11 @@ PERMISSION_CATALOG: list[tuple[str, str, str]] = [
     (BILLING_VIEW, "finance", "View billing and subscription"),
     (PAYROLL_VIEW, "finance", "View payroll structures, pay runs, and payslips"),
     (PAYROLL_MANAGE, "finance", "Create/edit payroll structures and run payroll"),
+    (ACCOUNTING_VIEW, "accounting", "View the ledger, cashbook, debtors and accounting dashboard"),
+    (ACCOUNTING_EXPENSES, "accounting", "Record, approve and pay school expenses and petty cash"),
+    (ACCOUNTING_AMEND, "accounting", "Apply discounts/waivers and issue credit notes and refunds"),
+    (ACCOUNTING_RECONCILE, "accounting", "Reconcile the cashbook against bank statements"),
+    (ACCOUNTING_REPORTS, "accounting", "View income & expenditure and fee collection reports"),
     (INVENTORY_VIEW, "inventory", "View inventory items and stock levels"),
     (INVENTORY_MANAGE, "inventory", "Create/edit inventory items and adjust stock"),
     (LIBRARY_VIEW, "library", "View library catalogue and borrowing records"),
@@ -153,6 +167,13 @@ ROLE_ADMISSION_OFFICER = "admission_officer"
 ROLE_SECRETARY = "secretary"
 ROLE_PARENT = "parent"
 ROLE_STUDENT = "student"
+
+# Accounting (the ledger, expenses, reconciliation, reports) belongs to the
+# school's Accountant alone. This is enforced on the accounting routes *in
+# addition to* permissions, so handing a bursar — or any admin — the finance
+# permissions still does not open the books. Roles are school-scoped, so an
+# accountant is the accountant of one school, with their own login.
+ACCOUNTING_ROLES: frozenset[str] = frozenset({ROLE_ACCOUNTANT})
 
 ROLE_TEMPLATES: dict[str, dict] = {
     ROLE_SUPER_ADMIN: {
@@ -260,6 +281,8 @@ ROLE_TEMPLATES: dict[str, dict] = {
         "permissions": [
             FEES_VIEW, FEES_COLLECT, FEES_CREATE, FEES_EDIT, FEES_PAY, BILLING_VIEW,
             PAYROLL_VIEW, PAYROLL_MANAGE,
+            ACCOUNTING_VIEW, ACCOUNTING_EXPENSES, ACCOUNTING_AMEND,
+            ACCOUNTING_RECONCILE, ACCOUNTING_REPORTS,
         ],
     },
     ROLE_BURSAR: {

@@ -43,6 +43,14 @@ from .fees import (  # noqa: F401
     Payment,
     StudentFeeBalance,
 )
+from .accounting import (  # noqa: F401
+    CashAccount,
+    CreditNote,
+    Expense,
+    ExpenseCategory,
+    Refund,
+    StudentDiscount,
+)
 from .payroll import (  # noqa: F401
     PayRun,
     Payslip,
@@ -119,6 +127,12 @@ __all__ = [
     "Invoice",
     "Payment",
     "StudentFeeBalance",
+    "ExpenseCategory",
+    "Expense",
+    "CashAccount",
+    "StudentDiscount",
+    "CreditNote",
+    "Refund",
     "SalaryStructure",
     "StaffSalary",
     "PayRun",

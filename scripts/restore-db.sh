@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# SchoolOS Database Restore Script
+# Clearis Database Restore Script
 # Restores a PostgreSQL backup from compressed archive
 #
 # Usage: ./restore-db.sh <backup_file.sql.gz> [--from-s3]
@@ -9,8 +9,8 @@
 set -e
 
 # Configuration
-DB_NAME="${DB_NAME:-schoolos_prod}"
-DB_USER="${DB_USER:-schoolos_prod}"
+DB_NAME="${DB_NAME:-clearis_prod}"
+DB_USER="${DB_USER:-clearis_prod}"
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
 
@@ -44,7 +44,7 @@ if [[ ! -f "$BACKUP_FILE" ]]; then
 fi
 
 log "==================================="
-log "SchoolOS Database Restore"
+log "Clearis Database Restore"
 log "==================================="
 log "Backup file: $BACKUP_FILE"
 log "Database: $DB_NAME"

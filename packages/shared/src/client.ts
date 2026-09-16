@@ -1,4 +1,4 @@
-// SchoolOS — typed fetch client for the browser. Reads tokens from httpOnly
+// Clearis — typed fetch client for the browser. Reads tokens from httpOnly
 // cookies (set by the API), sends X-School-Id for tenant resolution.
 import {
   AskResponse,
@@ -204,6 +204,54 @@ import {
   SaAuditSchema,
   SaNotification,
   SaNotificationSchema,
+} from "./contracts";
+// Accounting DTOs, imported separately to keep the main block from churning.
+import {
+  AccountingSummarySchema,
+  AccountantSchema,
+  CashAccountInSchema,
+  CashAccountSchema,
+  CashbookSchema,
+  CashPositionSchema,
+  CollectionReportSchema,
+  CreditNoteInSchema,
+  CreditNoteSchema,
+  DebtorsSchema,
+  DiscountInSchema,
+  DiscountSchema,
+  ExpenseCategorySchema,
+  ExpenseInSchema,
+  ExpenseListSchema,
+  ExpenseSchema,
+  IncomeExpenditureSchema,
+  ReceiptEmailResultSchema,
+  ReconcileResultSchema,
+  RefundInSchema,
+  RefundSchema,
+} from "./contracts";
+import type {
+  AccountingSummary,
+  Accountant,
+  AccountantIn,
+  CashAccount,
+  CashAccountIn,
+  Cashbook,
+  CashPosition,
+  CollectionReport,
+  CreditNote,
+  CreditNoteIn,
+  Debtors,
+  Discount,
+  DiscountIn,
+  Expense,
+  ExpenseCategory,
+  ExpenseIn,
+  ExpenseList,
+  IncomeExpenditure,
+  ReceiptEmailResult,
+  ReconcileResult,
+  Refund,
+  RefundIn,
 } from "./contracts";
 import { z } from "zod";
 
@@ -1255,6 +1303,378 @@ export const fetchFeeStatus = (
   );
 };
 
+// --- Accounting (the Accountant's desk) -----------------------------------------------
+
+export const fetchAccountingSummary = (schoolId: string, termId?: string) =>
+  schoolFetch<AccountingSummary>(
+    schoolId,
+    `/accounting/summary${termId ? `?term_id=${termId}` : ""}`,
+    {},
+    AccountingSummarySchema.parse,
+  );
+
+export const fetchCashAccounts = (schoolId: string, activeOnly = false) =>
+  schoolFetch<CashAccount[]>(
+    schoolId,
+    `/accounting/accounts?active_only=${activeOnly}`,
+    {},
+    CashAccountSchema.array().parse,
+  );
+
+export const createCashAccount = (schoolId: string, input: CashAccountIn) =>
+  schoolFetch<CashAccount>(
+    schoolId,
+    "/accounting/accounts",
+    { method: "POST", body: JSON.stringify(input) },
+    CashAccountSchema.parse,
+  );
+
+export const updateCashAccount = (
+  schoolId: string,
+  accountId: string,
+  input: CashAccountIn,
+) =>
+  schoolFetch<CashAccount>(
+    schoolId,
+    `/accounting/accounts/${accountId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+    CashAccountSchema.parse,
+  );
+
+export const fetchExpenseCategories = (schoolId: string, activeOnly = false) =>
+  schoolFetch<ExpenseCategory[]>(
+    schoolId,
+    `/accounting/categories?active_only=${activeOnly}`,
+    {},
+    ExpenseCategorySchema.array().parse,
+  );
+
+export const createExpenseCategory = (
+  schoolId: string,
+  input: { name: string; description?: string | null; is_active?: boolean },
+) =>
+  schoolFetch<ExpenseCategory>(
+    schoolId,
+    "/accounting/categories",
+    { method: "POST", body: JSON.stringify(input) },
+    ExpenseCategorySchema.parse,
+  );
+
+export const fetchExpenses = (
+  schoolId: string,
+  opts?: {
+    status?: string;
+    categoryId?: string;
+    cashAccountId?: string;
+    termId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.status) params.set("status", opts.status);
+  if (opts?.categoryId) params.set("category_id", opts.categoryId);
+  if (opts?.cashAccountId) params.set("cash_account_id", opts.cashAccountId);
+  if (opts?.termId) params.set("term_id", opts.termId);
+  if (opts?.dateFrom) params.set("date_from", opts.dateFrom);
+  if (opts?.dateTo) params.set("date_to", opts.dateTo);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<ExpenseList>(
+    schoolId,
+    `/accounting/expenses${q}`,
+    {},
+    ExpenseListSchema.parse,
+  );
+};
+
+export const createExpense = (schoolId: string, input: ExpenseIn) =>
+  schoolFetch<Expense>(
+    schoolId,
+    "/accounting/expenses",
+    { method: "POST", body: JSON.stringify(input) },
+    ExpenseSchema.parse,
+  );
+
+export const updateExpense = (schoolId: string, expenseId: string, input: ExpenseIn) =>
+  schoolFetch<Expense>(
+    schoolId,
+    `/accounting/expenses/${expenseId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+    ExpenseSchema.parse,
+  );
+
+export const approveExpense = (schoolId: string, expenseId: string) =>
+  schoolFetch<Expense>(
+    schoolId,
+    `/accounting/expenses/${expenseId}/approve`,
+    { method: "POST" },
+    ExpenseSchema.parse,
+  );
+
+export const rejectExpense = (schoolId: string, expenseId: string, reason?: string) =>
+  schoolFetch<Expense>(
+    schoolId,
+    `/accounting/expenses/${expenseId}/reject`,
+    { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
+    ExpenseSchema.parse,
+  );
+
+export const payExpense = (schoolId: string, expenseId: string) =>
+  schoolFetch<Expense>(
+    schoolId,
+    `/accounting/expenses/${expenseId}/pay`,
+    { method: "POST" },
+    ExpenseSchema.parse,
+  );
+
+export const deleteExpense = (schoolId: string, expenseId: string) =>
+  schoolFetch<void>(schoolId, `/accounting/expenses/${expenseId}`, { method: "DELETE" });
+
+export const fetchCashbook = (
+  schoolId: string,
+  opts?: {
+    cashAccountId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    onlyUnreconciled?: boolean;
+  },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.cashAccountId) params.set("cash_account_id", opts.cashAccountId);
+  if (opts?.dateFrom) params.set("date_from", opts.dateFrom);
+  if (opts?.dateTo) params.set("date_to", opts.dateTo);
+  if (opts?.onlyUnreconciled) params.set("only_unreconciled", "true");
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<Cashbook>(
+    schoolId,
+    `/accounting/cashbook${q}`,
+    {},
+    CashbookSchema.parse,
+  );
+};
+
+export const reconcileCashbookEntry = (
+  schoolId: string,
+  input: {
+    source_type: "payment" | "expense" | "refund";
+    source_id: string;
+    reconciled: boolean;
+    bank_reference?: string | null;
+  },
+) =>
+  schoolFetch<ReconcileResult>(
+    schoolId,
+    "/accounting/reconcile",
+    { method: "POST", body: JSON.stringify(input) },
+    ReconcileResultSchema.parse,
+  );
+
+export const fetchDiscounts = (
+  schoolId: string,
+  opts?: { studentId?: string; activeOnly?: boolean },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.studentId) params.set("student_id", opts.studentId);
+  if (opts?.activeOnly) params.set("active_only", "true");
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<Discount[]>(
+    schoolId,
+    `/accounting/discounts${q}`,
+    {},
+    DiscountSchema.array().parse,
+  );
+};
+
+export const createDiscount = (schoolId: string, input: DiscountIn) =>
+  schoolFetch<Discount>(
+    schoolId,
+    "/accounting/discounts",
+    { method: "POST", body: JSON.stringify(input) },
+    DiscountSchema.parse,
+  );
+
+export const updateDiscount = (schoolId: string, discountId: string, input: DiscountIn) =>
+  schoolFetch<Discount>(
+    schoolId,
+    `/accounting/discounts/${discountId}`,
+    { method: "PUT", body: JSON.stringify(input) },
+    DiscountSchema.parse,
+  );
+
+export const deleteDiscount = (schoolId: string, discountId: string) =>
+  schoolFetch<void>(schoolId, `/accounting/discounts/${discountId}`, { method: "DELETE" });
+
+export const fetchCreditNotes = (
+  schoolId: string,
+  opts?: { studentId?: string; status?: string },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.studentId) params.set("student_id", opts.studentId);
+  if (opts?.status) params.set("status", opts.status);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<CreditNote[]>(
+    schoolId,
+    `/accounting/credit-notes${q}`,
+    {},
+    CreditNoteSchema.array().parse,
+  );
+};
+
+export const createCreditNote = (schoolId: string, input: CreditNoteIn) =>
+  schoolFetch<CreditNote>(
+    schoolId,
+    "/accounting/credit-notes",
+    { method: "POST", body: JSON.stringify(input) },
+    CreditNoteSchema.parse,
+  );
+
+export const applyCreditNote = (schoolId: string, noteId: string, invoiceId: string) =>
+  schoolFetch<CreditNote>(
+    schoolId,
+    `/accounting/credit-notes/${noteId}/apply`,
+    { method: "POST", body: JSON.stringify({ invoice_id: invoiceId }) },
+    CreditNoteSchema.parse,
+  );
+
+export const voidCreditNote = (schoolId: string, noteId: string) =>
+  schoolFetch<CreditNote>(
+    schoolId,
+    `/accounting/credit-notes/${noteId}/void`,
+    { method: "POST" },
+    CreditNoteSchema.parse,
+  );
+
+export const fetchRefunds = (
+  schoolId: string,
+  opts?: { studentId?: string; status?: string },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.studentId) params.set("student_id", opts.studentId);
+  if (opts?.status) params.set("status", opts.status);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<Refund[]>(
+    schoolId,
+    `/accounting/refunds${q}`,
+    {},
+    RefundSchema.array().parse,
+  );
+};
+
+export const createRefund = (schoolId: string, input: RefundIn) =>
+  schoolFetch<Refund>(
+    schoolId,
+    "/accounting/refunds",
+    { method: "POST", body: JSON.stringify(input) },
+    RefundSchema.parse,
+  );
+
+export const approveRefund = (schoolId: string, refundId: string) =>
+  schoolFetch<Refund>(
+    schoolId,
+    `/accounting/refunds/${refundId}/approve`,
+    { method: "POST" },
+    RefundSchema.parse,
+  );
+
+export const rejectRefund = (schoolId: string, refundId: string, reason?: string) =>
+  schoolFetch<Refund>(
+    schoolId,
+    `/accounting/refunds/${refundId}/reject`,
+    { method: "POST", body: JSON.stringify({ reason: reason ?? null }) },
+    RefundSchema.parse,
+  );
+
+export const payRefund = (schoolId: string, refundId: string, refundDate?: string) => {
+  const q = refundDate ? `?refund_date=${refundDate}` : "";
+  return schoolFetch<Refund>(
+    schoolId,
+    `/accounting/refunds/${refundId}/pay${q}`,
+    { method: "POST" },
+    RefundSchema.parse,
+  );
+};
+
+export const fetchDebtors = (
+  schoolId: string,
+  opts?: { termId?: string; armId?: string },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.termId) params.set("term_id", opts.termId);
+  if (opts?.armId) params.set("arm_id", opts.armId);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<Debtors>(schoolId, `/accounting/debtors${q}`, {}, DebtorsSchema.parse);
+};
+
+export const fetchIncomeExpenditure = (
+  schoolId: string,
+  opts?: { termId?: string; sessionId?: string; dateFrom?: string; dateTo?: string },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.termId) params.set("term_id", opts.termId);
+  if (opts?.sessionId) params.set("session_id", opts.sessionId);
+  if (opts?.dateFrom) params.set("date_from", opts.dateFrom);
+  if (opts?.dateTo) params.set("date_to", opts.dateTo);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<IncomeExpenditure>(
+    schoolId,
+    `/accounting/reports/income-expenditure${q}`,
+    {},
+    IncomeExpenditureSchema.parse,
+  );
+};
+
+export const fetchCollectionReport = (
+  schoolId: string,
+  opts?: { termId?: string; sessionId?: string },
+) => {
+  const params = new URLSearchParams();
+  if (opts?.termId) params.set("term_id", opts.termId);
+  if (opts?.sessionId) params.set("session_id", opts.sessionId);
+  const q = params.toString() ? `?${params.toString()}` : "";
+  return schoolFetch<CollectionReport>(
+    schoolId,
+    `/accounting/reports/collection${q}`,
+    {},
+    CollectionReportSchema.parse,
+  );
+};
+
+export const fetchCashPosition = (schoolId: string) =>
+  schoolFetch<CashPosition>(
+    schoolId,
+    "/accounting/reports/cash-position",
+    {},
+    CashPositionSchema.parse,
+  );
+
+export const fetchAccountants = (schoolId: string) =>
+  schoolFetch<Accountant[]>(
+    schoolId,
+    "/accounting/accountants",
+    {},
+    AccountantSchema.array().parse,
+  );
+
+export const createAccountant = (schoolId: string, input: AccountantIn) =>
+  schoolFetch<Accountant>(
+    schoolId,
+    "/accounting/accountants",
+    { method: "POST", body: JSON.stringify(input) },
+    AccountantSchema.parse,
+  );
+
+export const emailReceipt = (
+  schoolId: string,
+  paymentId: string,
+  input: { to?: string | null } = {},
+) =>
+  schoolFetch<ReceiptEmailResult>(
+    schoolId,
+    `/fees/payments/${paymentId}/receipt/email`,
+    { method: "POST", body: JSON.stringify(input) },
+    ReceiptEmailResultSchema.parse,
+  );
+
 // --- Attendance ----------------------------------------------------------------------
 export const markStudentAttendance = (schoolId: string, input: StudentAttendanceIn) =>
   schoolFetch<AttendanceRecord>(
@@ -1709,6 +2129,42 @@ export const api = {
   fetchPayments,
   fetchReceipt,
   fetchFeeStatus,
+  emailReceipt,
+  // Accounting
+  fetchAccountingSummary,
+  fetchCashAccounts,
+  createCashAccount,
+  updateCashAccount,
+  fetchExpenseCategories,
+  createExpenseCategory,
+  fetchExpenses,
+  createExpense,
+  updateExpense,
+  approveExpense,
+  rejectExpense,
+  payExpense,
+  deleteExpense,
+  fetchCashbook,
+  reconcileCashbookEntry,
+  fetchDiscounts,
+  createDiscount,
+  updateDiscount,
+  deleteDiscount,
+  fetchCreditNotes,
+  createCreditNote,
+  applyCreditNote,
+  voidCreditNote,
+  fetchRefunds,
+  createRefund,
+  approveRefund,
+  rejectRefund,
+  payRefund,
+  fetchDebtors,
+  fetchIncomeExpenditure,
+  fetchCollectionReport,
+  fetchCashPosition,
+  fetchAccountants,
+  createAccountant,
   markStudentAttendance,
   markStaffAttendance,
   fetchStudentAttendance,

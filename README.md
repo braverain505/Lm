@@ -1,4 +1,4 @@
-# SchoolOS — Multi-Tenant School Management SaaS
+# Clearis — Multi-Tenant School Management SaaS
 
 A production-grade, multi-tenant school management platform. Shared-schema
 multi-tenancy (one Postgres database, `school_id` on every tenant table, app-layer
@@ -19,7 +19,7 @@ and `docs/phase-3.md`.
 ## Monorepo layout
 
 ```
-schoolos/
+clearis/
 ├── apps/
 │   ├── api/                 # FastAPI + SQLAlchemy 2.0 + Alembic + pytest
 │   │   ├── app/
@@ -65,7 +65,7 @@ bash ../../scripts/migrate.sh seed
 
 ```bash
 cd apps/api
-export DATABASE_URL=postgresql+psycopg2://schoolos:schoolos@localhost:5432/schoolos_test
+export DATABASE_URL=postgresql+psycopg2://clearis:clearis@localhost:5432/clearis_test
 ../../.venv/bin/python -m pytest -q
 ```
 

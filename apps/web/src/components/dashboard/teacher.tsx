@@ -29,7 +29,7 @@ import {
 } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { ScoreEntryChart, AttendanceOverviewChart } from "@/components/dashboard/premium-charts";
-import type { ReadyRow } from "@schoolos/shared";
+import type { ReadyRow } from "@clearis/shared";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 

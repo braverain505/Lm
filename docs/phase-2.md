@@ -1,4 +1,4 @@
-# SchoolOS — Phase 2: Result approval workflow → report cards → public portal → AI remarks → AI lessons & questions
+# Clearis — Phase 2: Result approval workflow → report cards → public portal → AI remarks → AI lessons & questions
 
 **Status:** built and verified through **seven slices** — the approval workflow,
 report cards, the public PIN result portal, metered AI result remarks, metered
@@ -99,7 +99,7 @@ were already on the `results` model (baseline migration uses
 
 | Check | Result |
 | --- | --- |
-| `pytest -q` (`schoolos_test`) | **28 passed** (23 approval-phase + 5 report-card), 0 failed |
+| `pytest -q` (`clearis_test`) | **28 passed** (23 approval-phase + 5 report-card), 0 failed |
 | `npm run build` (`apps/web`) | clean — `/approvals` + `/reports` routes included |
 | Verify-before-approve | 409 `ERR_CONFLICT` |
 | Double-verify / double-publish | 409 `ERR_CONFLICT` — nothing silently lost |
@@ -139,7 +139,7 @@ Behavior notes:
 
 | Check | Result |
 | --- | --- |
-| Full suite `pytest -q` (`schoolos_test`) | **39 passed** — 28 approval+report-card + 11 portal, 0 failed |
+| Full suite `pytest -q` (`clearis_test`) | **39 passed** — 28 approval+report-card + 11 portal, 0 failed |
 | `npm run build` (`apps/web`) | clean — `/portal` route included (16 routes) |
 | Live E2E (throwaway school, real dev DB) | register → score → publish → set PIN → PIN-check → public report card `total=67.0`, all checks green |
 | Non-enumeration | wrong PIN / unknown admission / unknown school each → identical `ERR_NOT_FOUND` "Invalid portal credentials" |
@@ -238,7 +238,7 @@ What was built:
 | Piece | What it does |
 | --- | --- |
 | **`lesson_plans`** | One stored plan per (school, term, subject, class level, topic) — `plan` JSONB, `provider`, `model`, `revision` (bumped on regeneration), `generated_by`, `generated_at`. Unique `(school_id, term_id, subject_id, class_level_id, topic)` so regenerate upserts the same cell. |
-| **`ai_service.generate_lesson_plan`** | Gated by `results.comment`. Validates the subject/class/term belong to the school (404 `ERR_NOT_FOUND` otherwise), composes a plan grounded in the real subject/class/term names + topic + period count, upserts the cell row (`revision += 1` on regeneration), then meters exactly once (`ai.lesson.plan`, `schoolos-lesson-v1`). |
+| **`ai_service.generate_lesson_plan`** | Gated by `results.comment`. Validates the subject/class/term belong to the school (404 `ERR_NOT_FOUND` otherwise), composes a plan grounded in the real subject/class/term names + topic + period count, upserts the cell row (`revision += 1` on regeneration), then meters exactly once (`ai.lesson.plan`, `clearis-lesson-v1`). |
 | **`_compose_lesson_plan`** | Deterministic, strand-shaped: a small `_SUBJECT_STRANDS` table chooses the working vocabulary (math → *calculate/solve*, science → *investigate/predict*, language → *read/write/explain*, humanities → *describe/discuss*) so every subject renders through its own voice — pinned by a test that a maths topic and a Civic Education topic never share wording. Output is a directly usable lesson: title, objectives, materials/aids, 4-phase procedure (Introduction 10 → Development → Evaluation 10 → Conclusion 5, times derived from `periods × 40 min`), homework, differentiation teacher-note. |
 | **`ai_service.get_lesson_plan`** | Read the saved plan (`results.view`); 404 when never generated. |
 | **Routes** | `GET/POST /api/lesson-plans` — GET by `term_id+subject_id+class_level_id+topic`, POST with the same cell + `periods` (1–10). |
@@ -274,7 +274,7 @@ What was built:
 | Piece | What it does |
 | --- | --- |
 | **`question_banks`** | One stored bank per (school, term, subject, class level, topic) — `bank` JSONB, `provider`, `model`, `revision` (bumped on regeneration), `generated_by`, `generated_at`. Unique `(school_id, term_id, subject_id, class_level_id, topic)` so regenerate upserts the same cell. |
-| **`ai_service.generate_question_bank`** | Gated by `results.comment`. Validates the subject/class/term belong to the school (404 `ERR_NOT_FOUND` otherwise), composes a strand-shaped bank grounded in the real subject/class/term names + topic + question `count`, upserts the cell row (`revision += 1` on regeneration), then meters exactly once (`ai.question.bank`, `schoolos-question-v1`). |
+| **`ai_service.generate_question_bank`** | Gated by `results.comment`. Validates the subject/class/term belong to the school (404 `ERR_NOT_FOUND` otherwise), composes a strand-shaped bank grounded in the real subject/class/term names + topic + question `count`, upserts the cell row (`revision += 1` on regeneration), then meters exactly once (`ai.question.bank`, `clearis-question-v1`). |
 | **`_compose_question_bank`** | Deterministic practice set: five templates (how to start work, which practice builds understanding, best supporting material, how to self-check, how to prepare for a short test) cycled to the requested count. Each item is a 4-option MCQ whose **correct answer is the strand's own statement, true by construction**, with the *other* strands' statements as distractors — so a maths bank never marks essay language correct and a humanities bank never marks calculating correct. The correct option is rotated deterministically (never a fixed letter) and every item carries a rationale. |
 | **`ai_service.get_question_bank`** | Read the saved bank (`results.view`); 404 when never generated. |
 | **Routes** | `GET/POST /api/question-banks` — GET by `term_id+subject_id+class_level_id+topic`, POST with the same cell + `count` (1–10). |
@@ -312,7 +312,7 @@ What was built:
 | **Intent engine** (`copilot_service.ask_copilot`) | Tokenizes the question → matches one of nine intents by keyword groups → resolves named slots against the school's real rows → composes a grounded prose answer + a facts payload. Follow-ups ("what about English?", "how many boys?") resolve from the conversation's context. Gated `ai.copilot`. |
 | **Published-only rule** | Performance intents — top performers, subject average, term summary, student report — read **exclusively** from `Result.status == PUBLISHED` frozen `published_snapshot`; a student who was never scored/published is never quoted. Entry-progress (readiness) reads live counts by design. |
 | **Honest unknown** | A question no intent matches gets a plain "I couldn't understand… here's what I can answer" — never a fabricated number — and is still metered. |
-| **Metering** | Every assistant turn writes exactly one `AiUsage` + one monthly `UsageMeter` bump under `ai.copilot` / `schoolos-copilot-v1` via `ai_service._meter_inc` — wiring a real LLM later only swaps the composition function. |
+| **Metering** | Every assistant turn writes exactly one `AiUsage` + one monthly `UsageMeter` bump under `ai.copilot` / `clearis-copilot-v1` via `ai_service._meter_inc` — wiring a real LLM later only swaps the composition function. |
 | **Routes** | `POST /api/copilot/ask` (creates/resumes a conversation, returns conversation + assistant message), `GET /api/copilot/conversations`, `GET /api/copilot/conversations/{id}` (detail incl. messages), `GET /api/copilot/intents` (drives suggested-question chips). All gated `ai.copilot`; cross-school conversation access is a neutral 404. |
 | **Permission** | `ai.copilot` in `ROLE_TEMPLATES` for director, principal, vp_academics, head_teacher, academic_coordinator (the leadership roles that already hold `results.comment`); existing schools reconciled by `sync_role_templates` on seed. |
 
@@ -320,7 +320,7 @@ Web: `/copilot` (sidebar "Copilot", bot icon). A chat UI with a saved-conversati
 rail, term-scope pills for new chats, suggested-question chips when a thread is
 empty (from `/copilot/intents`), user/assistant bubbles, and payload cards —
 count stats, a top-3 performers table, per-arm readiness bars. Asking is hidden
-without `ai.copilot`; a footline states the engine (`schoolos-copilot-v1`,
+without `ai.copilot`; a footline states the engine (`clearis-copilot-v1`,
 deterministic, metered). The `useAskCopilot` mutation seeds the thread cache
 from the ask response so a new answer renders instantly while a background
 refetch confirms.

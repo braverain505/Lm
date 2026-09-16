@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     # --- Database ---
     database_url: str = (
-        "postgresql+psycopg2://schoolos:schoolos@localhost:5432/schoolos_dev"
+        "postgresql+psycopg2://clearis:clearis@localhost:5432/clearis_dev"
     )
 
     # --- Security ---
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 15
     refresh_token_days: int = 30
-    cookie_name: str = "schoolos_session"
+    cookie_name: str = "clearis_session"
     cookie_secure: bool = False  # True behind TLS
     # Cookies default to Lax: the web app talks to the API same-origin through
     # its /api/proxy rewrite, so cross-site sending (SameSite=None, which
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # really does call the API cross-site from a browser may set
     # COOKIE_SAMESITE=none — validation below then also requires COOKIE_SECURE.
     cookie_samesite: str = "lax"
-    impersonation_cookie: str = "schoolos_impersonation"
+    impersonation_cookie: str = "clearis_impersonation"
     cookie_domain: str | None = None
 
     # --- Auth behavior ---
@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     use_redis: bool = False  # Phase 2: background jobs move to Celery+Redis
     storage_driver: str = "local"  # local | s3 (s3 later)
     storage_base_dir: str = ".storage"
+
+    # --- Email (transactional) ---
+    # Resend API key. When unset, sending is skipped in development (the email is
+    # logged instead) and refused with a clear error in production — receipts must
+    # never be silently "sent".
+    resend_api_key: str = ""
+    email_from: str = "Clearis <no-reply@clearis.app>"
+    email_reply_to: str = ""
+    email_timeout_seconds: float = 20.0
 
     # --- LLM (Groq) ---
     # When GROQ_API_KEY is unset the AI engines keep working with their

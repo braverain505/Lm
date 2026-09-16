@@ -1,6 +1,6 @@
 # Render Deployment Setup Guide
 
-This guide explains how to configure your Render.com deployment for the Lumo SaaS application with the new Base64 logo storage and API proxy routing.
+This guide explains how to configure your Render.com deployment for the Clearis SaaS application with the new Base64 logo storage and API proxy routing.
 
 ## Overview
 
@@ -47,12 +47,12 @@ DATABASE_URL=postgresql://...
 
 # Storage configuration for Render free tier
 STORAGE_DRIVER=local
-STORAGE_BASE_DIR=/tmp/schoolos/storage
+STORAGE_BASE_DIR=/tmp/clearis/storage
 
 # Other existing env vars...
 ```
 
-**Important:** The `STORAGE_BASE_DIR=/tmp/schoolos/storage` path is **ephemeral** on Render free tier — files are deleted on redeploy. This is acceptable because:
+**Important:** The `STORAGE_BASE_DIR=/tmp/clearis/storage` path is **ephemeral** on Render free tier — files are deleted on redeploy. This is acceptable because:
 - **School logos** are now stored as Base64 in PostgreSQL (persistent)
 - **Student photos** can remain in local storage (will be wiped on redeploy, but you can migrate them to Base64 later if needed)
 
@@ -114,7 +114,7 @@ Look for any errors related to API proxy or logo uploads.
 1. **Verify proxy is installed** — ensure the file exists at `apps/web/src/app/api/proxy/[...path]/route.ts`
 2. **Check Next.js build** — rebuild the frontend:
    ```bash
-   npm run build --workspace=@schoolos/web
+   npm run build --workspace=@clearis/web
    ```
 3. **Verify environment variable** — ensure `API_URL` is set on the frontend service in Render
 

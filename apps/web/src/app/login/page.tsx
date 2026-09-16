@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
@@ -32,7 +32,7 @@ const schema = z.object({
 });
 type LoginForm = z.infer<typeof schema>;
 
-const EMAIL_KEY = "schoolos.login.email";
+const EMAIL_KEY = "clearis.login.email";
 
 export default function LoginPage() {
   const router = useRouter();

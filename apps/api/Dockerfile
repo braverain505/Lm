@@ -1,4 +1,4 @@
-# SchoolOS API — production image.
+# Clearis API — production image.
 FROM python:3.12-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \

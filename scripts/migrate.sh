@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SchoolOS API — migrate + seed the dev database.
+# Clearis API — migrate + seed the dev database.
 # Usage:  bash scripts/migrate.sh        (migrate)
 #         bash scripts/migrate.sh seed   (migrate + seed demo data)
 set -euo pipefail

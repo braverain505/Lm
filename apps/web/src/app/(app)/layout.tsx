@@ -10,7 +10,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/ui/loader";
 import { useAuth } from "@/providers/auth-provider";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, activeSchool, memberships, loading, refreshMe } = useAuth();
@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      setImpersonating(localStorage.getItem("schoolos.impersonating") === "1");
+      setImpersonating(localStorage.getItem("clearis.impersonating") === "1");
     } catch {
       /* ignore */
     }
@@ -41,7 +41,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     try {
       await api.impersonateExit();
       try {
-        localStorage.removeItem("schoolos.impersonating");
+        localStorage.removeItem("clearis.impersonating");
       } catch {
         /* ignore */
       }

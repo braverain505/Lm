@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { api } from "@schoolos/shared";
+import { api } from "@clearis/shared";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,

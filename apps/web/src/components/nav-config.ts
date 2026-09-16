@@ -1,9 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Banknote,
   BarChart3,
   BookCopy,
   BookOpen,
   Bot,
+  Calculator,
   CalendarCheck,
   ClipboardCheck,
   FileText,
@@ -16,6 +18,7 @@ import {
   NotebookPen,
   Package,
   PieChart,
+  Receipt,
   Settings,
   Shield,
   Sparkles,
@@ -25,6 +28,15 @@ import {
   UsersRound,
   Wallet,
 } from "lucide-react";
+
+/**
+ * The accounting desk belongs to the school Accountant alone.
+ *
+ * The API enforces this per request (role code + permission); this list only
+ * decides what is *shown*, so a bug here can never grant access — it just hides
+ * or reveals a link. Kept in one place so the rule is described once.
+ */
+export const ACCOUNTING_ROLE = "accountant";
 
 export interface NavItem {
   href: string;
@@ -109,6 +121,18 @@ export const PANEL_SECTIONS: NavSection[] = [
     ],
   },
   {
+    // Accountant-only: the ledger, cashbook, debtors and reporting desk.
+    label: "Accounting",
+    items: [
+      { href: "/accounting", label: "Accountant's Desk", icon: Calculator, perm: "accounting.view", roles: [ACCOUNTING_ROLE] },
+      { href: "/accounting/expenses", label: "Expenses", icon: Receipt, perm: "accounting.view", roles: [ACCOUNTING_ROLE] },
+      { href: "/accounting/cashbook", label: "Cashbook", icon: Banknote, perm: "accounting.view", roles: [ACCOUNTING_ROLE] },
+      { href: "/accounting/debtors", label: "Debtors", icon: Users, perm: "accounting.view", roles: [ACCOUNTING_ROLE] },
+      { href: "/accounting/concessions", label: "Discounts & Refunds", icon: PieChart, perm: "accounting.view", roles: [ACCOUNTING_ROLE] },
+      { href: "/accounting/reports", label: "Reports", icon: BarChart3, perm: "accounting.reports", roles: [ACCOUNTING_ROLE] },
+    ],
+  },
+  {
     label: "Platform",
     items: [{ href: "/admin", label: "All Schools", icon: Shield, perm: null, platformAdmin: true }],
   },
@@ -178,6 +202,12 @@ const PAGE_META: Record<string, PageMeta> = {
   "/timetable": { title: "Timetable", breadcrumb: "Academics" },
   "/billing": { title: "Fees & Billing", breadcrumb: "Finance" },
   "/payroll": { title: "Payroll", breadcrumb: "Finance" },
+  "/accounting": { title: "Accountant's Desk", breadcrumb: "Accounting" },
+  "/accounting/expenses": { title: "Expenses", breadcrumb: "Accounting" },
+  "/accounting/cashbook": { title: "Cashbook", breadcrumb: "Accounting" },
+  "/accounting/debtors": { title: "Debtors", breadcrumb: "Accounting" },
+  "/accounting/concessions": { title: "Discounts & Refunds", breadcrumb: "Accounting" },
+  "/accounting/reports": { title: "Financial Reports", breadcrumb: "Accounting" },
   "/inventory": { title: "Inventory", breadcrumb: "Administration" },
   "/library": { title: "Library", breadcrumb: "Administration" },
   "/lesson-plans": { title: "AI Lesson Plans", breadcrumb: "AI Tools" },

@@ -1,4 +1,4 @@
-// SchoolOS — shared request/response contracts (zod). The FastAPI side uses
+// Clearis — shared request/response contracts (zod). The FastAPI side uses
 // Pydantic; these are the TypeScript mirror so the web app never hand-writes
 // types that can drift from the API.
 import { z } from "zod";
@@ -905,6 +905,7 @@ export const PaymentInSchema = z.object({
   payment_method: z.string().min(1),
   payment_reference: z.string().max(100).nullable().optional(),
   transaction_id: z.string().max(100).nullable().optional(),
+  cash_account_id: z.string().uuid().nullable().optional(),
 });
 export type PaymentIn = z.infer<typeof PaymentInSchema>;
 
@@ -930,6 +931,11 @@ export const ReceiptStudentSchema = z.object({
   id: z.string().uuid(),
   admission_no: z.string(),
   full_name: z.string(),
+  // Optional so a receipt still parses against an older API that does not send
+  // guardian contacts yet.
+  guardian_name: z.string().nullable().optional(),
+  guardian_phone: z.string().nullable().optional(),
+  guardian_email: z.string().nullable().optional(),
 });
 export type ReceiptStudent = z.infer<typeof ReceiptStudentSchema>;
 
@@ -972,6 +978,369 @@ export const PaymentStatusSchema = z.object({
   students: z.array(PaymentStatusRowSchema),
 });
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
+
+// --- Accounting (the accountant's ledger) -------------------------------------
+
+export const CashAccountSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  kind: z.string(),
+  bank_name: z.string().nullable(),
+  account_number: z.string().nullable(),
+  currency: z.string(),
+  opening_balance: z.number(),
+  is_active: z.boolean(),
+  is_default: z.boolean(),
+  balance: z.number().nullable().optional(),
+});
+export type CashAccount = z.infer<typeof CashAccountSchema>;
+
+export const CashAccountInSchema = z.object({
+  name: z.string().min(1).max(120),
+  kind: z.enum(["bank", "cash", "petty_cash"]),
+  bank_name: z.string().max(160).nullable().optional(),
+  account_number: z.string().max(40).nullable().optional(),
+  currency: z.string().max(3).optional(),
+  opening_balance: z.number().min(0).optional(),
+  is_active: z.boolean().optional(),
+  is_default: z.boolean().optional(),
+});
+export type CashAccountIn = z.infer<typeof CashAccountInSchema>;
+
+export const ExpenseCategorySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  is_active: z.boolean(),
+});
+export type ExpenseCategory = z.infer<typeof ExpenseCategorySchema>;
+
+export const ExpenseSchema = z.object({
+  id: z.string().uuid(),
+  voucher_number: z.string(),
+  category_id: z.string().uuid().nullable(),
+  category_name: z.string().nullable().optional(),
+  description: z.string(),
+  payee: z.string().nullable(),
+  amount: z.number(),
+  currency: z.string(),
+  expense_date: z.string(),
+  payment_method: z.string(),
+  cash_account_id: z.string().uuid().nullable(),
+  cash_account_name: z.string().nullable().optional(),
+  reference: z.string().nullable(),
+  status: z.string(),
+  requires_approval: z.boolean(),
+  term_id: z.string().uuid().nullable(),
+  session_id: z.string().uuid().nullable(),
+  notes: z.string().nullable(),
+  attachment_url: z.string().nullable(),
+  created_at: z.string(),
+  approved_at: z.string().nullable(),
+  paid_at: z.string().nullable(),
+  rejected_reason: z.string().nullable(),
+  reconciled: z.boolean(),
+  reconciled_at: z.string().nullable(),
+  bank_reference: z.string().nullable(),
+});
+export type Expense = z.infer<typeof ExpenseSchema>;
+
+export const ExpenseInSchema = z.object({
+  description: z.string().min(1).max(300),
+  amount: z.number().positive(),
+  expense_date: z.string(),
+  payment_method: z.string().min(1),
+  category_id: z.string().uuid().nullable().optional(),
+  cash_account_id: z.string().uuid().nullable().optional(),
+  payee: z.string().max(160).nullable().optional(),
+  reference: z.string().max(100).nullable().optional(),
+  currency: z.string().max(3).optional(),
+  term_id: z.string().uuid().nullable().optional(),
+  session_id: z.string().uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  attachment_url: z.string().nullable().optional(),
+  requires_approval: z.boolean().optional(),
+  mark_paid: z.boolean().optional(),
+});
+export type ExpenseIn = z.infer<typeof ExpenseInSchema>;
+
+export const ExpenseListSchema = z.object({
+  items: z.array(ExpenseSchema),
+  total: z.number(),
+});
+export type ExpenseList = z.infer<typeof ExpenseListSchema>;
+
+export const CashbookLineSchema = z.object({
+  source_type: z.string(),
+  source_id: z.string().uuid().nullable(),
+  direction: z.string(),
+  entry_date: z.string().nullable(),
+  description: z.string(),
+  reference: z.string().nullable(),
+  amount: z.number(),
+  cash_account_id: z.string().uuid().nullable(),
+  cash_account_name: z.string().nullable(),
+  reconciled: z.boolean(),
+  bank_reference: z.string().nullable(),
+});
+export type CashbookLine = z.infer<typeof CashbookLineSchema>;
+
+export const CashbookSchema = z.object({
+  lines: z.array(CashbookLineSchema),
+  total_in: z.number(),
+  total_out: z.number(),
+  net: z.number(),
+  opening: z.number(),
+  closing: z.number(),
+  reconciled_count: z.number(),
+  unreconciled_count: z.number(),
+});
+export type Cashbook = z.infer<typeof CashbookSchema>;
+
+export const CashPositionRowSchema = z.object({
+  cash_account_id: z.string().uuid(),
+  name: z.string(),
+  kind: z.string(),
+  opening_balance: z.number(),
+  total_in: z.number(),
+  total_out: z.number(),
+  balance: z.number(),
+  unreconciled_amount: z.number(),
+});
+export type CashPositionRow = z.infer<typeof CashPositionRowSchema>;
+
+export const CashPositionSchema = z.object({
+  currency: z.string(),
+  rows: z.array(CashPositionRowSchema),
+  total_balance: z.number(),
+  total_unreconciled: z.number(),
+});
+export type CashPosition = z.infer<typeof CashPositionSchema>;
+
+export const DiscountSchema = z.object({
+  id: z.string().uuid(),
+  student_id: z.string().uuid(),
+  student_name: z.string().nullable().optional(),
+  admission_no: z.string().nullable().optional(),
+  name: z.string(),
+  kind: z.string(),
+  percent: z.number().nullable(),
+  amount: z.number().nullable(),
+  fee_structure_id: z.string().uuid().nullable(),
+  fee_structure_name: z.string().nullable().optional(),
+  term_id: z.string().uuid().nullable(),
+  session_id: z.string().uuid().nullable(),
+  is_active: z.boolean(),
+  notes: z.string().nullable(),
+  created_at: z.string(),
+});
+export type Discount = z.infer<typeof DiscountSchema>;
+
+export const DiscountInSchema = z
+  .object({
+    student_id: z.string().uuid(),
+    name: z.string().min(1).max(120),
+    kind: z.enum([
+      "discount",
+      "scholarship",
+      "bursary",
+      "staff_child",
+      "sibling",
+      "waiver",
+    ]),
+    percent: z.number().gt(0).lte(100).nullable().optional(),
+    amount: z.number().gt(0).nullable().optional(),
+    fee_structure_id: z.string().uuid().nullable().optional(),
+    term_id: z.string().uuid().nullable().optional(),
+    session_id: z.string().uuid().nullable().optional(),
+    notes: z.string().nullable().optional(),
+    is_active: z.boolean().optional(),
+  })
+  .refine(
+    (v) => (v.percent == null) !== (v.amount == null),
+    { message: "Provide exactly one of percent or amount" },
+  );
+export type DiscountIn = z.infer<typeof DiscountInSchema>;
+
+export const CreditNoteSchema = z.object({
+  id: z.string().uuid(),
+  note_number: z.string(),
+  student_id: z.string().uuid(),
+  student_name: z.string().nullable().optional(),
+  admission_no: z.string().nullable().optional(),
+  invoice_id: z.string().uuid().nullable(),
+  invoice_reference: z.string().nullable().optional(),
+  amount: z.number(),
+  reason: z.string().nullable(),
+  status: z.string(),
+  issued_date: z.string(),
+  applied_invoice_id: z.string().uuid().nullable(),
+  applied_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export type CreditNote = z.infer<typeof CreditNoteSchema>;
+
+export const CreditNoteInSchema = z.object({
+  student_id: z.string().uuid(),
+  amount: z.number().positive(),
+  reason: z.string().max(500).nullable().optional(),
+  invoice_id: z.string().uuid().nullable().optional(),
+});
+export type CreditNoteIn = z.infer<typeof CreditNoteInSchema>;
+
+export const RefundSchema = z.object({
+  id: z.string().uuid(),
+  student_id: z.string().uuid(),
+  student_name: z.string().nullable().optional(),
+  admission_no: z.string().nullable().optional(),
+  payment_id: z.string().uuid().nullable(),
+  amount: z.number(),
+  currency: z.string(),
+  method: z.string(),
+  reference: z.string().nullable(),
+  reason: z.string().nullable(),
+  status: z.string(),
+  cash_account_id: z.string().uuid().nullable(),
+  refund_date: z.string().nullable(),
+  reconciled: z.boolean(),
+  created_at: z.string(),
+  approved_at: z.string().nullable().optional(),
+});
+export type Refund = z.infer<typeof RefundSchema>;
+
+export const RefundInSchema = z.object({
+  student_id: z.string().uuid(),
+  amount: z.number().positive(),
+  method: z.string().min(1),
+  payment_id: z.string().uuid().nullable().optional(),
+  reference: z.string().max(100).nullable().optional(),
+  reason: z.string().max(500).nullable().optional(),
+  currency: z.string().max(3).optional(),
+  cash_account_id: z.string().uuid().nullable().optional(),
+  refund_date: z.string().nullable().optional(),
+  mark_paid: z.boolean().optional(),
+});
+export type RefundIn = z.infer<typeof RefundInSchema>;
+
+export const DebtorRowSchema = z.object({
+  student_id: z.string().uuid(),
+  admission_no: z.string(),
+  full_name: z.string(),
+  arm_name: z.string().nullable(),
+  guardian_name: z.string().nullable().optional(),
+  guardian_phone: z.string().nullable().optional(),
+  guardian_email: z.string().nullable().optional(),
+  invoiced: z.number(),
+  paid: z.number(),
+  balance: z.number(),
+  current: z.number(),
+  days_1_30: z.number(),
+  days_31_60: z.number(),
+  days_61_90: z.number(),
+  days_90_plus: z.number(),
+  oldest_due_date: z.string().nullable(),
+  invoice_count: z.number(),
+});
+export type DebtorRow = z.infer<typeof DebtorRowSchema>;
+
+export const DebtorsSchema = z.object({
+  currency: z.string(),
+  rows: z.array(DebtorRowSchema),
+  total_outstanding: z.number(),
+  buckets: z.record(z.string(), z.number()),
+  student_count: z.number(),
+});
+export type Debtors = z.infer<typeof DebtorsSchema>;
+
+export const IncomeExpenditureSchema = z.object({
+  period_label: z.string(),
+  currency: z.string(),
+  term_id: z.string().uuid().nullable(),
+  session_id: z.string().uuid().nullable(),
+  fee_collections: z.number(),
+  other_income: z.number(),
+  total_income: z.number(),
+  expenses_by_category: z.array(
+    z.object({ category: z.string(), amount: z.number() }),
+  ),
+  total_expenditure: z.number(),
+  surplus: z.number(),
+  surplus_label: z.string(),
+});
+export type IncomeExpenditure = z.infer<typeof IncomeExpenditureSchema>;
+
+export const CollectionReportSchema = z.object({
+  currency: z.string(),
+  rows: z.array(
+    z.object({
+      arm_id: z.string().uuid().nullable(),
+      arm_name: z.string().nullable(),
+      students: z.number(),
+      invoiced: z.number(),
+      collected: z.number(),
+      outstanding: z.number(),
+      collection_rate: z.number(),
+    }),
+  ),
+  total_invoiced: z.number(),
+  total_collected: z.number(),
+  total_outstanding: z.number(),
+  collection_rate: z.number(),
+});
+export type CollectionReport = z.infer<typeof CollectionReportSchema>;
+
+export const AccountingSummarySchema = z.object({
+  currency: z.string(),
+  outstanding_fees: z.number(),
+  collected_this_term: z.number(),
+  expenses_this_term: z.number(),
+  surplus_this_term: z.number(),
+  pending_expense_approvals: z.number(),
+  pending_refunds: z.number(),
+  open_credit_notes: z.number(),
+  unreconciled_cashbook_entries: z.number(),
+  cash_position: z.number(),
+  debtors_over_90_days: z.number(),
+});
+export type AccountingSummary = z.infer<typeof AccountingSummarySchema>;
+
+export const AccountantSchema = z.object({
+  user_id: z.string().uuid(),
+  staff_id: z.string().uuid().nullable(),
+  email: z.string(),
+  full_name: z.string(),
+  school_id: z.string().uuid(),
+  role_code: z.string(),
+  role_name: z.string(),
+  has_login: z.boolean(),
+});
+export type Accountant = z.infer<typeof AccountantSchema>;
+
+export const AccountantInSchema = z.object({
+  full_name: z.string().min(1).max(160),
+  email: z.string().email(),
+  password: z.string().min(8),
+  phone: z.string().max(40).nullable().optional(),
+  staff_no: z.string().max(40).nullable().optional(),
+});
+export type AccountantIn = z.infer<typeof AccountantInSchema>;
+
+export const ReconcileResultSchema = z.object({
+  source_type: z.string(),
+  source_id: z.string().uuid(),
+  reconciled: z.boolean(),
+  bank_reference: z.string().nullable(),
+  reconciled_at: z.string().nullable(),
+});
+export type ReconcileResult = z.infer<typeof ReconcileResultSchema>;
+
+export const ReceiptEmailResultSchema = z.object({
+  receipt_number: z.string().nullable(),
+  recipient: z.string(),
+  delivered: z.boolean(),
+  dev_skipped: z.boolean(),
+});
+export type ReceiptEmailResult = z.infer<typeof ReceiptEmailResultSchema>;
 
 // --- Attendance ------------------------------------------------------------------
 export const AttendanceRecordSchema = z.object({

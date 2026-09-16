@@ -10,7 +10,7 @@ Pinned behavior:
 * Follow-ups resolve from conversation context ("how many girls?" after naming
   the arm); unknown questions are answered honestly (never fabricated numbers);
   each assistant turn meters exactly one ``AiUsage`` + one monthly ``UsageMeter``
-  row under feature ``ai.copilot`` / model ``schoolos-copilot-v1``.
+  row under feature ``ai.copilot`` / model ``clearis-copilot-v1``.
 * Conversations are tenant-isolated: school B cannot read school A's thread.
 """
 from sqlalchemy import select
@@ -291,7 +291,7 @@ def test_metering_one_per_assistant_turn(client, db):
         select(AiUsage).where(AiUsage.feature == "ai.copilot")
     ).all()
     assert len(usages) == 2
-    assert {u.model for u in usages} == {"schoolos-copilot-v1"}  # noqa: C405
+    assert {u.model for u in usages} == {"clearis-copilot-v1"}  # noqa: C405
 
     meters = db.scalars(
         select(UsageMeter).where(UsageMeter.feature_code == "ai.copilot")
