@@ -196,7 +196,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/classes": { title: "Classes", breadcrumb: "Academics" },
   "/results": { title: "Results", breadcrumb: "Academics" },
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
-  "/approvals": { title: "Approvals", breadcrumb: "Result Generation" },
+  "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
   "/attendance": { title: "Attendance", breadcrumb: "Academics" },
   "/timetable": { title: "Timetable", breadcrumb: "Academics" },
