@@ -1884,6 +1884,44 @@ export function useSetStudentPin() {
   });
 }
 
+// --- School result code (the code parents type instead of per-student PINs) ---
+export function useSchoolResultPin() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["school-result-pin", schoolId],
+    queryFn: () => api.fetchSchoolResultPin(schoolId!),
+    enabled: !!schoolId,
+  });
+}
+
+export function useGenerateSchoolResultPin() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (!schoolId) throw new Error("No active school");
+      return api.generateSchoolResultPin(schoolId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-result-pin", schoolId] });
+    },
+  });
+}
+
+export function useRevokeSchoolResultPin() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => {
+      if (!schoolId) throw new Error("No active school");
+      return api.revokeSchoolResultPin(schoolId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["school-result-pin", schoolId] });
+    },
+  });
+}
+
 export interface ReviewInput {
   cell: ResultCell;
   reason?: string;

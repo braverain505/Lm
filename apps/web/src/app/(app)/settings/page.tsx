@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Check, Copy, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, RefreshCw, ShieldCheck, ShieldOff, Ticket, Timer, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,13 +14,184 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useSchoolResultPin, useGenerateSchoolResultPin, useRevokeSchoolResultPin } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { isSchoolAdminRole } from "@/lib/roles";
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/toast";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
+
+/**
+ * The school's result code: the one thing parents need, alongside their child's
+ * admission number, to open a published report card on the login screen.
+ *
+ * The code is shown in full (not masked) because the exam office has to be able
+ * to reprint it for the next parents' meeting — see the model docstring for why
+ * a distributable code is stored differently from a per-student PIN.
+ */
+function ResultCodeCard() {
+  const { data: pin, isLoading } = useSchoolResultPin();
+  const generate = useGenerateSchoolResultPin();
+  const revoke = useRevokeSchoolResultPin();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+      toast("Result code copied");
+    } catch {
+      toast("Could not copy — select the code and copy it manually", "error");
+    }
+  };
+
+  const onGenerate = async () => {
+    if (
+      pin &&
+      !window.confirm(
+        `Generate a new result code?\n\nThe current code ${pin.code} stops working immediately, so parents who already have it will need the new one.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const created = await generate.mutateAsync();
+      toast(`Result code ${created.code} is now live`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to generate the code", "error");
+    }
+  };
+
+  const onRevoke = async () => {
+    if (
+      !window.confirm(
+        "Withdraw this result code?\n\nParents will not be able to check results until a new code is issued.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await revoke.mutateAsync();
+      toast("Result code withdrawn");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to withdraw the code", "error");
+    }
+  };
+
+  return (
+    <Card className="premium-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-[15px]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+            <Ticket className="h-4 w-4 text-primary" />
+          </span>
+          Results portal code
+        </CardTitle>
+        <CardDescription>
+          Parents enter this code and their child&apos;s admission number on the
+          login screen to view and download a published report card.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : pin?.active ? (
+          <>
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.04] p-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+                  Result code
+                </p>
+                <p className="mt-1 font-mono text-[24px] font-bold tracking-[0.14em] text-primary sm:text-[28px]">
+                  {pin.code}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copy(pin.code)}
+                className="shrink-0"
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-success" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-muted-foreground">
+              <span>
+                Used{" "}
+                <strong className="font-semibold text-foreground">{pin.use_count}</strong>{" "}
+                {pin.use_count === 1 ? "time" : "times"}
+              </span>
+              <span>
+                Last used{" "}
+                <strong className="font-semibold text-foreground">
+                  {pin.last_used_at
+                    ? new Date(pin.last_used_at).toLocaleString()
+                    : "never"}
+                </strong>
+              </span>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onGenerate}
+                isLoading={generate.isPending}
+                disabled={revoke.isPending}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Regenerate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRevoke}
+                isLoading={revoke.isPending}
+                disabled={generate.isPending}
+                className="text-destructive hover:text-destructive"
+              >
+                <ShieldOff className="h-3.5 w-3.5" />
+                Withdraw
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-8 text-center">
+            <p className="text-[13px] font-medium">No result code issued yet</p>
+            <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
+              Generate one to let parents check published results. The code
+              carries your school&apos;s initials so families can tell it apart.
+            </p>
+            <Button
+              className="mt-4"
+              onClick={onGenerate}
+              isLoading={generate.isPending}
+            >
+              <Ticket className="h-4 w-4" />
+              Generate result code
+            </Button>
+          </div>
+        )}
+
+        <p className="text-[11.5px] leading-relaxed text-muted-foreground/70">
+          Share it as widely as you like — it only identifies your school. What a
+          parent sees is still limited to published results, and only for the
+          admission number they enter. Regenerating invalidates the old code
+          immediately.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const { user, activeSchool } = useAuth();
@@ -207,6 +378,10 @@ export default function SettingsPage() {
   });
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
+  // Issuing the code is the Exam Office's job (same capability that gates
+  // report cards), so a school admin or principal may not always hold it.
+  const canIssueResultCode =
+    activeSchool?.permissions?.includes("results.report_card") ?? false;
 
   // School Settings is admin/principal only — teachers and other staff should
   // not be able to reach it even by URL.
@@ -344,6 +519,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Results portal code — Exam Office / admin only */}
+      {canIssueResultCode && <ResultCodeCard />}
 
       {/* Academic Sessions — admin only */}
       {canManage && (

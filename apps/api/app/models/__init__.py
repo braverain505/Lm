@@ -72,7 +72,7 @@ from .results import (  # noqa: F401
     ResultEvent,
     Score,
 )
-from .portal import StudentPin  # noqa: F401
+from .portal import SchoolResultPin, StudentPin  # noqa: F401
 from .copilot import CopilotConversation, CopilotMessage  # noqa: F401
 from .imports import ImportBatch, ImportRow  # noqa: F401
 from .crosscut import (  # noqa: F401
@@ -153,6 +153,7 @@ __all__ = [
     "PsychomotorAssessment",
     "CommentBankEntry",
     "StudentPin",
+    "SchoolResultPin",
     "CopilotConversation",
     "CopilotMessage",
     "ImportBatch",

@@ -669,10 +669,18 @@ export const PinStudentBriefSchema = z.object({
 });
 export type PinStudentBrief = z.infer<typeof PinStudentBriefSchema>;
 
+export const PinTermBriefSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  session_name: z.string(),
+});
+export type PinTermBrief = z.infer<typeof PinTermBriefSchema>;
+
 export const PinCheckOutSchema = z.object({
   token: z.string(),
   expires_minutes: z.number(),
   student: PinStudentBriefSchema,
+  school: SchoolBriefSchema,
 });
 export type PinCheckOut = z.infer<typeof PinCheckOutSchema>;
 
@@ -681,6 +689,18 @@ export const PinSetOutSchema = z.object({
   student_id: z.string().uuid(),
 });
 export type PinSetOut = z.infer<typeof PinSetOutSchema>;
+
+// The school-wide result code (e.g. "GVS-7K42Q") the exam office issues and
+// parents type on the login screen alongside their child's admission number.
+export const SchoolPinOutSchema = z.object({
+  code: z.string(),
+  prefix: z.string(),
+  active: z.boolean(),
+  use_count: z.number(),
+  last_used_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export type SchoolPinOut = z.infer<typeof SchoolPinOutSchema>;
 
 // --- School copilot -----------------------------------------------------------
 export const CopilotMessageSchema = z.object({

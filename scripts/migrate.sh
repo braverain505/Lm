@@ -6,8 +6,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../apps/api"
 
-VENV_PY="${VENV_PY:-../.venv/bin/python}"
-if [ ! -x "${VENV_PY}" ]; then
+# The venv lives at the repo root (see README), i.e. ../../.venv from here; an
+# older layout kept it in apps/.venv. Probe both before falling back to python3.
+if [ -z "${VENV_PY:-}" ]; then
+  for candidate in ../../.venv/bin/python ../.venv/bin/python; do
+    if [ -x "$candidate" ]; then VENV_PY="$candidate"; break; fi
+  done
+fi
+if [ ! -x "${VENV_PY:-}" ]; then
   VENV_PY=python3
 fi
 

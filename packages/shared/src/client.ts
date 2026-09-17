@@ -59,6 +59,10 @@ import {
   PinCheckOutSchema,
   PinSetOut,
   PinSetOutSchema,
+  PinTermBrief,
+  PinTermBriefSchema,
+  SchoolPinOut,
+  SchoolPinOutSchema,
   PlatformSchool,
   PlatformSchoolSchema,
   SchoolAdminCreate,
@@ -697,6 +701,26 @@ export async function pinCheck(body: {
     zod: PinCheckOutSchema.parse,
   });
 }
+
+/**
+ * Check a school result code (e.g. "GVS-7K42Q") + admission number. The code
+ * itself names the school, so no school picker is involved.
+ */
+export async function schoolResultCheck(body: {
+  pin: string;
+  admission_no: string;
+}): Promise<PinCheckOut> {
+  return request("/public/result-check", {
+    method: "POST",
+    body: JSON.stringify(body),
+    zod: PinCheckOutSchema.parse,
+  });
+}
+
+export const publicTerms = (token: string) =>
+  request<PinTermBrief[]>(`/public/terms?token=${encodeURIComponent(token)}`, {
+    zod: PinTermBriefSchema.array().parse,
+  });
 
 export const publicReportCard = (token: string, termId?: string) => {
   const q = termId ? `&term_id=${termId}` : "";
@@ -1735,6 +1759,26 @@ export const fetchStaffAttendanceSummary = (schoolId: string, staffId: string) =
   );
 
 // --- Result portal ------------------------------------------------------------------
+// --- School result code (admin) ---------------------------------------------------
+export const fetchSchoolResultPin = (schoolId: string) =>
+  schoolFetch<SchoolPinOut | null>(
+    schoolId,
+    "/results/portal-pin",
+    {},
+    (d) => (d == null ? null : SchoolPinOutSchema.parse(d)),
+  );
+
+export const generateSchoolResultPin = (schoolId: string) =>
+  schoolFetch<SchoolPinOut>(
+    schoolId,
+    "/results/portal-pin",
+    { method: "POST" },
+    SchoolPinOutSchema.parse,
+  );
+
+export const revokeSchoolResultPin = (schoolId: string) =>
+  schoolFetch<void>(schoolId, "/results/portal-pin", { method: "DELETE" });
+
 export const setStudentPin = (schoolId: string, studentId: string, pin: string) =>
   schoolFetch<PinSetOut>(
     schoolId,
@@ -2106,8 +2150,13 @@ export const api = {
   fetchQuestionBank,
   generateQuestionBank,
   setStudentPin,
+  fetchSchoolResultPin,
+  generateSchoolResultPin,
+  revokeSchoolResultPin,
   publicSchools,
   pinCheck,
+  schoolResultCheck,
+  publicTerms,
   publicReportCard,
   reviewResults,
   compileResults,

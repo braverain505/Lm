@@ -1,13 +1,17 @@
-"""Result-portal tests: PIN issuance (admin) + the public PIN-check flow.
+"""Result-portal tests: PIN + school-code issuance (admin) and the public checks.
 
 The portal is deliberately narrow. These tests pin the defensive behavior:
 
-* ``PUT /students/{id}/pin`` requires ``students.edit``.
-* Any PIN-check failure — wrong PIN, unknown admission no, unknown school —
-  answers the *same* generic 404 so the endpoint can't enumerate students.
+* ``PUT /students/{id}/pin`` requires ``students.edit``; the school result code
+  requires ``results.report_card`` (the exam office's capability).
+* Any check failure — wrong PIN/code, unknown admission no, unknown or revoked
+  credential — answers the *same* generic 404 so the endpoint can't enumerate
+  schools, students or live codes.
 * The portal token only unlocks published subjects, and bad/expired/wrong-scope
   tokens are rejected at the report endpoint.
+* The school code carries the school's initials and rotation revokes the old one.
 """
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -17,12 +21,14 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.security import hash_password
-from app.models import Role, SchoolMembership, StudentPin, User
+from app.models import Role, SchoolMembership, SchoolResultPin, StudentPin, User
+from app.services.portal_service import school_initials
 from app.seed import seed_grade_scale
 from .conftest import active_school_id, register_school
 
 PUBLIC = "/api/public"
 PIN = "/api/students"
+CODE = "/api/results/portal-pin"
 
 
 # --- World builders (mirror test_results.py, kept local for isolation) ----------
@@ -476,4 +482,233 @@ def _token_with_exp(school_id: str, student_id: str, minutes: int = 30) -> str:
         },
         settings.jwt_secret,
         algorithm=settings.jwt_algorithm,
+    )
+
+
+# --- School initials -------------------------------------------------------------
+def test_initials_read_naturally_from_the_school_name():
+    """The prefix is the part a parent recognises, so it has to be derivable and
+    stable — including when the name carries a noise word."""
+
+    class _S:
+        def __init__(self, name, short_name=None):
+            self.name = name
+            self.short_name = short_name
+
+    assert school_initials(_S("Green Valley Grammar School")) == "GVGS"
+    assert school_initials(_S("Test Academy")) == "TA"
+    assert school_initials(_S("University of Lagos")) == "UL"
+    assert school_initials(_S("Clearis")) == "CLE"  # single word → first letters
+    assert school_initials(_S("St. Mary's College")) == "SMC"  # "'s" is not an initial
+    assert school_initials(_S("...")) == "SCH"  # nothing usable → safe fallback
+    # A short name wins, and a single-token one is already an abbreviation.
+    assert school_initials(_S("Green Valley Grammar School", "GVGS")) == "GVGS"
+    assert school_initials(_S("Green Valley Grammar School", "Green Valley")) == "GV"
+
+
+# --- School result code: issuance -------------------------------------------------
+def test_issue_code_requires_results_report_card(client, db):
+    """The code is the Exam Office's document, so ``students.edit`` is not enough."""
+    register_school(client)
+    sid = active_school_id(client)
+    _configure(client, sid, db)
+
+    # Unauthenticated: rejected at the door.
+    assert client.get(CODE).status_code == 401
+
+    # A teacher may enter and submit results but not process report cards.
+    user = _add_limited_user(db, sid, "teacher")
+    client.post(
+        "/api/auth/login",
+        json={"email": user.email, "password": "Str0ng!Pass"},
+    )
+    r = client.post(f"{CODE}", headers={"X-School-Id": sid})
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "ERR_PERMISSION_DENIED"
+
+
+def test_code_is_null_until_issued_then_carries_school_initials(client):
+    register_school(client, name="Green Valley Grammar School")
+    sid = active_school_id(client)
+
+    r = client.get(CODE, headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    assert r.json() is None  # never issued, and that must read as null
+
+    r = client.post(CODE, headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["prefix"] == "GVGS"
+    assert body["active"] is True
+    assert body["use_count"] == 0
+    assert body["last_used_at"] is None
+    # The initials are prepended and the random block is unambiguous by design
+    # (no 0/O/1/I/L, which a parent reading a printout cannot tell apart).
+    assert re.fullmatch(r"GVGS-[A-Z2-9]{5}", body["code"]), body["code"]
+    assert not set(body["code"].split("-")[1]) & set("OIL01")
+
+    # Reading it back returns the same live code.
+    assert client.get(CODE, headers={"X-School-Id": sid}).json()["code"] == body["code"]
+
+
+def test_rotation_revokes_the_previous_code(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    first = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+    second = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+    assert first != second
+
+    rows = db.scalars(
+        select(SchoolResultPin).order_by(SchoolResultPin.created_at)
+    ).all()
+    assert len(rows) == 2
+    assert rows[0].revoked_at is not None  # kept for audit
+    assert rows[1].revoked_at is None
+    assert client.get(CODE, headers={"X-School-Id": sid}).json()["code"] == second
+
+
+def test_withdraw_code_removes_parent_access(client):
+    register_school(client)
+    sid = active_school_id(client)
+    code = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+
+    r = client.delete(CODE, headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    assert r.json()["active"] is False
+    assert client.get(CODE, headers={"X-School-Id": sid}).json() is None
+
+    # A withdrawn code is dead at the public door too.
+    register_school(client, name="Orbit Academy", email="orbit@test.edu")
+    r = client.post(f"{PUBLIC}/result-check", json={"pin": code, "admission_no": "STU-001"})
+    assert r.status_code == 404
+
+
+def test_withdraw_without_a_live_code_is_404(client):
+    register_school(client)
+    sid = active_school_id(client)
+    r = client.delete(CODE, headers={"X-School-Id": sid})
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "ERR_NOT_FOUND"
+
+
+# --- School result code: the public check-in ----------------------------------------
+def test_result_check_unlocks_published_card(client, db):
+    register_school(client, name="Green Valley Grammar School")
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _publish(client, sid, w, comps)
+    code = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+
+    r = client.post(
+        f"{PUBLIC}/result-check",
+        json={"pin": code, "admission_no": "STU-001"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["student"]["full_name"] == "Aisha Bello"
+    # The code names the school, so the response must say which one it was.
+    assert body["school"]["name"] == "Green Valley Grammar School"
+    assert body["expires_minutes"] == 30
+    token = body["token"]
+
+    # The term picker is scoped by the token itself.
+    r = client.get(f"{PUBLIC}/terms", params={"token": token})
+    assert r.status_code == 200, r.text
+    terms = r.json()
+    assert [t["id"] for t in terms] == [w["term_id"]]
+    assert terms[0]["session_name"] == "2025/2026"
+
+    r = client.get(
+        f"{PUBLIC}/report-card",
+        params={"token": token, "term_id": w["term_id"]},
+    )
+    assert r.status_code == 200, r.text
+    card = r.json()
+    assert [s["subject_name"] for s in card["subjects"]] == ["Mathematics"]
+    assert card["summary"]["total"] == 60.0
+
+    # A successful check is stamped on the code for the office to see.
+    row = db.scalar(
+        select(SchoolResultPin).where(SchoolResultPin.revoked_at.is_(None))
+    )
+    assert row.use_count == 1
+    assert row.last_used_at is not None
+
+
+def test_result_check_accepts_the_code_without_its_dash(client, db):
+    """Parents retype the code by hand; ``GVS7K42Q`` must work like ``GVS-7K42Q``."""
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _publish(client, sid, w, comps)
+    code = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+
+    for variant in (code.replace("-", ""), code.lower(), f"  {code}  "):
+        r = client.post(
+            f"{PUBLIC}/result-check",
+            json={"pin": variant, "admission_no": "STU-001"},
+        )
+        assert r.status_code == 200, (variant, r.text)
+
+
+def test_result_check_generic_404_on_every_failure(client, db):
+    """Wrong code, unknown admission, unknown student in the right school, and a
+    rotated-away code — all one generic 404 with one message."""
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    code = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+    old = code
+    new = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+    assert old != new
+
+    cases = [
+        {"pin": "ZZZZ-22222", "admission_no": "STU-001"},  # no such code
+        {"pin": new, "admission_no": "STU-999"},  # no such student
+        {"pin": "", "admission_no": "STU-001"},  # blank (422 below)
+        {"pin": old, "admission_no": "STU-001"},  # rotated away
+    ]
+    for body in cases:
+        r = client.post(f"{PUBLIC}/result-check", json=body)
+        if not body["pin"]:
+            assert r.status_code == 422, body
+            continue
+        assert r.status_code == 404, body
+        err = r.json()["error"]
+        assert err["code"] == "ERR_NOT_FOUND"
+        # Never hints which half of the credential was wrong.
+        assert err["message"] == "Invalid portal credentials"
+
+
+def test_result_check_case_insensitive_code_does_not_leak_schools(client, db):
+    """A code from a *different* school must not unlock this school's student,
+    even with a correct admission number (the code names the tenant)."""
+    register_school(client, name="First Academy", email="first@test.edu")
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _publish(client, sid, w, comps)
+
+    register_school(client, name="Other Academy", email="other@test.edu")
+    other_code = client.post(
+        CODE, headers={"X-School-Id": active_school_id(client)}
+    ).json()["code"]
+
+    # Correct admission number, wrong school's code → nothing is revealed.
+    r = client.post(
+        f"{PUBLIC}/result-check",
+        json={"pin": other_code, "admission_no": "STU-001"},
+    )
+    assert r.status_code == 404
+    assert r.json()["error"]["message"] == "Invalid portal credentials"
+
+
+def test_terms_requires_a_valid_portal_token(client):
+    register_school(client)
+    assert client.get(f"{PUBLIC}/terms", params={"token": "nope"}).status_code == 404
+    assert (
+        client.get(f"{PUBLIC}/terms", params={"token": _token_with_exp(str(uuid.uuid4()), str(uuid.uuid4()))}).status_code
+        == 200
     )

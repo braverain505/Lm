@@ -17,6 +17,7 @@ from ..core.permissions import (
     RESULTS_VIEW,
 )
 from ..models import AssessmentComponent, CommentBankEntry, ResultComment
+from ..schemas.portal import SchoolPinOut
 from ..schemas.results import (
     CommentBankCreate,
     CommentBankEntryOut,
@@ -38,7 +39,7 @@ from ..schemas.results import (
     SubjectSubmitRequest,
     WorkbenchRow,
 )
-from ..services import ai_service, comment_bank_service, results_service
+from ..services import ai_service, comment_bank_service, portal_service, results_service
 from ..services.academics_service import get_arm, get_term, require_active_term
 
 router = APIRouter(prefix="/results", tags=["results"])
@@ -379,6 +380,63 @@ def report_card(
         )
     )
     return ReportCard(**card)
+
+
+# --- School result code (the parents' way in) ------------------------------------
+# The code is the Exam Office's document, exactly like the report card itself:
+# whoever may generate and print a card is who may issue the code that opens it.
+# So all three routes sit behind RESULTS_REPORT_CARD rather than a new code.
+def _school_pin_out(row) -> SchoolPinOut:
+    return SchoolPinOut(
+        code=row.code,
+        prefix=row.prefix,
+        active=row.revoked_at is None,
+        use_count=row.use_count or 0,
+        last_used_at=row.last_used_at,
+        created_at=row.created_at,
+    )
+
+
+@router.get("/portal-pin", response_model=SchoolPinOut | None)
+def get_portal_pin(
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """The school's live result code, or null when none has been issued."""
+    row = portal_service.current_school_pin(db, ctx.school.id)
+    return _school_pin_out(row) if row is not None else None
+
+
+@router.post("/portal-pin", response_model=SchoolPinOut)
+def issue_portal_pin(
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Issue (or rotate) the school result code parents use to check results.
+
+    Rotating immediately invalidates the previous code — the old row is kept
+    revoked for audit, so the school can always see which code was live when.
+    """
+    row = portal_service.issue_school_pin(
+        db, school_id=ctx.school.id, actor_id=ctx.user.id
+    )
+    db.commit()
+    return _school_pin_out(row)
+
+
+@router.delete("/portal-pin", response_model=SchoolPinOut)
+def revoke_portal_pin(
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Withdraw the code so parents can no longer check results until a new
+    one is issued."""
+    row = portal_service.current_school_pin(db, ctx.school.id)
+    if row is None:
+        raise NotFoundError("No result code has been issued for this school")
+    portal_service.revoke_school_pin(db, ctx.school.id)
+    db.commit()
+    return _school_pin_out(row)
 
 
 @router.get("/report-cards", response_model=list[ReportCard])
