@@ -63,6 +63,10 @@ import {
   PinTermBriefSchema,
   SchoolPinOut,
   SchoolPinOutSchema,
+  StudentResultCode,
+  StudentResultCodeBulk,
+  StudentResultCodeBulkSchema,
+  StudentResultCodeSchema,
   PlatformSchool,
   PlatformSchoolSchema,
   SchoolAdminCreate,
@@ -703,12 +707,14 @@ export async function pinCheck(body: {
 }
 
 /**
- * Check a school result code (e.g. "GVS-7K42Q") + admission number. The code
- * itself names the school, so no school picker is involved.
+ * Check a result code (e.g. "GVS-7K42Q"). A per-student code names the child,
+ * so no admission number is needed; the code itself names the school too, so no
+ * school picker is involved. ``admission_no`` is only sent for the legacy
+ * school-wide code.
  */
 export async function schoolResultCheck(body: {
   pin: string;
-  admission_no: string;
+  admission_no?: string;
 }): Promise<PinCheckOut> {
   return request("/public/result-check", {
     method: "POST",
@@ -1779,6 +1785,39 @@ export const generateSchoolResultPin = (schoolId: string) =>
 export const revokeSchoolResultPin = (schoolId: string) =>
   schoolFetch<void>(schoolId, "/results/portal-pin", { method: "DELETE" });
 
+// --- Per-student result codes (the login screen's credential) ---------------------
+export const fetchStudentResultCodes = (schoolId: string) =>
+  schoolFetch<StudentResultCode[]>(
+    schoolId,
+    "/results/portal-codes",
+    {},
+    StudentResultCodeSchema.array().parse,
+  );
+
+export const generateMissingStudentResultCodes = (schoolId: string) =>
+  schoolFetch<StudentResultCodeBulk>(
+    schoolId,
+    "/results/portal-codes/generate",
+    { method: "POST" },
+    StudentResultCodeBulkSchema.parse,
+  );
+
+export const generateStudentResultCode = (schoolId: string, studentId: string) =>
+  schoolFetch<StudentResultCode>(
+    schoolId,
+    `/results/portal-codes/${studentId}`,
+    { method: "POST" },
+    StudentResultCodeSchema.parse,
+  );
+
+export const revokeStudentResultCode = (schoolId: string, studentId: string) =>
+  schoolFetch<StudentResultCode>(
+    schoolId,
+    `/results/portal-codes/${studentId}`,
+    { method: "DELETE" },
+    StudentResultCodeSchema.parse,
+  );
+
 export const setStudentPin = (schoolId: string, studentId: string, pin: string) =>
   schoolFetch<PinSetOut>(
     schoolId,
@@ -2153,6 +2192,10 @@ export const api = {
   fetchSchoolResultPin,
   generateSchoolResultPin,
   revokeSchoolResultPin,
+  fetchStudentResultCodes,
+  generateMissingStudentResultCodes,
+  generateStudentResultCode,
+  revokeStudentResultCode,
   publicSchools,
   pinCheck,
   schoolResultCheck,

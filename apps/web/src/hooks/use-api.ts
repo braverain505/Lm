@@ -1922,6 +1922,59 @@ export function useRevokeSchoolResultPin() {
   });
 }
 
+// --- Per-student result codes (one code per child, no admission number) -------
+export function useStudentResultCodes() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["student-result-codes", schoolId],
+    queryFn: () => api.fetchStudentResultCodes(schoolId!),
+    enabled: !!schoolId,
+  });
+}
+
+function useInvalidateStudentResultCodes() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient.invalidateQueries({ queryKey: ["student-result-codes", schoolId] });
+}
+
+export function useGenerateMissingStudentResultCodes() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateStudentResultCodes();
+  return useMutation({
+    mutationFn: () => {
+      if (!schoolId) throw new Error("No active school");
+      return api.generateMissingStudentResultCodes(schoolId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useGenerateStudentResultCode() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateStudentResultCodes();
+  return useMutation({
+    mutationFn: (studentId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.generateStudentResultCode(schoolId, studentId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRevokeStudentResultCode() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateStudentResultCodes();
+  return useMutation({
+    mutationFn: (studentId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.revokeStudentResultCode(schoolId, studentId);
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export interface ReviewInput {
   cell: ResultCell;
   reason?: string;

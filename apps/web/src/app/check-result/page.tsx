@@ -1,8 +1,9 @@
 "use client";
 
 // The parent-facing result viewer. Reached only by checking in on /login with a
-// school result code + admission number; the short-lived portal token that check
-// returns is held in sessionStorage, and this page is the only reader of it.
+// result code — a per-student code names the child outright, so no admission
+// number is asked for; the short-lived portal token that check returns is held
+// in sessionStorage, and this page is the only reader of it.
 //
 // It is a *public* page: no auth, no tenant header, and it talks exclusively to
 // /api/public/* — which is exactly why the API never returns anything that is

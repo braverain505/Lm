@@ -11,7 +11,6 @@ import {
   Check,
   Eye,
   EyeOff,
-  Hash,
   Loader2,
   Lock,
   LogIn,
@@ -86,7 +85,6 @@ export default function LoginPage() {
 
   // --- Result check state ---
   const [code, setCode] = useState("");
-  const [admissionNo, setAdmissionNo] = useState("");
   const [resultBusy, setResultBusy] = useState(false);
   const [resultError, setResultError] = useState<string | null>(null);
 
@@ -125,16 +123,13 @@ export default function LoginPage() {
 
   const onCheckResult = async () => {
     setResultError(null);
-    if (!code.trim() || !admissionNo.trim()) {
-      setResultError("Enter the result code and your admission number.");
+    if (!code.trim()) {
+      setResultError("Enter the result code your school issued.");
       return;
     }
     setResultBusy(true);
     try {
-      const session = await api.schoolResultCheck({
-        pin: code.trim(),
-        admission_no: admissionNo.trim(),
-      });
+      const session = await api.schoolResultCheck({ pin: code.trim() });
       savePortalSession({
         token: session.token,
         student: session.student,
@@ -261,8 +256,8 @@ export default function LoginPage() {
                       Check your result
                     </h1>
                     <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                      Enter the result code your school issued, then the
-                      student&apos;s admission number.
+                      Enter the result code your school issued for the student
+                      &mdash; that&apos;s all you need.
                     </p>
                   </div>
 
@@ -278,8 +273,8 @@ export default function LoginPage() {
                       <Label htmlFor="result-code" className="text-[13px] font-medium">
                         Result code
                       </Label>
-                      <div className="relative">
-                        <Ticket className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                      <div className="group relative">
+                        <Ticket className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-primary" />
                         <Input
                           id="result-code"
                           value={code}
@@ -289,32 +284,10 @@ export default function LoginPage() {
                           }}
                           placeholder="GVS-7K42Q"
                           autoComplete="off"
+                          autoFocus
                           spellCheck={false}
-                          className="h-11 pl-10 font-mono text-[15px] font-semibold uppercase tracking-[0.14em] placeholder:font-sans placeholder:text-[13px] placeholder:font-normal placeholder:tracking-normal"
-                        />
-                      </div>
-                      <p className="text-[11px] text-muted-foreground/60">
-                        The letters before the dash are your school&apos;s initials.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="admission-no" className="text-[13px] font-medium">
-                        Admission number
-                      </Label>
-                      <div className="relative">
-                        <Hash className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-                        <Input
-                          id="admission-no"
-                          value={admissionNo}
-                          onChange={(e) => {
-                            setAdmissionNo(e.target.value);
-                            setResultError(null);
-                          }}
-                          placeholder="e.g. STU-001"
-                          autoComplete="off"
-                          spellCheck={false}
-                          className="h-11 pl-10 text-[14px]"
+                          aria-invalid={Boolean(resultError)}
+                          className="h-12 rounded-xl pl-11 font-mono text-[16px] font-semibold uppercase tracking-[0.18em] placeholder:font-sans placeholder:text-[13px] placeholder:font-normal placeholder:tracking-normal"
                         />
                       </div>
                     </div>

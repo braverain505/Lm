@@ -36,11 +36,38 @@ class SchoolPinOut(BaseModel):
     created_at: datetime
 
 
+class StudentResultCodeOut(BaseModel):
+    """One row of the Exam Office's result-code manager.
+
+    The code is returned in full (not masked) because the office that issues it
+    is also the office that has to reprint it for a parents' meeting.
+    """
+
+    student_id: uuid.UUID
+    student_name: str
+    admission_no: str
+    code: str | None = None
+    prefix: str | None = None
+    active: bool = False
+    use_count: int = 0
+    last_used_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+class StudentResultCodeBulkOut(BaseModel):
+    issued: int
+    total: int
+
+
 class SchoolPinCheck(BaseModel):
-    """Public check-in with the school code (``GVS-7K42Q``) + admission no."""
+    """Public check-in with a result code.
+
+    A per-student code names the child, so ``admission_no`` is optional and only
+    consulted for the legacy school-wide code.
+    """
 
     pin: str = Field(min_length=4, max_length=24)
-    admission_no: str = Field(min_length=1, max_length=40)
+    admission_no: str | None = Field(default=None, max_length=40)
 
 
 class PinCheck(BaseModel):

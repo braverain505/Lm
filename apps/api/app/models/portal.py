@@ -1,13 +1,16 @@
-"""Result portal: the school result code and the per-student PINs it unlocks.
+"""Result portal: the result codes and per-student PINs that open it.
 
-Two ways into the public report card, deliberately layered:
+Three ways into the public report card, deliberately layered:
 
-* ``SchoolResultPin`` — **one live code per school**, carrying the school's
-  initials (``GVS-7K42Q``). A parent types it plus their child's admission
-  number on the login screen. Broad and distributable: the exam office prints
-  it, the school broadcasts it.
-* ``StudentPin`` — the narrow per-student PIN, kept for schools that would
-  rather hand each family its own secret.
+* ``StudentResultCode`` — **one live code per student**, carrying the school's
+  initials (``GVS-7K42Q``). This is what the login screen asks for: the code
+  names the child, so no admission number is needed. The exam office issues and
+  reprints it per student.
+* ``SchoolResultPin`` — the legacy **one-code-per-school** credential. A parent
+  types it together with their child's admission number; kept for schools that
+  broadcast a single code.
+* ``StudentPin`` — the narrow per-student numeric PIN, kept for schools that
+  would rather hand each family its own secret.
 """
 import uuid
 from datetime import datetime
@@ -52,6 +55,48 @@ class SchoolResultPin(TenantScopedBase, Base):
     code: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
     # The school-initials half of the code, kept separately so the UI can show
     # "GVS-•••••" and so the parent can see which school the code belongs to.
+    prefix: Mapped[str] = mapped_column(String(8), nullable=False)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    use_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class StudentResultCode(TenantScopedBase, Base):
+    """A per-student result code — one live code per child, carrying the
+    school's initials (e.g. ``GVS-7K42Q``).
+
+    This is the credential the login screen asks for: a parent types the single
+    code their school handed out for *their* child and opens that child's
+    published report card. Because the code names the student, no separate
+    admission number is needed on the public check-in.
+
+    It is stored exactly as issued (not hashed), like the school-wide code: the
+    exam office prints it on the results notice and has to be able to re-read
+    and reprint it. Rotation revokes the old row rather than deleting it, so the
+    audit trail of which code was live when survives — hence the *partial*
+    unique index over the live rows only.
+    """
+
+    __tablename__ = "student_result_codes"
+    __table_args__ = (
+        Index(
+            "uq_student_result_code_one",
+            "school_id",
+            "student_id",
+            unique=True,
+            postgresql_where="revoked_at IS NULL",
+        ),
+    )
+
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("students.id", ondelete="CASCADE"), index=True
+    )
+    # The code exactly as issued, e.g. ``GVS-7K42Q``.
+    code: Mapped[str] = mapped_column(String(24), nullable=False, index=True)
+    # The school-initials half, kept so the UI can show which school it belongs to.
     prefix: Mapped[str] = mapped_column(String(8), nullable=False)
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL")

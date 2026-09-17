@@ -690,8 +690,9 @@ export const PinSetOutSchema = z.object({
 });
 export type PinSetOut = z.infer<typeof PinSetOutSchema>;
 
-// The school-wide result code (e.g. "GVS-7K42Q") the exam office issues and
-// parents type on the login screen alongside their child's admission number.
+// The legacy school-wide result code (e.g. "GVS-7K42Q") the exam office issues
+// and parents type alongside their child's admission number. Superseded on the
+// login screen by the per-student code below, but still honoured at the door.
 export const SchoolPinOutSchema = z.object({
   code: z.string(),
   prefix: z.string(),
@@ -701,6 +702,28 @@ export const SchoolPinOutSchema = z.object({
   created_at: z.string(),
 });
 export type SchoolPinOut = z.infer<typeof SchoolPinOutSchema>;
+
+// A per-student result code (e.g. "GVS-7K42Q") — one per child, carrying the
+// school's initials. It names the student, so it is the single field the login
+// screen asks for. `code` is null until one is issued (or after withdrawal).
+export const StudentResultCodeSchema = z.object({
+  student_id: z.string().uuid(),
+  student_name: z.string(),
+  admission_no: z.string(),
+  code: z.string().nullable(),
+  prefix: z.string().nullable(),
+  active: z.boolean(),
+  use_count: z.number(),
+  last_used_at: z.string().nullable(),
+  created_at: z.string().nullable(),
+});
+export type StudentResultCode = z.infer<typeof StudentResultCodeSchema>;
+
+export const StudentResultCodeBulkSchema = z.object({
+  issued: z.number(),
+  total: z.number(),
+});
+export type StudentResultCodeBulk = z.infer<typeof StudentResultCodeBulkSchema>;
 
 // --- School copilot -----------------------------------------------------------
 export const CopilotMessageSchema = z.object({

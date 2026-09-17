@@ -1,16 +1,17 @@
-"""Public result portal: PIN check + the published report card it unlocks.
+"""Public result portal: code/PIN check + the published report card it unlocks.
 
 Deliberately unauthenticated and narrow. The endpoint reads ONLY published
 results (the report-card service enforces this), answers generic 404s on any
 bad credential, and the token is a short-lived JWT scoped to a single student
 at a single school.
 
-Two credentials open the same door:
+Three credentials open the same door:
 
-* ``/result-check`` — the **school result code** (``GVS-7K42Q``) plus the
-  child's admission number. The code names the school, the admission number
-  names the child. This is the flow on the login screen.
-* ``/pin-check`` — the older, narrower per-student PIN.
+* ``/result-check`` — the **result code** (``GVS-7K42Q``). A per-student code
+  names the child on its own, so this is the single field the login screen
+  asks for. A legacy school-wide code still works when accompanied by the
+  child's admission number.
+* ``/pin-check`` — the older, narrower per-student numeric PIN.
 """
 import uuid
 
@@ -57,13 +58,13 @@ def public_schools(db: DbSession):
 @router.post("/result-check", response_model=PinCheckOut)
 @limiter.limit("10/minute")  # the per-IP backstop to guess-the-code attempts
 def result_check(body: SchoolPinCheck, request: Request, db: DbSession):
-    """Exchange a school result code + admission no for a short-lived token.
+    """Exchange a result code for a short-lived token.
 
-    The code is the only thing that identifies the school, so parents do not
-    have to find their school in a list — the initials in the code already say
-    which school it is.
+    A per-student code identifies the child directly, so no admission number is
+    needed — the initials in the code already say which school it came from.
+    A school-wide code is still honoured, but only with an admission number.
     """
-    school, student = portal_service.resolve_school_pin(
+    school, student = portal_service.resolve_result_code(
         db, code=body.pin, admission_no=body.admission_no
     )
     return PinCheckOut(

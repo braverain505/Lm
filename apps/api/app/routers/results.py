@@ -2,6 +2,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 
 from ..core.deps import ActiveSchool, DbSession, ensure_ai, require_permission
 from ..core.errors import ConflictError, NotFoundError, PermissionDeniedError
@@ -16,8 +17,12 @@ from ..core.permissions import (
     RESULTS_VERIFY,
     RESULTS_VIEW,
 )
-from ..models import AssessmentComponent, CommentBankEntry, ResultComment
-from ..schemas.portal import SchoolPinOut
+from ..models import AssessmentComponent, CommentBankEntry, ResultComment, Student
+from ..schemas.portal import (
+    SchoolPinOut,
+    StudentResultCodeBulkOut,
+    StudentResultCodeOut,
+)
 from ..schemas.results import (
     CommentBankCreate,
     CommentBankEntryOut,
@@ -437,6 +442,96 @@ def revoke_portal_pin(
     portal_service.revoke_school_pin(db, ctx.school.id)
     db.commit()
     return _school_pin_out(row)
+
+
+# --- Per-student result codes (the login screen's credential) --------------------
+# One code per child, carrying the school's initials. The code names the student,
+# so the parent never types an admission number. Same capability gate as the
+# report card itself: issuing a code is the Exam Office's job.
+def _student_code_out(student: Student, row) -> StudentResultCodeOut:
+    active = row is not None and row.revoked_at is None
+    return StudentResultCodeOut(
+        student_id=student.id,
+        student_name=student.full_name,
+        admission_no=student.admission_no,
+        code=row.code if active else None,
+        prefix=row.prefix if row is not None else None,
+        active=active,
+        use_count=(row.use_count or 0) if row is not None else 0,
+        last_used_at=row.last_used_at if row is not None else None,
+        created_at=row.created_at if row is not None else None,
+    )
+
+
+@router.get("/portal-codes", response_model=list[StudentResultCodeOut])
+def list_portal_codes(
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Every student with their live result code (null when none was issued)."""
+    rows = portal_service.student_result_codes(db, school_id=ctx.school.id)
+    return [_student_code_out(student, row) for student, row in rows]
+
+
+@router.post("/portal-codes/generate", response_model=StudentResultCodeBulkOut)
+def generate_missing_portal_codes(
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Issue a code for every student who does not have one yet (one click).
+
+    Existing codes are left untouched, so this is safe to run at the start of
+    each term: it only fills the gaps.
+    """
+    issued = portal_service.issue_missing_student_result_codes(
+        db, school_id=ctx.school.id, actor_id=ctx.user.id
+    )
+    db.commit()
+    total = len(portal_service.student_result_codes(db, school_id=ctx.school.id))
+    return StudentResultCodeBulkOut(issued=issued, total=total)
+
+
+@router.post("/portal-codes/{student_id}", response_model=StudentResultCodeOut)
+def issue_student_portal_code(
+    student_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Issue (or rotate) one student's result code, revoking their old one."""
+    row = portal_service.issue_student_result_code(
+        db, school_id=ctx.school.id, student_id=student_id, actor_id=ctx.user.id
+    )
+    db.commit()
+    student = db.get(Student, student_id)
+    return _student_code_out(student, row)
+
+
+@router.delete("/portal-codes/{student_id}", response_model=StudentResultCodeOut)
+def revoke_student_portal_code(
+    student_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Withdraw one student's code so it can no longer open their result."""
+    student = db.scalar(
+        select(Student).where(
+            Student.id == student_id,
+            Student.school_id == ctx.school.id,
+            Student.is_deleted.is_(False),
+        )
+    )
+    if student is None:
+        raise NotFoundError("Student not found")
+    row = portal_service.current_student_result_code(
+        db, school_id=ctx.school.id, student_id=student_id
+    )
+    if row is None:
+        raise NotFoundError("This student has no result code to withdraw")
+    portal_service.revoke_student_result_code(
+        db, school_id=ctx.school.id, student_id=student_id
+    )
+    db.commit()
+    return _student_code_out(student, row)
 
 
 @router.get("/report-cards", response_model=list[ReportCard])

@@ -31,6 +31,7 @@ from ..models import (
     Student,
     StudentEnrollment,
     StudentPin,
+    StudentResultCode,
     Term,
 )
 from ..models.enums import ResultStatus
@@ -122,13 +123,39 @@ def _code_candidates(normalized: str) -> list[str]:
     return [normalized, f"{normalized[:split]}-{normalized[split:]}"]
 
 
+def _allocate_unique_code(db: Session, prefix: str) -> str:
+    """A code that collides with no *live* school code or student code.
+
+    Both tables live in the same public namespace — a parent types one code and
+    does not know which kind it is — so uniqueness has to span both of them.
+    """
+    for _ in range(20):
+        code = f"{prefix}-{_random_code_block()}"
+        school_taken = db.scalar(
+            select(SchoolResultPin.id).where(
+                SchoolResultPin.code == code,
+                SchoolResultPin.revoked_at.is_(None),
+            )
+        )
+        student_taken = db.scalar(
+            select(StudentResultCode.id).where(
+                StudentResultCode.code == code,
+                StudentResultCode.revoked_at.is_(None),
+            )
+        )
+        if school_taken is None and student_taken is None:
+            return code
+    # pragma: no cover - 20 collisions in a row cannot happen
+    raise ValidationError("Could not allocate a result code; please retry")
+
+
 def issue_school_pin(
     db: Session, *, school_id: uuid.UUID, actor_id: uuid.UUID | None
 ) -> SchoolResultPin:
     """Issue (or rotate) the school's result code, revoking whatever was live.
 
     ``create_all``-free: the caller commits. Retries on the astronomically
-    unlikely collision with another school's live code.
+    unlikely collision with another live code.
     """
     school = db.get(School, school_id)
     if school is None:
@@ -143,19 +170,7 @@ def issue_school_pin(
     ).all():
         live.revoked_at = _utcnow()
 
-    for _ in range(20):
-        code = f"{prefix}-{_random_code_block()}"
-        taken = db.scalar(
-            select(SchoolResultPin.id).where(
-                SchoolResultPin.code == code,
-                SchoolResultPin.revoked_at.is_(None),
-            )
-        )
-        if taken is None:
-            break
-    else:  # pragma: no cover - 20 collisions in a row cannot happen
-        raise ValidationError("Could not allocate a result code; please retry")
-
+    code = _allocate_unique_code(db, prefix)
     row = SchoolResultPin(
         school_id=school_id,
         code=code,
@@ -165,6 +180,121 @@ def issue_school_pin(
     db.add(row)
     db.flush()
     return row
+
+
+# --- Per-student result code -------------------------------------------------
+#
+# The credential the login screen actually asks for. Shaped exactly like the
+# school code (``GVS-7K42Q``) but tied to one child, so the code alone opens
+# that child's card and the parent never has to know an admission number.
+def current_student_result_code(
+    db: Session, *, school_id: uuid.UUID, student_id: uuid.UUID
+) -> StudentResultCode | None:
+    """The student's live result code, or None when none has been issued."""
+    return db.scalar(
+        select(StudentResultCode)
+        .where(
+            StudentResultCode.school_id == school_id,
+            StudentResultCode.student_id == student_id,
+            StudentResultCode.revoked_at.is_(None),
+        )
+        .order_by(StudentResultCode.created_at.desc())
+        .limit(1)
+    )
+
+
+def issue_student_result_code(
+    db: Session,
+    *,
+    school_id: uuid.UUID,
+    student_id: uuid.UUID,
+    actor_id: uuid.UUID | None,
+) -> StudentResultCode:
+    """Issue (or rotate) one student's result code, revoking whatever was live.
+
+    Rotating immediately invalidates the previous code; the old row is kept
+    revoked for audit, so the school can always see which code was live when.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+    get_student(db, school_id, student_id)  # raises if tenant mismatch / missing
+
+    prefix = school_initials(school)
+    for live in db.scalars(
+        select(StudentResultCode).where(
+            StudentResultCode.school_id == school_id,
+            StudentResultCode.student_id == student_id,
+            StudentResultCode.revoked_at.is_(None),
+        )
+    ).all():
+        live.revoked_at = _utcnow()
+
+    row = StudentResultCode(
+        school_id=school_id,
+        student_id=student_id,
+        code=_allocate_unique_code(db, prefix),
+        prefix=prefix,
+        created_by=actor_id,
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def revoke_student_result_code(
+    db: Session, *, school_id: uuid.UUID, student_id: uuid.UUID
+) -> bool:
+    """Withdraw a student's result code. False when there was nothing live."""
+    row = current_student_result_code(db, school_id=school_id, student_id=student_id)
+    if row is None:
+        return False
+    row.revoked_at = _utcnow()
+    db.flush()
+    return True
+
+
+def student_result_codes(
+    db: Session, *, school_id: uuid.UUID
+) -> list[tuple[Student, StudentResultCode | None]]:
+    """Every student in the school paired with their live code (or None).
+
+    Feeds the Exam Office's code manager so it can hand out codes per child and
+    spot who still needs one.
+    """
+    students = db.scalars(
+        select(Student)
+        .where(Student.school_id == school_id, Student.is_deleted.is_(False))
+        .order_by(Student.last_name, Student.first_name, Student.admission_no)
+    ).all()
+    live = {
+        row.student_id: row
+        for row in db.scalars(
+            select(StudentResultCode).where(
+                StudentResultCode.school_id == school_id,
+                StudentResultCode.revoked_at.is_(None),
+            )
+        )
+    }
+    return [(s, live.get(s.id)) for s in students]
+
+
+def issue_missing_student_result_codes(
+    db: Session, *, school_id: uuid.UUID, actor_id: uuid.UUID | None
+) -> int:
+    """Issue a code for every student who does not have one yet.
+
+    The one-click path for a new term: existing codes are left alone, only the
+    gaps are filled. Returns how many were issued.
+    """
+    issued = 0
+    for student, row in student_result_codes(db, school_id=school_id):
+        if row is None:
+            issue_student_result_code(
+                db, school_id=school_id, student_id=student.id, actor_id=actor_id
+            )
+            issued += 1
+    return issued
 
 
 def current_school_pin(db: Session, school_id: uuid.UUID) -> SchoolResultPin | None:
@@ -241,6 +371,53 @@ def resolve_school_pin(
     row.use_count = (row.use_count or 0) + 1
     db.flush()
     return school, student
+
+
+def resolve_result_code(
+    db: Session, *, code: str, admission_no: str | None = None
+) -> tuple[School, Student]:
+    """Resolve a public result code into (school, student).
+
+    A *per-student* code names the child on its own, so it is tried first and
+    the admission number is ignored. If no student code matches, the legacy
+    *school-wide* code path runs, which still needs the admission number. Every
+    failure answers the same generic 404 so the endpoint cannot be used to
+    enumerate students or live codes.
+    """
+    normalized = normalize_school_code(code)
+    if not normalized:
+        raise _bad_credentials()
+
+    for candidate in _code_candidates(normalized):
+        row = db.scalar(
+            select(StudentResultCode)
+            .where(
+                StudentResultCode.code == candidate,
+                StudentResultCode.revoked_at.is_(None),
+            )
+            .order_by(StudentResultCode.created_at.desc())
+            .limit(1)
+        )
+        if row is None:
+            continue
+        school = db.get(School, row.school_id)
+        student = db.scalar(
+            select(Student).where(
+                Student.id == row.student_id,
+                Student.school_id == row.school_id,
+                Student.is_deleted.is_(False),
+            )
+        )
+        if school is None or student is None:
+            raise _bad_credentials()
+        row.last_used_at = _utcnow()
+        row.use_count = (row.use_count or 0) + 1
+        db.flush()
+        return school, student
+
+    # No student code matched: fall back to the school-wide code, which is only
+    # usable with an admission number.
+    return resolve_school_pin(db, code=code, admission_no=admission_no or "")
 
 
 def set_student_pin(

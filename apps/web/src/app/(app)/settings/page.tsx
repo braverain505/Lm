@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Check, Copy, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, RefreshCw, ShieldCheck, ShieldOff, Ticket, Timer, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Check, Copy, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, RefreshCw, Search, ShieldCheck, ShieldOff, Ticket, Timer, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useSchoolResultPin, useGenerateSchoolResultPin, useRevokeSchoolResultPin } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useStudentResultCodes, useGenerateMissingStudentResultCodes, useGenerateStudentResultCode, useRevokeStudentResultCode } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { isSchoolAdminRole } from "@/lib/roles";
@@ -23,59 +23,96 @@ import { useToast } from "@/components/toast";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
 
 /**
- * The school's result code: the one thing parents need, alongside their child's
- * admission number, to open a published report card on the login screen.
+ * The result codes parents use: one per student, each carrying the school's
+ * initials (e.g. ``GVS-7K42Q``).
  *
- * The code is shown in full (not masked) because the exam office has to be able
- * to reprint it for the next parents' meeting — see the model docstring for why
- * a distributable code is stored differently from a per-student PIN.
+ * Because a code names the child, the login screen asks for the code alone — no
+ * admission number. Codes are shown in full (not masked) because the exam office
+ * has to be able to reprint them; see the model docstring for why a
+ * distributable code is stored as issued rather than hashed.
  */
 function ResultCodeCard() {
-  const { data: pin, isLoading } = useSchoolResultPin();
-  const generate = useGenerateSchoolResultPin();
-  const revoke = useRevokeSchoolResultPin();
+  const { data: rows = [], isLoading } = useStudentResultCodes();
+  const generateMissing = useGenerateMissingStudentResultCodes();
+  const generateOne = useGenerateStudentResultCode();
+  const revokeOne = useRevokeStudentResultCode();
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const copy = async (value: string) => {
+  const withCode = rows.filter((r) => r.active).length;
+
+  const needle = query.trim().toLowerCase();
+  const filtered = needle
+    ? rows.filter(
+        (r) =>
+          r.student_name.toLowerCase().includes(needle) ||
+          r.admission_no.toLowerCase().includes(needle),
+      )
+    : rows;
+
+  const copy = async (rowId: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
+      setCopiedId(rowId);
+      window.setTimeout(
+        () => setCopiedId((c) => (c === rowId ? null : c)),
+        1800,
+      );
       toast("Result code copied");
     } catch {
       toast("Could not copy — select the code and copy it manually", "error");
     }
   };
 
-  const onGenerate = async () => {
+  const onGenerateMissing = async () => {
     if (
-      pin &&
       !window.confirm(
-        `Generate a new result code?\n\nThe current code ${pin.code} stops working immediately, so parents who already have it will need the new one.`,
+        "Generate a result code for every student who does not have one?\n\nExisting codes are left untouched.",
       )
     ) {
       return;
     }
     try {
-      const created = await generate.mutateAsync();
-      toast(`Result code ${created.code} is now live`);
+      const result = await generateMissing.mutateAsync();
+      toast(
+        result.issued === 0
+          ? "Every student already has a code"
+          : `Issued ${result.issued} result code${result.issued === 1 ? "" : "s"}`,
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to generate codes", "error");
+    }
+  };
+
+  const onGenerateOne = async (studentId: string, name: string, hasCode: boolean) => {
+    if (
+      hasCode &&
+      !window.confirm(
+        `Replace the result code for ${name}?\n\nTheir current code stops working immediately.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const row = await generateOne.mutateAsync(studentId);
+      toast(`Code ${row.code} is now live for ${name}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to generate the code", "error");
     }
   };
 
-  const onRevoke = async () => {
+  const onRevokeOne = async (studentId: string, name: string) => {
     if (
       !window.confirm(
-        "Withdraw this result code?\n\nParents will not be able to check results until a new code is issued.",
+        `Withdraw the result code for ${name}?\n\nIt will no longer open their result.`,
       )
     ) {
       return;
     }
     try {
-      await revoke.mutateAsync();
-      toast("Result code withdrawn");
+      await revokeOne.mutateAsync(studentId);
+      toast(`Code withdrawn for ${name}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to withdraw the code", "error");
     }
@@ -88,105 +125,156 @@ function ResultCodeCard() {
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
             <Ticket className="h-4 w-4 text-primary" />
           </span>
-          Results portal code
+          Results portal codes
         </CardTitle>
         <CardDescription>
-          Parents enter this code and their child&apos;s admission number on the
-          login screen to view and download a published report card.
+          Every student has their own code. A parent enters it on the login
+          screen to open that student&apos;s published report card — no
+          admission number needed.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : pin?.active ? (
+          <Skeleton className="h-48 w-full" />
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-8 text-center">
+            <p className="text-[13px] font-medium">No students yet</p>
+            <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
+              Add students first, then issue each of them a result code.
+            </p>
+          </div>
+        ) : (
           <>
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-primary/20 bg-primary/[0.04] p-4">
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">
-                  Result code
-                </p>
-                <p className="mt-1 font-mono text-[24px] font-bold tracking-[0.14em] text-primary sm:text-[28px]">
-                  {pin.code}
-                </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                <Input
+                  placeholder="Search by name or admission number…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="h-10 pl-9"
+                />
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => copy(pin.code)}
-                className="shrink-0"
+                onClick={onGenerateMissing}
+                isLoading={generateMissing.isPending}
+                disabled={withCode === rows.length}
               >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-success" />
-                ) : (
-                  <Copy className="h-3.5 w-3.5" />
-                )}
-                {copied ? "Copied" : "Copy"}
+                <Ticket className="h-3.5 w-3.5" />
+                Generate missing codes
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-muted-foreground">
-              <span>
-                Used{" "}
-                <strong className="font-semibold text-foreground">{pin.use_count}</strong>{" "}
-                {pin.use_count === 1 ? "time" : "times"}
-              </span>
-              <span>
-                Last used{" "}
-                <strong className="font-semibold text-foreground">
-                  {pin.last_used_at
-                    ? new Date(pin.last_used_at).toLocaleString()
-                    : "never"}
-                </strong>
-              </span>
-            </div>
+            <p className="text-[11.5px] text-muted-foreground/70">
+              <strong className="font-semibold text-foreground">{withCode}</strong>{" "}
+              of <strong className="font-semibold text-foreground">{rows.length}</strong>{" "}
+              students have a live code.
+            </p>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onGenerate}
-                isLoading={generate.isPending}
-                disabled={revoke.isPending}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Regenerate
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onRevoke}
-                isLoading={revoke.isPending}
-                disabled={generate.isPending}
-                className="text-destructive hover:text-destructive"
-              >
-                <ShieldOff className="h-3.5 w-3.5" />
-                Withdraw
-              </Button>
+            <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1">
+              {filtered.length === 0 ? (
+                <p className="py-8 text-center text-[12.5px] text-muted-foreground/60">
+                  No students match “{query.trim()}”.
+                </p>
+              ) : (
+                filtered.map((row) => {
+                  const busy =
+                    (generateOne.isPending &&
+                      generateOne.variables === row.student_id) ||
+                    (revokeOne.isPending && revokeOne.variables === row.student_id);
+                  return (
+                    <div
+                      key={row.student_id}
+                      className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold">
+                          {row.student_name}
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground/60">
+                          {row.admission_no}
+                        </p>
+                      </div>
+
+                      {row.active && row.code ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => copy(row.student_id, row.code!)}
+                            title="Copy code"
+                            className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-1.5 font-mono text-[14px] font-bold tracking-[0.12em] text-primary transition-colors hover:bg-primary/10"
+                          >
+                            {row.code}
+                          </button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copy(row.student_id, row.code!)}
+                            aria-label="Copy code"
+                          >
+                            {copiedId === row.student_id ? (
+                              <Check className="h-3.5 w-3.5 text-success" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() =>
+                              onGenerateOne(row.student_id, row.student_name, true)
+                            }
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Regenerate
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => onRevokeOne(row.student_id, row.student_name)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <ShieldOff className="h-3.5 w-3.5" />
+                            Withdraw
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[11.5px] text-muted-foreground/60">
+                            Not issued
+                          </span>
+                          <Button
+                            size="sm"
+                            disabled={busy}
+                            isLoading={
+                              generateOne.isPending &&
+                              generateOne.variables === row.student_id
+                            }
+                            onClick={() =>
+                              onGenerateOne(row.student_id, row.student_name, false)
+                            }
+                          >
+                            <Ticket className="h-3.5 w-3.5" />
+                            Generate
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-8 text-center">
-            <p className="text-[13px] font-medium">No result code issued yet</p>
-            <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
-              Generate one to let parents check published results. The code
-              carries your school&apos;s initials so families can tell it apart.
-            </p>
-            <Button
-              className="mt-4"
-              onClick={onGenerate}
-              isLoading={generate.isPending}
-            >
-              <Ticket className="h-4 w-4" />
-              Generate result code
-            </Button>
-          </div>
         )}
 
         <p className="text-[11.5px] leading-relaxed text-muted-foreground/70">
-          Share it as widely as you like — it only identifies your school. What a
-          parent sees is still limited to published results, and only for the
-          admission number they enter. Regenerating invalidates the old code
-          immediately.
+          A code identifies one student, so it only ever opens that student&apos;s
+          published result. Regenerating invalidates the old code immediately;
+          withdrawn codes stop working at once and a new one can be issued later.
         </p>
       </CardContent>
     </Card>

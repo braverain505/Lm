@@ -712,3 +712,181 @@ def test_terms_requires_a_valid_portal_token(client):
         client.get(f"{PUBLIC}/terms", params={"token": _token_with_exp(str(uuid.uuid4()), str(uuid.uuid4()))}).status_code
         == 200
     )
+
+
+# --- Per-student result codes (the login screen's credential) ------------------------
+CODES = "/api/results/portal-codes"
+
+
+def test_issue_student_code_requires_results_report_card(client, db):
+    """Issuing a student's code is the Exam Office's job, like the report card."""
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+
+    assert client.get(CODES).status_code == 401
+
+    user = _add_limited_user(db, sid, "teacher")
+    client.post(
+        "/api/auth/login",
+        json={"email": user.email, "password": "Str0ng!Pass"},
+    )
+    r = client.post(f"{CODES}/{w['student_ids'][0]}", headers={"X-School-Id": sid})
+    assert r.status_code == 403
+    assert r.json()["error"]["code"] == "ERR_PERMISSION_DENIED"
+
+
+def test_student_code_carries_initials_and_lists_students(client, db):
+    register_school(client, name="Green Valley Grammar School")
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+
+    # Every student is listed, but no code is issued until asked for.
+    rows = client.get(CODES, headers={"X-School-Id": sid}).json()
+    assert len(rows) == 3
+    assert all(r["code"] is None and r["active"] is False for r in rows)
+
+    r = client.post(f"{CODES}/{w['student_ids'][0]}", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["active"] is True
+    assert body["prefix"] == "GVGS"
+    assert body["student_name"] == "Aisha Bello"
+    # Same unambiguous alphabet as the school code: no 0/O, 1/I/L, 5/S.
+    assert re.fullmatch(r"GVGS-[A-Z2-9]{5}", body["code"]), body["code"]
+    assert not set(body["code"].split("-")[1]) & set("OIL01")
+
+    rows = client.get(CODES, headers={"X-School-Id": sid}).json()
+    aisha = next(r for r in rows if r["student_id"] == w["student_ids"][0])
+    assert aisha["code"] == body["code"]
+
+
+def test_code_alone_unlocks_the_student(client, db):
+    """The point of the change: no admission number on the public check-in."""
+    register_school(client, name="Green Valley Grammar School")
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _publish(client, sid, w, comps)
+    code = client.post(
+        f"{CODES}/{w['student_ids'][0]}", headers={"X-School-Id": sid}
+    ).json()["code"]
+
+    # Only the code — no admission_no in the payload at all.
+    r = client.post(f"{PUBLIC}/result-check", json={"pin": code})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["student"]["full_name"] == "Aisha Bello"
+    assert body["school"]["name"] == "Green Valley Grammar School"
+
+    card = client.get(
+        f"{PUBLIC}/report-card",
+        params={"token": body["token"], "term_id": w["term_id"]},
+    )
+    assert card.status_code == 200, card.text
+    assert card.json()["summary"]["total"] == 60.0
+
+    # The dash-less and lower-case forms work, just like the school code.
+    assert client.post(
+        f"{PUBLIC}/result-check", json={"pin": code.replace("-", "")}
+    ).status_code == 200
+    assert client.post(
+        f"{PUBLIC}/result-check", json={"pin": code.lower()}
+    ).status_code == 200
+
+    # A successful check is stamped for the office to see.
+    from app.models import StudentResultCode
+
+    row = db.scalar(
+        select(StudentResultCode).where(StudentResultCode.revoked_at.is_(None))
+    )
+    assert row.use_count >= 3
+    assert row.last_used_at is not None
+
+
+def test_rotating_a_student_code_revokes_the_old_one(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    student_id = w["student_ids"][0]
+
+    first = client.post(f"{CODES}/{student_id}", headers={"X-School-Id": sid}).json()["code"]
+    second = client.post(f"{CODES}/{student_id}", headers={"X-School-Id": sid}).json()["code"]
+    assert first != second
+
+    assert client.post(f"{PUBLIC}/result-check", json={"pin": first}).status_code == 404
+    assert client.post(f"{PUBLIC}/result-check", json={"pin": second}).status_code == 200
+
+
+def test_withdraw_student_code_kills_access(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    student_id = w["student_ids"][0]
+    code = client.post(f"{CODES}/{student_id}", headers={"X-School-Id": sid}).json()["code"]
+
+    r = client.delete(f"{CODES}/{student_id}", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    assert r.json()["active"] is False
+    assert client.post(f"{PUBLIC}/result-check", json={"pin": code}).status_code == 404
+
+    # Nothing live to withdraw a second time.
+    r = client.delete(f"{CODES}/{student_id}", headers={"X-School-Id": sid})
+    assert r.status_code == 404
+    assert r.json()["error"]["code"] == "ERR_NOT_FOUND"
+
+
+def test_generate_missing_codes_fills_only_the_gaps(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    existing = client.post(
+        f"{CODES}/{w['student_ids'][0]}", headers={"X-School-Id": sid}
+    ).json()["code"]
+
+    r = client.post(f"{CODES}/generate", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["issued"] == 2  # the other two students, not all three
+    assert body["total"] == 3
+
+    rows = client.get(CODES, headers={"X-School-Id": sid}).json()
+    assert all(r["active"] for r in rows)
+    # The first student's code was left untouched.
+    first = next(r for r in rows if r["student_id"] == w["student_ids"][0])
+    assert first["code"] == existing
+
+    # Running it again issues nothing.
+    assert client.post(f"{CODES}/generate", headers={"X-School-Id": sid}).json()["issued"] == 0
+
+
+def test_student_code_unknown_is_a_generic_404(client):
+    register_school(client)
+    r = client.post(f"{PUBLIC}/result-check", json={"pin": "ZZZZ-22222"})
+    assert r.status_code == 404
+    assert r.json()["error"]["message"] == "Invalid portal credentials"
+
+
+def test_student_code_resolves_to_its_own_school(client, db):
+    """A student code names the tenant too — it must never open another school."""
+    register_school(client, name="First Academy", email="first@test.edu")
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    code = client.post(
+        f"{CODES}/{w['student_ids'][0]}", headers={"X-School-Id": sid}
+    ).json()["code"]
+
+    r = client.post(f"{PUBLIC}/result-check", json={"pin": code})
+    assert r.status_code == 200, r.text
+    assert r.json()["school"]["name"] == "First Academy"
+
+    # The legacy school-wide code still works, but only with an admission no.
+    school_code = client.post(CODE, headers={"X-School-Id": sid}).json()["code"]
+    assert client.post(f"{PUBLIC}/result-check", json={"pin": school_code}).status_code == 404
+    assert (
+        client.post(
+            f"{PUBLIC}/result-check",
+            json={"pin": school_code, "admission_no": "STU-001"},
+        ).status_code
+        == 200
+    )
