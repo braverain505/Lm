@@ -140,6 +140,48 @@ def require_assigned_teacher(
     )
 
 
+def assigned_pairs_for(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool = False,
+) -> set[tuple[uuid.UUID, uuid.UUID]] | None:
+    """The arm x subject pairs an actor may *read*, or ``None`` for no limit.
+
+    Reads that would otherwise expose the whole school's results — the readiness
+    board, the approval workbench, a single scoresheet — are filtered through
+    this. Platform super-admins and results supervisors (anyone holding a
+    workflow permission) get ``None``: everything in the school. Everyone else
+    gets exactly the pairs they are the assigned teacher of, which is the empty
+    set for a teacher with no assignments — never the whole school.
+
+    ``None`` and ``set()`` are deliberately different: the first means
+    unrestricted, the second means restricted to nothing.
+    """
+    if is_superadmin or (permission_codes & _SUPERVISOR_PERMISSIONS):
+        return None
+
+    staff = db.scalar(
+        select(Staff).where(
+            Staff.school_id == school_id,
+            Staff.user_id == actor_id,
+            Staff.is_deleted.is_(False),
+        )
+    )
+    if staff is None:
+        return set()
+
+    rows = db.execute(
+        select(SubjectAssignment.class_arm_id, SubjectAssignment.subject_id).where(
+            SubjectAssignment.school_id == school_id,
+            SubjectAssignment.teacher_id == staff.id,
+        )
+    ).all()
+    return {(arm_id, subject_id) for arm_id, subject_id in rows}
+
+
 # --- Effective assessment components -----------------------------------------
 def effective_components(
     db: Session,

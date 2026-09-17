@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { useAuth } from "@/providers/auth-provider";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -35,8 +33,6 @@ type LoginForm = z.infer<typeof schema>;
 const EMAIL_KEY = "clearis.login.email";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { refreshMe } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
@@ -72,9 +68,11 @@ export default function LoginPage() {
         /* ignore */
       }
       await api.login(values);
-      await refreshMe();
       const me = await api.me();
-      router.replace(
+      // Hard navigation on purpose. A route-only change would keep this tab's
+      // client alive, and with it any data cached while somebody else was
+      // signed in here; only a fresh document is guaranteed to start clean.
+      window.location.replace(
         me.user.is_superadmin && me.memberships.length === 0
           ? "/super-admin"
           : "/dashboard",

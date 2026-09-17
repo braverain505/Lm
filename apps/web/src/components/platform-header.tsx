@@ -12,7 +12,6 @@ import { Dropdown, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui/dr
 import { useSaNotifications, useSaMarkNotificationsRead } from "@/hooks/use-superadmin";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import { api } from "@clearis/shared";
 
 const SEVERITY_TONE: Record<string, string> = {
   critical: "bg-destructive/10 text-destructive",
@@ -23,7 +22,7 @@ const SEVERITY_TONE: Record<string, string> = {
 export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, clear } = useAuth();
+  const { user, signOut } = useAuth();
   const meta = platformMeta(pathname);
   const { data: notifications = [] } = useSaNotifications();
   const markRead = useSaMarkNotificationsRead();
@@ -32,9 +31,7 @@ export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => voi
   const unread = notifications.filter((n: { read?: boolean }) => !n.read).length;
 
   async function handleLogout() {
-    await api.logout();
-    clear();
-    router.replace("/login");
+    await signOut();
   }
 
   return (

@@ -4,7 +4,7 @@ import { api } from "@clearis/shared";
 import { ChevronLeft, PanelLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { pageMeta, visibleNav } from "@/components/nav-config";
 import { Avatar } from "@/components/ui/avatar";
@@ -23,8 +23,7 @@ interface SidebarProps {
 
 export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, activeSchool, memberships, setActiveSchool, clear } = useAuth();
+  const { user, activeSchool, memberships, setActiveSchool, signOut } = useAuth();
   const { session, term } = useSessionTerm();
   const { data: schoolProfile } = useQuery({
     queryKey: ["school", activeSchool?.school_id],
@@ -40,9 +39,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
 
   async function handleLogout() {
-    await api.logout();
-    clear();
-    router.replace("/login");
+    await signOut();
   }
 
   const isActive = (href: string) =>

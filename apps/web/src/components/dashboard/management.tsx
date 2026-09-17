@@ -173,7 +173,7 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
               </Link>
             </Button>
           )}
-          {canResults && (
+          {(variant === "academic" ? canResults : can("results.report_card")) && (
             <Button asChild size="sm" variant="outline" className="gap-1.5">
               <Link href={variant === "academic" ? "/approvals" : "/reports"}>
                 {variant === "academic" ? "Process results" : "Report cards"}

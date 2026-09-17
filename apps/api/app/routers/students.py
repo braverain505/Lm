@@ -3,8 +3,10 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query
 
-from ..core.deps import ActiveSchool, DbSession, require_permission
+from ..core.deps import ActiveSchool, DbSession, MembershipContext, require_permission
+from ..core.errors import NotFoundError
 from ..core.permissions import (
+    ROSTER_WIDE_PERMISSIONS,
     STUDENTS_CREATE,
     STUDENTS_DELETE,
     STUDENTS_EDIT,
@@ -24,9 +26,39 @@ from ..schemas.people import (
     StudentUpdate,
 )
 from ..schemas.portal import PinSet, PinSetOut
-from ..services import people_service, portal_service
+from ..services import academics_service, people_service, portal_service
 
 router = APIRouter(prefix="/students", tags=["students"])
+
+
+def _roster_scope(db: DbSession, ctx: MembershipContext) -> set[uuid.UUID] | None:
+    """Which class arms this caller may see students in.
+
+    ``None`` means the whole school: super admins and anyone holding a
+    roster-wide capability (see ``ROSTER_WIDE_PERMISSIONS``). Everyone else is
+    teaching staff, and a teacher's roster is the classes they teach — so the
+    student list, a single profile and a class roster all stop at that line. The
+    scope is resolved from ``SubjectAssignment`` server-side, never from the
+    request.
+    """
+    if ctx.user.is_superadmin or (ctx.permission_codes & ROSTER_WIDE_PERMISSIONS):
+        return None
+    return academics_service.taught_arm_ids(db, ctx.school.id, ctx.user.id)
+
+
+def _require_student_in_scope(
+    db: DbSession, ctx: MembershipContext, student_id: uuid.UUID
+) -> None:
+    """404 a student who is not in the caller's classes.
+
+    Neutral on purpose: a teacher learns nothing about whether a pupil outside
+    their classes exists, matching the tenancy rule for other schools' rows.
+    """
+    scope = _roster_scope(db, ctx)
+    if scope is None:
+        return
+    if not people_service.student_is_in_arms(db, ctx.school.id, student_id, scope):
+        raise NotFoundError("Student not found")
 
 
 @router.get("", response_model=list[StudentOut])
@@ -36,7 +68,9 @@ def list_students(
     arm_id: uuid.UUID | None = None,
     q: str | None = None,
 ):
-    rows = people_service.list_students(db, ctx.school.id, arm_id=arm_id, q=q)
+    rows = people_service.list_students(
+        db, ctx.school.id, arm_id=arm_id, q=q, arm_ids=_roster_scope(db, ctx)
+    )
     return [StudentOut.model_validate(s) for s in rows]
 
 
@@ -73,6 +107,7 @@ def get_student(
     ctx=Depends(require_permission(STUDENTS_VIEW)),
 ):
     student = people_service.get_student(db, ctx.school.id, student_id)
+    _require_student_in_scope(db, ctx, student_id)
     return StudentOut.model_validate(student)
 
 
@@ -122,6 +157,9 @@ def list_arm_enrollments(
     db: DbSession,
     ctx=Depends(require_permission(STUDENTS_VIEW)),
 ):
+    scope = _roster_scope(db, ctx)
+    if scope is not None and arm_id not in scope:
+        raise NotFoundError("Class arm not found")
     return [
         EnrollmentOut.model_validate(e)
         for e in people_service.list_enrollments(db, ctx.school.id, arm_id)
@@ -135,6 +173,7 @@ def student_enrollment_history(
     ctx=Depends(require_permission(STUDENTS_VIEW)),
 ):
     """This student's enrollment history across sessions (arm names + status)."""
+    _require_student_in_scope(db, ctx, student_id)
     return people_service.enrollment_summary(db, ctx.school.id, student_id)
 
 
@@ -184,6 +223,7 @@ def list_guardians(
     db: DbSession,
     ctx=Depends(require_permission(STUDENTS_VIEW)),
 ):
+    _require_student_in_scope(db, ctx, student_id)
     links = people_service.list_guardians(db, ctx.school.id, student_id)
     return [GuardianOut.model_validate(link["guardian"]) for link in links]
 

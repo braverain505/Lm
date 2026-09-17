@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, FileText, ListChecks } from "lucide-react";
+import { Activity, ClipboardList, FileText, ListChecks } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -9,14 +9,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useArms, useAssignments, useMyAssignments, useReadiness, useSessions, useSubjects, useTerms } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
+import { REPORT_CARD_PERM } from "@/components/nav-config";
 
 export default function ResultsPage() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
+  const permissions = activeSchool?.permissions ?? [];
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
   const isHomeroomTeacher = role === "homeroom_teacher";
   const canComment = role === "principal" || role === "vp_academics" || role === "homeroom_teacher";
-  const isSupervisor = !isTeacherRole;
+  // The approval workbench and report cards are separate desks: one pushes
+  // results through review, the other prints the finished document. Show each
+  // card only to whoever actually holds its permissions — a teacher entering
+  // scores sees neither, and the API refuses both regardless.
 
   const { data: sessions = [] } = useSessions();
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
@@ -220,8 +225,29 @@ export default function ResultsPage() {
             </CardContent>
           </Card>
 
+          {/* Psychomotor — the class teacher's own record, not a report-card
+              artifact, so it has its own page rather than living behind the
+              exam office's Report Cards screen. */}
+          {permissions.includes("results.enter") && (
+            <Card className="premium-card">
+              <CardHeader>
+                <CardTitle className="text-[15px]">Psychomotor &amp; affective</CardTitle>
+                <CardDescription>
+                  Record skills, practical ability and conduct for the students in your class.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button asChild variant="outline">
+                  <Link href="/results/psychomotor" className="gap-1.5">
+                    <Activity className="h-4 w-4" /> Open psychomotor record
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Approvals */}
-          {isSupervisor && (
+          {permissions.includes("results.verify") && (
             <Card className="premium-card">
               <CardHeader>
                 <CardTitle className="text-[15px]">Approvals</CardTitle>
@@ -238,7 +264,7 @@ export default function ResultsPage() {
           )}
 
           {/* Report cards */}
-          {isSupervisor && (
+          {permissions.includes(REPORT_CARD_PERM) && (
             <Card className="premium-card">
               <CardHeader>
                 <CardTitle className="text-[15px]">Report cards</CardTitle>

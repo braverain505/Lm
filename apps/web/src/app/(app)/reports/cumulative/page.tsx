@@ -5,7 +5,10 @@ import { api } from "@clearis/shared";
 import { useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NoAccess } from "@/components/access-denied";
+import { REPORT_CARD_PERM } from "@/components/nav-config";
 import { useActiveSchoolId, useSessions, useStudents } from "@/hooks/use-api";
+import { useAuth } from "@/providers/auth-provider";
 
 type Cumulative = {
   session: { id: string; name: string };
@@ -13,6 +16,21 @@ type Cumulative = {
 };
 
 export default function CumulativeReportPage() {
+  const { activeSchool } = useAuth();
+  if (!(activeSchool?.permissions ?? []).includes(REPORT_CARD_PERM)) {
+    return (
+      <NoAccess
+        title="Report cards are the Exam Office's desk"
+        message="Only the Exam Officer and school leadership can open cumulative reports. You can still review your own scoresheets from Results."
+        backHref="/results"
+        backLabel="Go to Results"
+      />
+    );
+  }
+  return <CumulativeReportWorkspace />;
+}
+
+function CumulativeReportWorkspace() {
   const schoolId = useActiveSchoolId();
   const { data: sessions = [] } = useSessions();
   const { data: students = [] } = useStudents();

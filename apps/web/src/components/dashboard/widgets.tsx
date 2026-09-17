@@ -386,7 +386,7 @@ const ALL_ACTIONS: { label: string; desc: string; href: string; icon: React.Elem
   { label: "Enter result", desc: "Open a score grid", href: "/results/score", icon: ClipboardCheck, perm: "results.enter" },
   { label: "Mark attendance", desc: "Today's register", href: "/attendance", icon: CalendarCheck, perm: "attendance.mark" },
   { label: "Review approvals", desc: "Verify & publish", href: "/approvals", icon: ListChecks, perm: "results.verify" },
-  { label: "Generate report", desc: "Report cards", href: "/reports", icon: FileText, perm: "results.view" },
+  { label: "Generate report", desc: "Report cards", href: "/reports", icon: FileText, perm: "results.report_card" },
   { label: "AI lesson plan", desc: "Plan a topic", href: "/lesson-plans", icon: NotebookPen, perm: "results.comment" },
 ];
 

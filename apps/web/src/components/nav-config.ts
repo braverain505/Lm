@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   Banknote,
   BarChart3,
   BookCopy,
@@ -38,6 +39,51 @@ import {
  */
 export const ACCOUNTING_ROLE = "accountant";
 
+/**
+ * Report cards are the Exam Office's document. Teachers can enter and view their
+ * own scoresheets but never a report card, so the permission below — not
+ * ``results.view``, which every teacher holds — is what reveals these links.
+ * ``results.report_card`` is granted to the Exam Officer, Principal, VP
+ * Academics and the school/ platform admins. The API enforces the same code.
+ */
+export const REPORT_CARD_PERM = "results.report_card";
+export const REPORT_CARD_ROLES = [
+  "super_admin",
+  "director",
+  "principal",
+  "vp_academics",
+  "exam_officer",
+];
+
+/**
+ * Roles that work the results desk (they hold ``results.view`` and have a
+ * reason to open it). The school owner's role code is ``super_admin`` — there
+ * is no "admin" role template, so any list that omits it hides the page from
+ * the owner entirely.
+ */
+const RESULTS_DESK_ROLES = [
+  "super_admin",
+  "director",
+  "principal",
+  "vp_academics",
+  "head_teacher",
+  "academic_coordinator",
+  "exam_officer",
+  "teacher",
+  "homeroom_teacher",
+];
+
+/** The leadership half of the desk: school-wide review and reporting. */
+const EXAM_OFFICE_ROLES = [
+  "super_admin",
+  "director",
+  "principal",
+  "vp_academics",
+  "head_teacher",
+  "academic_coordinator",
+  "exam_officer",
+];
+
 export interface NavItem {
   href: string;
   label: string;
@@ -58,7 +104,7 @@ export interface NavSection {
  */
 export const RAIL_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: null },
-  { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
+  { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: RESULTS_DESK_ROLES },
   { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
   { href: "/timetable", label: "Timetable", icon: CalendarCheck, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
@@ -79,21 +125,28 @@ export const PANEL_SECTIONS: NavSection[] = [
   {
     label: "Academics",
     items: [
-      { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
+      { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: RESULTS_DESK_ROLES },
       { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
       { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
       { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/timetable", label: "Timetable", icon: CalendarCheck, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
-      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant"] },
+      { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: EXAM_OFFICE_ROLES },
     ],
   },
   {
     label: "Result Generation",
     items: [
-      { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: ["admin", "principal", "vp_academics"] },
-      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["principal", "vp_academics", "homeroom_teacher"] },
-      { href: "/reports", label: "Report Cards", icon: FileText, perm: "results.view", roles: ["admin", "principal", "vp_academics", "accountant", "teacher", "homeroom_teacher"] },
+      // The exam office runs the pipeline: ``exam_officer`` holds results.verify
+      // (and publish), so it belongs here. The API decides each stage on its own
+      // permission, so this link never grants more than the caller already has.
+      { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: EXAM_OFFICE_ROLES },
+      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: [...EXAM_OFFICE_ROLES, "homeroom_teacher"] },
+      // Psychomotor is written by score-entry roles and a student's homeroom
+      // teacher — the same rule the API applies — so the permission alone
+      // decides, with no role list to drift out of sync.
+      { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.enter" },
+      { href: "/reports", label: "Report Cards", icon: FileText, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
     ],
   },
   {
@@ -195,6 +248,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/teachers": { title: "Teachers & Staff", breadcrumb: "Administration" },
   "/classes": { title: "Classes", breadcrumb: "Academics" },
   "/results": { title: "Results", breadcrumb: "Academics" },
+  "/results/psychomotor": { title: "Psychomotor & Affective", breadcrumb: "Academics" },
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
   "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },

@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentManager } from "@/components/comment-manager";
-import { PsychomotorEditor } from "@/components/psychomotor-editor";
 import { ReportCardDocument } from "@/components/report-card-document";
 import { useArms, useReportCard, useReportCards, useReportIndex, useSessions, useTerms } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
@@ -24,8 +23,38 @@ import { ReportTemplatePicker } from "@/components/report-template-picker";
 import { getSelectedTemplate } from "@/lib/report-templates";
 import { useAuth } from "@/providers/auth-provider";
 import { isSchoolAdminRole } from "@/lib/roles";
+import { NoAccess } from "@/components/access-denied";
+import { REPORT_CARD_PERM } from "@/components/nav-config";
 
+/**
+ * Report cards belong to the school's Exam Office: the Exam Officer, the
+ * Principal, VP Academics and the school/ platform admins. A teacher — who may
+ * enter and read their own scoresheets — must not open another teacher's
+ * subject marks through a card.
+ *
+ * The permission check below only decides what is rendered; the API enforces
+ * ``results.report_card`` on every report-card endpoint, so reaching this URL
+ * directly still yields a 403 for a teacher rather than somebody's card.
+ */
 export default function ReportsPage() {
+  const { activeSchool } = useAuth();
+  const permissions = activeSchool?.permissions ?? [];
+
+  if (!permissions.includes(REPORT_CARD_PERM)) {
+    return (
+      <NoAccess
+        title="Report cards are the Exam Office's desk"
+        message="Only the Exam Officer and school leadership can open report cards. You can still enter and review your own scoresheets from Results."
+        backHref="/results"
+        backLabel="Go to Results"
+      />
+    );
+  }
+
+  return <ReportsWorkspace />;
+}
+
+function ReportsWorkspace() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
   const isHomeroomTeacher = role === "homeroom_teacher";
@@ -343,13 +372,9 @@ export default function ReportsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.04, ease }}
         >
-          {studentId && term && (
-            <PsychomotorEditor
-              studentId={studentId}
-              termId={term.id}
-              allowed={card.can_manage_psychomotor}
-            />
-          )}
+          {/* The psychomotor/affective record has its own page (/results/
+              psychomotor) — it is the class teacher's to write, and this page
+              belongs to the exam office. The card below still *displays* it. */}
           {/* Homeroom teachers only see/edit their own comment slot; other
               roles keep the existing all-roles view. */}
           <CommentManager card={card} userRole={isHomeroomTeacher ? role : undefined} />

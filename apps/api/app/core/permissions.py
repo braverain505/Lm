@@ -17,6 +17,11 @@ RESULTS_VERIFY = "results.verify"
 RESULTS_APPROVE = "results.approve"
 RESULTS_PUBLISH = "results.publish"
 RESULTS_COMMENT = "results.comment"  # principal / head-of-academics remarks
+# Report cards are the Exam Office's document, not every teacher's. Generating
+# and printing them renders every subject a student took, so it is deliberately
+# separate from ``results.view`` (which teachers hold in order to open their own
+# scoresheets). Granting this code is what turns a user into a card processor.
+RESULTS_REPORT_CARD = "results.report_card"
 
 # --- Students --------------------------------------------------------------
 STUDENTS_VIEW = "students.view"
@@ -67,6 +72,26 @@ FINANCE_PERMISSIONS: frozenset[str] = frozenset({
     ACCOUNTING_RECONCILE, ACCOUNTING_REPORTS,
 })
 
+# --- Student roster scope -------------------------------------------------------
+# Who may see the *whole* school's student roster. Anyone holding
+# ``students.view`` without one of these capabilities is teaching staff: their
+# view stops at the class arms they are assigned to teach, so a teacher cannot
+# browse (or search) the rest of the school.
+#
+# Deliberately a capability set rather than a list of role codes: a school's
+# custom roles then inherit the right scope from what they can actually do, and
+# a role we have never seen fails *closed* (scoped) instead of open.
+#
+#  * students.create/edit/delete/enroll — the admissions office and admins.
+#  * staff.view — principal, VPs, secretary, librarian: roster-wide by office.
+#  * results.verify/approve/publish — the results supervisors and the exam
+#    office, whose work spans every class in the school.
+ROSTER_WIDE_PERMISSIONS: frozenset[str] = frozenset({
+    STUDENTS_CREATE, STUDENTS_EDIT, STUDENTS_DELETE, STUDENTS_ENROLL,
+    STAFF_VIEW,
+    RESULTS_VERIFY, RESULTS_APPROVE, RESULTS_PUBLISH,
+})
+
 # --- Inventory ----------------------------------------------------------------------
 INVENTORY_VIEW = "inventory.view"
 INVENTORY_MANAGE = "inventory.manage"  # create/edit items, stock adjustments, categories
@@ -101,6 +126,7 @@ PERMISSION_CATALOG: list[tuple[str, str, str]] = [
     (RESULTS_APPROVE, "results", "Approve verified results"),
     (RESULTS_PUBLISH, "results", "Publish approved results to parents/students"),
     (RESULTS_COMMENT, "results", "Write principal/head-of-academics remarks on results"),
+    (RESULTS_REPORT_CARD, "results", "View and print student report cards (exam office)"),
     (AI_COPILOT, "ai", "Use the school AI copilot (Q&A over school data)"),
     (STUDENTS_VIEW, "students", "View student profiles"),
     (STUDENTS_CREATE, "students", "Create student records"),
@@ -197,7 +223,7 @@ ROLE_TEMPLATES: dict[str, dict] = {
         "is_system": True,
         "permissions": [
             RESULTS_VIEW, RESULTS_VERIFY, RESULTS_APPROVE, RESULTS_PUBLISH,
-            RESULTS_COMMENT, AI_COPILOT,
+            RESULTS_COMMENT, RESULTS_REPORT_CARD, AI_COPILOT,
             STUDENTS_VIEW, STAFF_VIEW, ACADEMICS_VIEW, ACADEMICS_MANAGE,
             SCHOOL_MANAGE, CAMPUS_MANAGE, USERS_MANAGE, ATTENDANCE_VIEW,
             ATTENDANCE_REPORT, TIMETABLE_VIEW, TIMETABLE_MANAGE,
@@ -210,7 +236,8 @@ ROLE_TEMPLATES: dict[str, dict] = {
         "name": "Vice Principal Academics",
         "is_system": True,
         "permissions": [
-            RESULTS_VIEW, RESULTS_VERIFY, RESULTS_APPROVE, RESULTS_COMMENT, AI_COPILOT,
+            RESULTS_VIEW, RESULTS_VERIFY, RESULTS_APPROVE, RESULTS_COMMENT,
+            RESULTS_REPORT_CARD, AI_COPILOT,
             STUDENTS_VIEW, STAFF_VIEW, ACADEMICS_VIEW, ACADEMICS_MANAGE,
             ATTENDANCE_VIEW, ATTENDANCE_MARK, ATTENDANCE_REPORT,
             TIMETABLE_VIEW, TIMETABLE_MANAGE,
@@ -249,12 +276,17 @@ ROLE_TEMPLATES: dict[str, dict] = {
             IMPORTS_VIEW, IMPORTS_CREATE, IMPORTS_FIX,
         ],
     },
+    # The Exam Office runs the whole results pipeline: verify -> approve ->
+    # publish, then print the cards those published snapshots produced. Holding
+    # ``results.approve`` is what makes the one-click compile usable, and report
+    # cards render *published* results — without it the office could only print
+    # cards for cells somebody else had approved.
     ROLE_EXAM_OFFICER: {
         "name": "Exam Officer",
         "is_system": True,
         "permissions": [
-            RESULTS_VIEW, RESULTS_VERIFY, RESULTS_PUBLISH, ACADEMICS_VIEW,
-            STUDENTS_VIEW,
+            RESULTS_VIEW, RESULTS_VERIFY, RESULTS_APPROVE, RESULTS_PUBLISH,
+            RESULTS_REPORT_CARD, ACADEMICS_VIEW, STUDENTS_VIEW,
         ],
     },
     ROLE_TEACHER: {

@@ -11,6 +11,7 @@ from ..core.permissions import (
     RESULTS_COMMENT,
     RESULTS_ENTER,
     RESULTS_PUBLISH,
+    RESULTS_REPORT_CARD,
     RESULTS_SUBMIT,
     RESULTS_VERIFY,
     RESULTS_VIEW,
@@ -123,6 +124,15 @@ def get_scorecard(
     term_id: uuid.UUID,
     ctx=Depends(require_permission(RESULTS_VIEW)),
 ):
+    """One class x subject grid. A teacher may only open the grids they are the
+    assigned teacher of — results.view alone is not enough, or any teacher could
+    read every class's marks.
+    """
+    results_service.require_assigned_teacher(
+        db, ctx.school.id,
+        actor_id=ctx.user.id, arm_id=arm_id, subject_id=subject_id,
+        permission_codes=ctx.permission_codes, is_superadmin=ctx.user.is_superadmin,
+    )
     result = results_service.scorecard(
         db, ctx.school.id, arm_id=arm_id, subject_id=subject_id, term_id=term_id
     )
@@ -276,6 +286,28 @@ def reject(
 
 
 # --- Readiness --------------------------------------------------------------------
+def _limit_to_assigned(
+    db: DbSession, ctx, rows: list[dict]
+) -> list[dict]:
+    """Drop rows for arm x subject pairs a non-supervisor is not assigned to.
+
+    Keeps the readiness board and the approval workbench honest: the frontend
+    already hides other teachers' rows, but the API must not hand them over.
+    """
+    allowed = results_service.assigned_pairs_for(
+        db, ctx.school.id,
+        actor_id=ctx.user.id,
+        permission_codes=ctx.permission_codes,
+        is_superadmin=ctx.user.is_superadmin,
+    )
+    if allowed is None:
+        return rows
+    return [
+        r for r in rows
+        if (uuid.UUID(r["arm_id"]), uuid.UUID(r["subject_id"])) in allowed
+    ]
+
+
 @router.get("/readiness", response_model=list[ReadyRow])
 def readiness(
     db: DbSession,
@@ -283,7 +315,7 @@ def readiness(
     ctx=Depends(require_permission(RESULTS_VIEW)),
 ):
     rows = results_service.readiness_for_term(db, ctx.school.id, term_id)
-    return [ReadyRow(**r) for r in rows]
+    return [ReadyRow(**r) for r in _limit_to_assigned(db, ctx, rows)]
 
 
 # --- Approval workbench -------------------------------------------------------------
@@ -295,16 +327,19 @@ def workbench(
 ):
     """Per arm x subject, where each stage of the review funnel stands."""
     rows = results_service.workbench_for_term(db, ctx.school.id, term_id)
-    return [WorkbenchRow(**r) for r in rows]
+    return [WorkbenchRow(**r) for r in _limit_to_assigned(db, ctx, rows)]
 
 
 # --- Report cards --------------------------------------------------------------
+# Every endpoint in this block renders the Exam Office's document, so each one
+# demands ``results.report_card`` rather than the results.view that every teacher
+# holds. A teacher who calls these directly gets a 403, not somebody's card.
 @router.get("/report-index", response_model=list[ReportIndexRow])
 def report_index(
     db: DbSession,
     arm_id: uuid.UUID,
     term_id: uuid.UUID,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     """Which students in an arm have cards ready to print this term."""
     rows = results_service.report_index(
@@ -318,7 +353,7 @@ def report_card(
     db: DbSession,
     student_id: uuid.UUID,
     term_id: uuid.UUID,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     """One student's printable term report, rendered only from published
     snapshots."""
@@ -351,7 +386,7 @@ def report_cards_bulk(
     db: DbSession,
     arm_id: uuid.UUID,
     term_id: uuid.UUID,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     """Every student's printable card for an arm this term (published only)."""
     cards = results_service.report_cards_bulk(
@@ -384,7 +419,7 @@ def cumulative(
     db: DbSession,
     student_id: uuid.UUID,
     session_id: uuid.UUID,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     return results_service.cumulative_for_session(
         db, ctx.school.id, student_id=student_id, session_id=session_id
@@ -396,7 +431,7 @@ def broadsheet(
     db: DbSession,
     arm_id: uuid.UUID,
     term_id: uuid.UUID,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     """Return published report-card totals for every student in an arm."""
     return results_service.report_cards_bulk(
@@ -628,10 +663,10 @@ def best_in_subjects(
     arm_id: uuid.UUID,
     term_id: uuid.UUID,
     db: DbSession,
-    ctx=Depends(require_permission(RESULTS_VIEW)),
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
     """Which students hold the top score in each core subject this term —
-    the class-leadership view."""
+    the class-leadership view printed alongside report cards."""
     get_arm(db, ctx.school.id, arm_id)
     get_term(db, ctx.school.id, term_id)
     return results_service.best_in_subjects_overview(

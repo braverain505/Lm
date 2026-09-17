@@ -234,7 +234,9 @@ export function AccountantDashboard() {
             {[
               { href: "/billing", label: "Fee Statement", desc: "Per-student balances", icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
               { href: "/payroll", label: "Payroll Runs", desc: "Gross, tax & net", icon: TrendingUp, color: "text-violet-600", bg: "bg-violet-50" },
-              { href: "/reports", label: "Report Cards", desc: "Published results", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
+              // Report cards are the Exam Office's document; an accountant has no
+              // business opening them, so their quick links stay financial.
+              { href: "/accounting", label: "Accountant's Desk", desc: "Ledger & cashbook", icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
             ].map((r) => {
               const Icon = r.icon;
               return (

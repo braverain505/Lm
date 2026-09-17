@@ -7,9 +7,27 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NoAccess } from "@/components/access-denied";
+import { REPORT_CARD_PERM } from "@/components/nav-config";
 import { useActiveSchoolId, useArms, useSessions, useTerms } from "@/hooks/use-api";
+import { useAuth } from "@/providers/auth-provider";
 
 export default function BroadsheetPage() {
+  const { activeSchool } = useAuth();
+  if (!(activeSchool?.permissions ?? []).includes(REPORT_CARD_PERM)) {
+    return (
+      <NoAccess
+        title="The broadsheet is the Exam Office's desk"
+        message="Only the Exam Officer and school leadership can open the class broadsheet. You can still review your own scoresheets from Results."
+        backHref="/results"
+        backLabel="Go to Results"
+      />
+    );
+  }
+  return <BroadsheetWorkspace />;
+}
+
+function BroadsheetWorkspace() {
   const schoolId = useActiveSchoolId();
   const { data: sessions = [] } = useSessions();
   const session = sessions.find((item) => item.is_current) ?? sessions[0];

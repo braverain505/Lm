@@ -272,8 +272,21 @@ def delete_staff(db: Session, school_id: uuid.UUID, staff_id: uuid.UUID) -> None
 
 # --- Students -------------------------------------------------------------------
 def list_students(
-    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID | None = None, q: str | None = None
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_id: uuid.UUID | None = None,
+    q: str | None = None,
+    arm_ids: set[uuid.UUID] | None = None,
 ) -> list[Student]:
+    """Students in a school, newest class first.
+
+    ``arm_ids`` bounds the result to those arms and is how a teacher's roster is
+    scoped: ``None`` means the whole school (admins, offices that need the full
+    roster), an empty set means nothing at all. An explicit ``arm_id`` filter is
+    applied on top, so a teacher who asks for a class they do not teach gets an
+    empty list rather than somebody else's pupils.
+    """
     current_class = (
         select(ClassArm.full_name)
         .join(StudentEnrollment, StudentEnrollment.class_arm_id == ClassArm.id)
@@ -289,6 +302,21 @@ def list_students(
         select(Student)
         .where(Student.school_id == school_id, Student.is_deleted.is_(False))
     )
+    if arm_ids is not None:
+        # A teacher with no assignments teaches nobody, so an empty scope is an
+        # empty roster — say so directly rather than emitting ``IN (NULL)``.
+        if not arm_ids:
+            return []
+        stmt = stmt.where(
+            Student.id.in_(
+                select(StudentEnrollment.student_id).where(
+                    StudentEnrollment.school_id == school_id,
+                    StudentEnrollment.class_arm_id.in_(arm_ids),
+                    StudentEnrollment.is_current.is_(True),
+                    StudentEnrollment.status == "active",
+                )
+            )
+        )
     if arm_id is not None:
         stmt = stmt.join(StudentEnrollment).where(
             StudentEnrollment.class_arm_id == arm_id,
@@ -318,6 +346,31 @@ def get_student(db: Session, school_id: uuid.UUID, student_id: uuid.UUID) -> Stu
     if s is None or s.school_id != school_id or s.is_deleted:
         raise NotFoundError("Student not found")
     return s
+
+
+def student_is_in_arms(
+    db: Session,
+    school_id: uuid.UUID,
+    student_id: uuid.UUID,
+    arm_ids: set[uuid.UUID],
+) -> bool:
+    """Is this student currently enrolled in one of these class arms?"""
+    if not arm_ids:
+        return False
+    return (
+        db.scalar(
+            select(StudentEnrollment.id)
+            .where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.class_arm_id.in_(arm_ids),
+                StudentEnrollment.is_current.is_(True),
+                StudentEnrollment.status == "active",
+            )
+            .limit(1)
+        )
+        is not None
+    )
 
 
 def create_student(

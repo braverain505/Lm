@@ -483,3 +483,32 @@ def list_staff_assignments(
             }
         )
     return rows
+
+
+def taught_arm_ids(
+    db: Session, school_id: uuid.UUID, user_id: uuid.UUID
+) -> set[uuid.UUID]:
+    """The class arms a user teaches at least one subject in.
+
+    This is the boundary of a teacher's view: the students they may see are the
+    students in these arms. Returns an empty set — never ``None`` — for a user
+    with no staff record, because "which classes do you teach" deliberately has
+    a concrete empty answer that cannot be confused with "no restriction".
+    """
+    staff = db.scalar(
+        select(Staff).where(
+            Staff.school_id == school_id,
+            Staff.user_id == user_id,
+            Staff.is_deleted.is_(False),
+        )
+    )
+    if staff is None:
+        return set()
+    return set(
+        db.scalars(
+            select(SubjectAssignment.class_arm_id).where(
+                SubjectAssignment.school_id == school_id,
+                SubjectAssignment.teacher_id == staff.id,
+            )
+        ).all()
+    )

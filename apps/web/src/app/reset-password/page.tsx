@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { AlertCircle, ArrowRight, Loader2, Lock } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -30,7 +30,6 @@ const schema = z
 type ResetForm = z.infer<typeof schema>;
 
 function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +49,8 @@ function ResetPasswordForm() {
     }
     try {
       await api.confirmPasswordReset(token, values.new_password);
-      router.replace("/login");
+      // Full reload so the login screen starts without this tab's cached data.
+      window.location.replace("/login");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not update password");
     }

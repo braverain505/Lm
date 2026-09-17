@@ -325,10 +325,12 @@ export function Notifications() {
 /* ─── Profile menu ───────────────────────────────────────────────────── */
 
 export function ProfileMenu() {
-  const { user, activeSchool } = useAuth();
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/login";
+  const { user, activeSchool, signOut } = useAuth();
+  const handleLogout = () => {
+    // Shared sign-out: revokes the session, drops every cached response and
+    // reloads into the login screen — never a partial route change that could
+    // leave the previous user's data readable on screen.
+    void signOut();
   };
 
   return (

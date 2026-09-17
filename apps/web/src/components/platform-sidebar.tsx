@@ -3,13 +3,12 @@
 import { ArrowLeft, ChevronLeft, LogOut, PanelLeft, ShieldCheck } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { PLATFORM_NAV } from "@/components/platform-nav";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import { api } from "@clearis/shared";
 
 interface PlatformSidebarProps {
   collapsed: boolean;
@@ -19,16 +18,13 @@ interface PlatformSidebarProps {
 
 export function PlatformSidebar({ collapsed, onToggle, onNavigate }: PlatformSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, clear } = useAuth();
+  const { user, signOut } = useAuth();
 
   const isActive = (href: string) => pathname.startsWith(href);
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
 
   async function handleLogout() {
-    await api.logout();
-    clear();
-    router.replace("/login");
+    await signOut();
   }
 
   return (

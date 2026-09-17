@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -58,7 +57,6 @@ type RegisterForm = z.infer<typeof schema>;
 const STEPS = ["School profile", "Administrator", "Review"];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [step, setStep] = useState(0);
   const [logo, setLogo] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -316,7 +314,7 @@ export default function RegisterPage() {
             >
               <Button
                 className="h-12 w-full text-[14px] font-semibold shadow-sm shadow-primary/10 transition-all hover:shadow-md hover:shadow-primary/15"
-                onClick={() => router.replace("/dashboard")}
+                onClick={() => window.location.replace("/dashboard")}
               >
                 Open your workspace
                 <ArrowRight className="ml-1.5 h-4 w-4" />
