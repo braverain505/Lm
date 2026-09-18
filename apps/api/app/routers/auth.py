@@ -1,6 +1,12 @@
 """Authentication endpoints. Sets httpOnly cookies for the web app; also accepts
-bearer tokens for API clients. The refresh token cookie powers rotation + logout
-without ever exposing either token to JavaScript."""
+bearer tokens for API clients. The refresh token cookie powers rotation +
+logout without ever exposing either token to JavaScript.
+
+This router is also where account email is sent: registration emails the new
+school its sign-in details, and a reset request emails the reset link. Both go
+out *after* the commit, so a mail failure can never report a link that the
+database does not know about.
+"""
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -23,7 +29,7 @@ from ..schemas.auth import (
     TokenResponse,
     UserSummary,
 )
-from ..services import auth_service
+from ..services import auth_service, email_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -95,6 +101,14 @@ def register_school(
         ip=ip,
     )
     db.commit()
+    # Committed first: the workspace exists whether or not the mail goes out, and
+    # the service logs (rather than raises) so a mail outage cannot fail a signup.
+    email_service.send_school_welcome_email(
+        school_name=payload.school_name,
+        admin_full_name=payload.admin_full_name,
+        admin_email=payload.admin_email,
+        password=payload.password,
+    )
     _set_cookies(response, result)
     return TokenResponse(
         access_token=result.access_token,
@@ -168,11 +182,21 @@ def me(user: AnyUser, db: DbSession):
 @router.post("/passwords/reset", response_model=PasswordResetResponse)
 @limiter.limit("3/hour")  # Prevent password reset abuse
 def request_reset(payload: PasswordResetRequest, request: Request, db: DbSession):
-    raw = auth_service.request_password_reset(db, payload.email)
+    reset = auth_service.request_password_reset(db, payload.email)
     db.commit()
+    if reset is not None:
+        # Uncommitted tokens must never be emailed, hence the send sitting after
+        # the commit. A provider failure raises (502/503): the response is the
+        # same neutral line either way, so a link that was never delivered must
+        # not look delivered.
+        email_service.send_password_reset_email(
+            to=reset.user.email,
+            full_name=reset.user.full_name,
+            token=reset.token,
+        )
     return PasswordResetResponse(
         message="If that email exists, a reset link has been sent",
-        reset_token=raw if settings.dev_email else None,
+        reset_token=reset.token if (reset and settings.dev_email) else None,
     )
 
 

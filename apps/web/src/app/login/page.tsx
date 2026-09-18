@@ -8,7 +8,6 @@ import {
   ArrowRight,
   Award,
   Building2,
-  Check,
   Eye,
   EyeOff,
   Loader2,
@@ -524,38 +523,9 @@ export default function LoginPage() {
                       Bring your school to Clearis
                     </h1>
                     <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                      Set up your workspace in a few minutes — no card required.
+                      Set up your workspace in a few minutes.
                     </p>
                   </div>
-
-                  <ul className="space-y-2.5">
-                    {[
-                      {
-                        title: "Results, end to end",
-                        body: "Score entry, approval workflow, report cards and a parent-facing result portal.",
-                      },
-                      {
-                        title: "Fees, accounting and payroll",
-                        body: "Invoices, receipts, cashbook and staff salaries in one ledger.",
-                      },
-                      {
-                        title: "Your own school code",
-                        body: "Parents check results with a code carrying your school's initials.",
-                      },
-                    ].map((item) => (
-                      <li key={item.title} className="flex gap-3">
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <Check className="h-3 w-3" strokeWidth={3} />
-                        </span>
-                        <div>
-                          <p className="text-[13px] font-semibold">{item.title}</p>
-                          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-                            {item.body}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
 
                   <Button asChild className="h-11 w-full text-[14px] font-semibold">
                     <Link href="/register">

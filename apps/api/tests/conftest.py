@@ -63,6 +63,12 @@ TEST_DATABASE_URL = _test_database_url()
 # deterministic template fallback (and stay fast + deterministic).
 settings.groq_api_key = ""
 
+# Same rule for the mail provider. Registration now sends a welcome email, so a
+# key left in .env would put a network round-trip (and a real send) inside every
+# test that registers a school. With no key, email_service takes its documented
+# dev path: it logs the message and reports ``dev_skipped`` instead.
+settings.resend_api_key = ""
+
 engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 

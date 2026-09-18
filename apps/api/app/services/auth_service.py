@@ -43,6 +43,19 @@ class AuthResult:
     refresh_token_id: uuid.UUID
 
 
+@dataclass
+class PasswordResetRequest:
+    """A freshly minted reset token plus the account it belongs to.
+
+    The router needs the account to address the email, but the token is only
+    valid once the transaction commits — so the two are handed back together
+    rather than emailed from inside the (uncommitted) service call.
+    """
+
+    user: User
+    token: str
+
+
 # Login brute-force policy: after MAX_FAILED_LOGINS consecutive failures the
 # account is temporarily cooled down for LOCKOUT_MINUTES. (The per-IP limiter
 # in the router is the first line of defense; this closes the distributed /
@@ -261,11 +274,12 @@ def refresh_session(
     return result
 
 
-def request_password_reset(db: Session, email: str) -> str | None:
-    """Create a reset token. Returns the raw token in dev mode, else None.
+def request_password_reset(db: Session, email: str) -> PasswordResetRequest | None:
+    """Create a reset token for the account, if one exists.
 
-    The response to the client is identical whether or not the email exists —
-    we never reveal account existence.
+    Returns ``None`` for an unknown address so the response to the client is
+    identical either way — we never reveal account existence. The router emails
+    the link after committing.
     """
     user = db.scalar(select(User).where(User.email == email.strip().lower()))
     if user is None:
@@ -278,7 +292,7 @@ def request_password_reset(db: Session, email: str) -> str | None:
     )
     db.add(reset)
     # committed by the router (single commit point per request)
-    return raw
+    return PasswordResetRequest(user=user, token=raw)
 
 
 def confirm_password_reset(db: Session, token_raw: str, new_password: str) -> None:

@@ -92,7 +92,7 @@ class EmailNotConfiguredError(APIError):
         self,
         message: str = (
             "Email is not configured on this deployment. "
-            "Set RESEND_API_KEY to send receipts to guardians."
+            "Set RESEND_API_KEY to send transactional email."
         ),
     ) -> None:
         super().__init__(503, ERR_EMAIL_NOT_CONFIGURED, message)

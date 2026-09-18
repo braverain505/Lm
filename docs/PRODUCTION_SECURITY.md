@@ -234,33 +234,39 @@ class StudentCreate(BaseModel):
 
 ---
 
-### 14. Email Service Integration (NOT IMPLEMENTED)
-**Risk:** Password resets return tokens in API response (DEV_EMAIL=true)
+### 14. Email Service Integration — DONE
+**Was:** password resets returned tokens in the API response (DEV_EMAIL=true).
 
-**Options:**
-- SendGrid (recommended for startups)
-- AWS SES (cost-effective at scale)
-- Mailgun
-- Custom SMTP
+Implemented in `apps/api/app/services/email_service.py` over Resend's HTTP API
+(no vendor SDK, just `httpx`). Three messages are wired up:
 
-**Implementation:**
-Create `apps/api/app/services/email_service.py`:
-```python
-import sendgrid
-from sendgrid.helpers.mail import Mail
+| Message | Trigger | Sender |
+|---|---|---|
+| Guardian payment receipt | `POST /api/fees/payments/{id}/receipt/email` | `fees` router |
+| New-school welcome + guide PDF | `POST /api/auth/register-school` | `auth` router, after commit |
+| Password reset link | `POST /api/auth/passwords/reset` | `auth` router, after commit |
 
-def send_password_reset(email: str, reset_link: str):
-    sg = sendgrid.SendGridAPIClient(api_key=settings.sendgrid_api_key)
-    message = Mail(
-        from_email='noreply@yourdomain.com',
-        to_emails=email,
-        subject='Password Reset Request',
-        html_content=f'<p>Click to reset: <a href="{reset_link}">Reset Password</a></p>'
-    )
-    sg.send(message)
-```
+**Required env vars for a working production deployment:**
 
-**Estimated Time:** 4-6 hours
+| Var | Why |
+|---|---|
+| `RESEND_API_KEY` | Without it, sends raise `503 ERR_EMAIL_NOT_CONFIGURED`. |
+| `WEB_BASE_URL` | Public origin of the web app. Reset links and the welcome email's sign-in/dashboard buttons are built from it. Defaults to `http://localhost:3000`, which is **wrong in production** — set it or every reset email links to localhost. |
+| `EMAIL_FROM` | Verified sender. Defaults to `Clearis <no-reply@clearis.app>`. |
+| `DEV_EMAIL=false` | Already enforced by `validate_production_config()`. |
+
+Degradation stays explicit: no key + dev logs the message and reports
+`dev_skipped`; no key + production raises; a provider error raises. A reset that
+was never delivered must not look delivered — the alternative is a user waiting
+on mail that is not coming.
+
+The registration welcome email is the one exception: it swallows failures and
+logs them, because the workspace has already committed by then and a mail outage
+must not fail a signup.
+
+**Remaining to do:** the welcome email contains the admin's initial password in
+plain text, which is only available at registration time. If that is not
+acceptable, switch it to a one-time set-password link.
 
 ---
 

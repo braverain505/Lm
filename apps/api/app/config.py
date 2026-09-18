@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     debug: bool = False
     api_base_path: str = "/api"
     cors_origins: list[str] = _DEFAULT_CORS
+    # Public origin of the web app. Used to build links that go back to the
+    # browser (password-reset links, welcome-email sign-in button).
+    web_base_url: str = "http://localhost:3000"
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -96,6 +99,12 @@ class Settings(BaseSettings):
 
     # --- Seeding ---
     seed_demo_school: bool = True
+
+    @field_validator("web_base_url")
+    @classmethod
+    def _strip_web_base_slash(cls, v: str) -> str:
+        """Normalise so link building never produces a doubled slash."""
+        return v.strip().rstrip("/")
 
     @field_validator("cookie_samesite")
     @classmethod
