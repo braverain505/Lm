@@ -164,14 +164,27 @@ def _recover_obsolete_revision(cfg: Config, script: ScriptDirectory, current: st
     documented remediation — and it lets the upgrade that follows apply the
     revisions the database genuinely still needs.
     """
-    base = script.get_base().revision
+    # Alembic >= 1.13 returns the base revision *string* from get_base(); the
+    # older API returned the Script object. Accept either, so the recovery path
+    # — the one that exists to rescue a stale database — cannot itself crash and
+    # leave the upgrade to fail.
+    base = script.get_base()
+    base_revision = getattr(base, "revision", base)
+    if not base_revision:
+        logger.warning(
+            "Recorded Alembic revision %r no longer exists (revision history was "
+            "squashed) and no base revision was found to stamp; leaving the "
+            "upgrade to the direct column repair",
+            current,
+        )
+        return
     logger.warning(
         "Recorded Alembic revision %r no longer exists (revision history was "
         "squashed); stamping base %r before upgrading",
         current,
-        base,
+        base_revision,
     )
-    command.stamp(cfg, base)
+    command.stamp(cfg, base_revision)
 
 
 def _run_alembic_upgrade(lock_conn) -> None:
