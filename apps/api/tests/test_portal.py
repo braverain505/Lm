@@ -24,7 +24,7 @@ from app.core.security import hash_password
 from app.models import Role, SchoolMembership, SchoolResultPin, User
 from app.services.portal_service import school_initials
 from app.seed import seed_grade_scale
-from .conftest import active_school_id, register_school
+from .conftest import active_school_id, grant_permission, register_school
 
 PUBLIC = "/api/public"
 CODE = "/api/results/portal-pin"
@@ -105,6 +105,11 @@ def _configure(client, school_id: str, db: Session) -> dict:
         )
         assert r.status_code == 201, r.text
         enrollment_ids.append(r.json()["id"])
+
+    # These tests exercise the scoring engine as a user who may enter marks.
+    # The admin templates omit results.enter by policy (see test_result_access),
+    # so the founding admin opts back in for this transaction.
+    grant_permission(db, school_id, "results.enter")
 
     return {
         "session_id": session_id,

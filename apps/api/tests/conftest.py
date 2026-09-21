@@ -11,7 +11,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
@@ -136,6 +136,28 @@ def active_school_id(client: TestClient) -> str:
     memberships = r.json()["memberships"]
     assert memberships, "expected at least one membership"
     return memberships[0]["school_id"]
+
+
+def grant_permission(
+    db, school_id: str, permission_code: str, role_code: str = "super_admin"
+) -> None:
+    """Grant one template permission to a school's role for this test transaction.
+
+    Score entry is the class teacher's job, so the admin templates (Super Admin,
+    Director) deliberately omit ``results.enter`` — the scoring-engine tests,
+    which enter marks as the founding admin, opt back in here. The policy itself
+    is asserted in ``test_result_access`` without this helper.
+    """
+    from app.models import Permission, Role, RolePermission
+
+    role = db.scalar(
+        select(Role).where(Role.school_id == school_id, Role.code == role_code)
+    )
+    perm = db.scalar(select(Permission).where(Permission.code == permission_code))
+    assert role is not None, f"missing role {role_code!r} for this school"
+    assert perm is not None, f"missing permission {permission_code!r}"
+    db.add(RolePermission(role_id=role.id, permission_id=perm.id))
+    db.flush()
 
 
 def enable_premium(db, school_id: str) -> None:

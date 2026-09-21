@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Lock } from "lucide-react";
+import { Eye, Lock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -170,6 +170,9 @@ function ScoreGrid() {
   const { data: myAssignments = [] } = useMyAssignments();
   const { activeSchool } = useAuth();
   const isTeacher = activeSchool?.role?.code === "teacher" || activeSchool?.role?.code === "homeroom_teacher";
+  // Entering marks is the class teacher's job; leadership (owner, director,
+  // principal, exam office) may open any grid but only to read it.
+  const canEnter = activeSchool?.permissions?.includes("results.enter") ?? false;
 
   const visibleArms = isTeacher
     ? arms.filter((arm) => myAssignments.some((item) => item.arm_id === arm.id))
@@ -195,6 +198,7 @@ function ScoreGrid() {
   }, [armId, subjectId, termId]);
 
   const setCell = (enrollmentId: string, componentId: string, value: string) => {
+    if (!canEnter) return; // Read-only for anyone without score-entry rights
     if (isTermClosed) return; // Block edits on closed terms
     // Score threshold: validate the value doesn't exceed max_score
     const component = components.find((c) => c.id === componentId);
@@ -353,6 +357,17 @@ function ScoreGrid() {
 
   return (
     <div className="space-y-6">
+      {/* Read-only notice for leadership viewing, not entering, a grid */}
+      {!canEnter && (
+        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-[13px] text-muted-foreground">
+          <Eye className="h-4 w-4 shrink-0" />
+          <span>
+            You have view-only access to score grids. Entering marks is the class
+            teacher&apos;s job.
+          </span>
+        </div>
+      )}
+
       {/* Closed term warning */}
       {isTermClosed && (
         <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
@@ -411,21 +426,25 @@ function ScoreGrid() {
           <p className="text-sm text-muted-foreground">{card.term.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => submit.mutate()}
-            disabled={submit.isPending || isTermClosed}
-            isLoading={submit.isPending}
-          >
-            {submit.isPending ? "Submitting…" : "Submit verified"}
-          </Button>
-          <Button
-            onClick={() => save.mutate()}
-            disabled={dirtyCount === 0 || save.isPending || isTermClosed}
-            isLoading={save.isPending}
-          >
-            Save {dirtyCount > 0 ? `(${dirtyCount})` : ""}
-          </Button>
+          {canEnter && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => submit.mutate()}
+                disabled={submit.isPending || isTermClosed}
+                isLoading={submit.isPending}
+              >
+                {submit.isPending ? "Submitting…" : "Submit verified"}
+              </Button>
+              <Button
+                onClick={() => save.mutate()}
+                disabled={dirtyCount === 0 || save.isPending || isTermClosed}
+                isLoading={save.isPending}
+              >
+                Save {dirtyCount > 0 ? `(${dirtyCount})` : ""}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -462,11 +481,11 @@ function ScoreGrid() {
                         type="number"
                         min={0}
                         max={c.max_score}
-                        className={`h-8 w-20 text-center ${isTermClosed ? "opacity-60 cursor-not-allowed" : ""}`}
+                        className={`h-8 w-20 text-center ${isTermClosed || !canEnter ? "opacity-60 cursor-not-allowed" : ""}`}
                         value={cellValue(row.enrollment_id, c.id)}
                         onChange={(e) => setCell(row.enrollment_id, c.id, e.target.value)}
-                        disabled={isTermClosed}
-                        readOnly={isTermClosed}
+                        disabled={isTermClosed || !canEnter}
+                        readOnly={isTermClosed || !canEnter}
                       />
                     </td>
                   ))}

@@ -9,6 +9,8 @@ Exam Officer, Principal and VP Academics templates, never by Teacher.
 Separately, ``results.view`` alone must not open another teacher's score grid:
 the assigned-teacher gate is enforced on reads too, not just writes.
 """
+import uuid
+
 from .conftest import active_school_id, register_school
 from .test_results import (
     BASE,
@@ -42,6 +44,33 @@ def _make_staff_user(client, sid: str, *, staff_no: str, role_code: str, email: 
     assert r.status_code == 201, r.text
     assert r.json()["role_code"] == role_code
     return staff
+
+
+def test_school_admin_can_view_but_cannot_enter_scores(client):
+    """The owner template keeps results.view and loses results.enter.
+
+    A school admin may open any score grid (a supervisor bypasses the
+    assigned-teacher gate) but the write endpoint refuses them — entering marks
+    is the class teacher's job.
+    """
+    register_school(client)
+    sid = active_school_id(client)
+    perms = _permissions(client)
+    assert "results.view" in perms  # grids stay viewable
+    assert "results.enter" not in perms  # but not editable
+
+    r = client.put(
+        f"{BASE}/scorecard",
+        json={
+            "arm_id": str(uuid.uuid4()),
+            "subject_id": str(uuid.uuid4()),
+            "term_id": str(uuid.uuid4()),
+            "entries": [],
+        },
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 403, r.text
+    assert r.json()["error"]["code"] == "ERR_PERMISSION_DENIED"
 
 
 # --- Report cards belong to the Exam Office ------------------------------------

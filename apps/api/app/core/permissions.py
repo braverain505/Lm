@@ -201,13 +201,21 @@ ROLE_STUDENT = "student"
 # accountant is the accountant of one school, with their own login.
 ACCOUNTING_ROLES: frozenset[str] = frozenset({ROLE_ACCOUNTANT})
 
+# What the school-owner templates (Super Admin, Director) do *not* get, on top
+# of the finance codes: entering marks. The owner and director run the results
+# desk — they may open any score grid, verify, approve, publish and print cards
+# — but score entry is the class teacher's job. Withholding ``results.enter``
+# leaves their grids read-only and makes the write endpoint refuse them; the
+# startup role-template sync strips it from schools provisioned earlier.
+_ADMIN_WITHHELD_PERMISSIONS: frozenset[str] = FINANCE_PERMISSIONS | {RESULTS_ENTER}
+
 ROLE_TEMPLATES: dict[str, dict] = {
     ROLE_SUPER_ADMIN: {
         "name": "Super Admin",
         "is_system": True,
         "permissions": [
             code for code, _, _ in PERMISSION_CATALOG
-            if code not in FINANCE_PERMISSIONS
+            if code not in _ADMIN_WITHHELD_PERMISSIONS
         ],
     },
     ROLE_DIRECTOR: {
@@ -215,7 +223,7 @@ ROLE_TEMPLATES: dict[str, dict] = {
         "is_system": True,
         "permissions": [
             code for code, _, _ in PERMISSION_CATALOG
-            if code not in FINANCE_PERMISSIONS
+            if code not in _ADMIN_WITHHELD_PERMISSIONS
         ],
     },
     ROLE_PRINCIPAL: {

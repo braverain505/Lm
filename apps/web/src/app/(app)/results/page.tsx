@@ -18,6 +18,7 @@ export default function ResultsPage() {
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
   const isHomeroomTeacher = role === "homeroom_teacher";
   const canComment = role === "principal" || role === "vp_academics" || role === "homeroom_teacher";
+  const canEnterScores = permissions.includes("results.enter");
   // The approval workbench and report cards are separate desks: one pushes
   // results through review, the other prints the finished document. Show each
   // card only to whoever actually holds its permissions — a teacher entering
@@ -106,8 +107,14 @@ export default function ResultsPage() {
         {/* Score entry card */}
         <Card className="premium-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-[15px]">Score entry</CardTitle>
-            <CardDescription>Open a score grid for an arm × subject.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-[15px]">
+              {canEnterScores ? "Score entry" : "View scores"}
+            </CardTitle>
+            <CardDescription>
+              {canEnterScores
+                ? "Open a score grid for an arm × subject."
+                : "Open a score grid read-only — entering marks is the class teacher's job."}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
