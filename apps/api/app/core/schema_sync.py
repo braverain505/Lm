@@ -184,7 +184,14 @@ def _recover_obsolete_revision(cfg: Config, script: ScriptDirectory, current: st
         current,
         base_revision,
     )
-    command.stamp(cfg, base_revision)
+    # ``purge=True`` is required, not cosmetic: stamp() resolves the version
+    # table's *current* heads before writing the new one, so an unresolvable
+    # recorded revision raises "Can't locate revision identified by ..." from
+    # inside the stamp itself. Purging empties the table first (Alembic then
+    # treats the destination as a new branch head), which is safe here because
+    # the recorded revision is by definition one this script directory cannot
+    # resolve — the table holds nothing usable to preserve.
+    command.stamp(cfg, base_revision, purge=True)
 
 
 def _run_alembic_upgrade(lock_conn) -> None:
