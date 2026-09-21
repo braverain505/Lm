@@ -134,9 +134,11 @@ These require additional libraries and code changes. Full implementation guides 
 - **Uptime monitoring** (1 hour)
 - See `docs/DEPLOYMENT.md` section 7
 
-### Email Service Integration
-- **SendGrid/AWS SES** integration (4-6 hours)
-- Currently `DEV_EMAIL=true` returns reset tokens in API
+### Email Service Integration — DONE
+- SMTP (the Clearis inbox, via App Password), with Resend as the alternative
+  transport — `EMAIL_TRANSPORT` selects one
+- `DEV_EMAIL=true` still returns reset tokens in the API response, and is
+  rejected in production by `validate_production_config()`
 - See `docs/PRODUCTION_SECURITY.md` section 14
 
 ### Database Indexes

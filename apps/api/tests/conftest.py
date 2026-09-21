@@ -68,6 +68,12 @@ settings.groq_api_key = ""
 # test that registers a school. With no key, email_service takes its documented
 # dev path: it logs the message and reports ``dev_skipped`` instead.
 settings.resend_api_key = ""
+# ...and *both* transports are cleared, not just Resend: with EMAIL_TRANSPORT on
+# its default "auto", an SMTP account left in .env would otherwise be picked up
+# and every registering test would log in to a real mailbox.
+settings.smtp_host = ""
+settings.smtp_user = ""
+settings.smtp_password = ""
 
 engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)

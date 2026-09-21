@@ -1,16 +1,24 @@
-"""Transactional email (receipts, school onboarding, password resets) via
-Resend's HTTP API.
+"""Transactional email (receipts, school onboarding, password resets).
 
-Deliberately talks to the provider over ``httpx`` — already a runtime dependency
-and already used for the Groq client — instead of pulling in a vendor SDK, so
-enabling receipts-by-email needs a key and nothing else installed.
+Two transports, selected by ``EMAIL_TRANSPORT`` (``auto`` by default):
+
+* **SMTP** (:mod:`smtplib`, stdlib) — how the platform's own mail leaves. The
+  new school's welcome message and the internal new-school notice both go out
+  from the Clearis inbox, which is a Gmail account with an App Password. That
+  needs no vendor account and no verified domain.
+* **Resend's HTTP API** — for a deployment that has a verified domain and a
+  key. Talks to the provider over ``httpx`` — already a runtime dependency and
+  already used for the Groq client — instead of pulling in a vendor SDK, so
+  enabling receipts-by-email needs a key and nothing else installed. SMTP needs
+  no dependency at all: everything it uses ships with Python.
 
 Degradation is explicit, never silent:
 
-* **No key, development** (``dev_email=True``): the email is logged and reported
-  as ``delivered=False, dev_skipped=True`` so local work keeps moving.
-* **No key, production**: :class:`EmailNotConfiguredError` (503). A receipt that
-  was never sent must not look sent.
+* **No transport configured, development** (``dev_email=True``): the email is
+  logged and reported as ``delivered=False, dev_skipped=True`` so local work
+  keeps moving.
+* **No transport configured, production**: :class:`EmailNotConfiguredError`
+  (503). A receipt that was never sent must not look sent.
 * **Provider error**: :class:`EmailSendError` (502) with the provider's message.
 
 The HTML is written with inline styles and tables because email clients strip
@@ -23,7 +31,11 @@ from __future__ import annotations
 
 import base64
 import logging
+import mimetypes
+import smtplib
 from dataclasses import dataclass
+from email.message import EmailMessage
+from email.utils import make_msgid
 from html import escape
 from io import BytesIO
 from urllib.parse import quote
@@ -73,8 +85,29 @@ class EmailResult:
     dev_skipped: bool = False
 
 
+def _transport() -> str | None:
+    """Which transport can send right now: ``"smtp"``, ``"resend"`` or ``None``.
+
+    ``EMAIL_TRANSPORT`` pins one; ``auto`` prefers SMTP when it is fully
+    configured, then Resend. SMTP counts as configured only with a host, a user
+    *and* a password: a half-filled block would otherwise be chosen over a
+    working Resend key and fail on every send.
+    """
+    smtp_ready = bool(
+        settings.smtp_host and settings.smtp_user and settings.smtp_password
+    )
+    choice = settings.email_transport
+    if choice == "smtp":
+        return "smtp" if smtp_ready else None
+    if choice == "resend":
+        return "resend" if settings.resend_api_key else None
+    if smtp_ready:
+        return "smtp"
+    return "resend" if settings.resend_api_key else None
+
+
 def is_configured() -> bool:
-    return bool(settings.resend_api_key)
+    return _transport() is not None
 
 
 def money(amount: float | None, currency: str = "NGN") -> str:
@@ -101,16 +134,28 @@ def send_email(
     if not to:
         raise APIError(422, "ERR_VALIDATION", "A recipient email address is required")
 
-    if not is_configured():
+    transport = _transport()
+    if transport is None:
         if settings.dev_email:
             logger.info(
                 "[dev-email] suppressed email to %s (subject=%r). "
-                "Set RESEND_API_KEY to actually send.",
+                "Set SMTP_HOST/SMTP_USER/SMTP_PASSWORD (or RESEND_API_KEY) to "
+                "actually send.",
                 to,
                 subject,
             )
             return EmailResult(delivered=False, dev_skipped=True)
         raise EmailNotConfiguredError()
+
+    if transport == "smtp":
+        return _send_via_smtp(
+            to=to,
+            subject=subject,
+            html=html,
+            text=text,
+            reply_to=reply_to,
+            attachments=attachments,
+        )
 
     payload: dict = {
         "from": settings.email_from,
@@ -162,8 +207,102 @@ def send_email(
     return EmailResult(delivered=True, provider_id=provider_id)
 
 
+def _smtp_from_header() -> str:
+    """``Clearis <clearisinfo@gmail.com>`` unless SMTP_FROM overrides it.
+
+    Gmail only lets an authenticated account send as itself or a verified
+    alias, so the default is the account we log in as.
+    """
+    return (settings.smtp_from or "").strip() or settings.smtp_user
+
+
+def _send_via_smtp(
+    *,
+    to: str,
+    subject: str,
+    html: str,
+    text: str | None,
+    reply_to: str | None,
+    attachments: list[dict] | None,
+) -> EmailResult:
+    """Send one message over SMTP, with the same failure contract as Resend."""
+    message = EmailMessage()
+    message["From"] = _smtp_from_header()
+    message["To"] = to
+    message["Subject"] = subject
+    reply = reply_to or settings.email_reply_to
+    if reply:
+        # Where a recipient's reply lands. The onboarding mail leaves from the
+        # Clearis inbox, so this is what makes "just reply to this email" true.
+        message["Reply-To"] = reply
+    message_id = make_msgid()
+    message["Message-ID"] = message_id
+    message.set_content(text or "This message needs an HTML-capable email client.")
+    message.add_alternative(html, subtype="html")
+
+    for attachment in attachments or []:
+        filename = attachment.get("filename") or "attachment"
+        # Resend payloads carry base64; SMTP wants the bytes themselves.
+        content = base64.b64decode(attachment.get("content") or "")
+        guessed, _ = mimetypes.guess_type(filename)
+        maintype, _, subtype = (guessed or "application/octet-stream").partition(
+            "/"
+        )
+        message.add_attachment(
+            content,
+            maintype=maintype,
+            subtype=subtype or "octet-stream",
+            filename=filename,
+        )
+
+    # Google displays App Passwords in groups of four; the spaces are not part
+    # of the password, and pasting it with them is the usual reason login fails.
+    password = settings.smtp_password.replace(" ", "")
+    try:
+        with smtplib.SMTP(
+            settings.smtp_host,
+            settings.smtp_port,
+            timeout=settings.smtp_timeout_seconds,
+        ) as client:
+            client.ehlo()
+            if settings.smtp_starttls:
+                client.starttls()
+                client.ehlo()
+            client.login(settings.smtp_user, password)
+            client.send_message(message)
+    except smtplib.SMTPAuthenticationError as exc:
+        # Worth naming precisely: this one is almost always the App Password.
+        logger.warning("SMTP authentication failed for %s", settings.smtp_user)
+        raise EmailSendError(
+            "The mail account rejected its credentials. Check SMTP_USER and the "
+            "App Password in SMTP_PASSWORD.",
+            {"provider": "smtp", "status": exc.smtp_code},
+        ) from exc
+    except smtplib.SMTPRecipientsRefused as exc:
+        logger.warning("SMTP refused every recipient for %s", to)
+        raise EmailSendError(
+            "The mail provider refused the recipient.",
+            {"provider": "smtp", "status": exc.smtp_code},
+        ) from exc
+    except smtplib.SMTPException as exc:
+        logger.warning("SMTP send failed: %s", exc)
+        raise EmailSendError(
+            "The mail provider rejected the message.", {"provider": "smtp"}
+        ) from exc
+    except OSError as exc:
+        logger.warning("SMTP connection failed: %s", exc)
+        raise EmailSendError("Could not reach the mail provider.") from exc
+
+    logger.info("Email sent to %s over SMTP (message id=%s)", to, message_id)
+    return EmailResult(delivered=True, provider_id=message_id)
+
+
 def pdf_attachment(filename: str, content: bytes) -> dict:
-    """Wrap raw PDF bytes as a Resend attachment payload."""
+    """Wrap raw PDF bytes as an attachment payload (base64, Resend-shaped).
+
+    The SMTP path decodes the same shape, so callers never care which
+    transport ends up sending the message.
+    """
     return {
         "filename": filename,
         "content": base64.b64encode(content).decode("ascii"),
@@ -730,6 +869,154 @@ def send_school_welcome_email(
             admin_email,
             school_name,
         )
+    return None
+
+
+# ──────────────────────────────────────────────────────────────────────
+# New-school notice (internal — the platform owner, never the school)
+# ──────────────────────────────────────────────────────────────────────
+
+
+def _detail(label: str, value: str) -> str:
+    """One label/value row of the alert's details table."""
+    return (
+        "<tr>"
+        f'<td style="padding:4px 0;font-size:13px;color:{MUTED};">{escape(label)}</td>'
+        '<td style="padding:4px 0;text-align:right;font-size:13px;font-weight:600;'
+        f'color:#0f172a;">{escape(value)}</td>'
+        "</tr>"
+    )
+
+
+def build_new_school_alert(
+    *,
+    school_name: str,
+    school_type: str,
+    admin_full_name: str,
+    admin_email: str,
+    location: str | None = None,
+    phone: str | None = None,
+    website: str | None = None,
+    established_year: int | None = None,
+    welcome_email_sent: bool = True,
+) -> tuple[str, str, str]:
+    """Render (subject, html, text) for "a school just registered".
+
+    Deliberately carries no password: the welcome email is where the admin's
+    credentials belong, and an internal alert would otherwise leave a working
+    password sitting in an inbox long after the school changed it.
+    """
+    subject = f"New school registered: {school_name}"
+
+    rows = "".join(
+        _detail(label, value)
+        for label, value in (
+            ("School", school_name),
+            ("Type", school_type),
+            ("Admin", admin_full_name),
+            ("Admin email", admin_email),
+            ("Location", location or "—"),
+            ("Phone", phone or "—"),
+            ("Website", website or "—"),
+            ("Established", str(established_year) if established_year else "—"),
+        )
+    )
+
+    body_html = "".join(
+        [
+            _paragraph(
+                f"<b>{escape(school_name)}</b> has just registered a Clearis "
+                "workspace and is being set up by the admin below."
+            ),
+            '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+            'style="margin-top:18px;background:#f8fafc;border:1px solid '
+            f'{BORDER};border-radius:10px;"><tr><td style="padding:16px 18px;">'
+            f'<table role="presentation" width="100%" cellpadding="0" '
+            f'cellspacing="0">{rows}</table></td></tr></table>',
+            _paragraph(
+                f'<span style="color:{MUTED};font-size:12.5px;">'
+                + (
+                    "The welcome email with their sign-in details reached them."
+                    if welcome_email_sent
+                    else "<b>Their welcome email was not delivered</b> — worth "
+                    "following up so they do not wait on credentials that "
+                    "never arrived."
+                )
+                + "</span>"
+            ),
+            _button("Open the platform admin", f"{settings.web_base_url}/admin"),
+        ]
+    )
+
+    html = _email_shell(
+        eyebrow="New registration",
+        heading=school_name,
+        body_html=body_html,
+        footer="An internal notice from Clearis. Not sent to the school.",
+    )
+
+    text = "\n".join(
+        [
+            f"New school registered: {school_name}",
+            "",
+            f"  Type:        {school_type}",
+            f"  Admin:       {admin_full_name} <{admin_email}>",
+            f"  Location:    {location or '—'}",
+            f"  Phone:       {phone or '—'}",
+            f"  Website:     {website or '—'}",
+            f"  Established: {established_year or '—'}",
+            "",
+            (
+                "The welcome email with their sign-in details reached them."
+                if welcome_email_sent
+                else "Their welcome email was NOT delivered — follow up."
+            ),
+        ]
+    )
+    return subject, html, text
+
+
+def send_new_school_alert(
+    *,
+    school_name: str,
+    school_type: str,
+    admin_full_name: str,
+    admin_email: str,
+    location: str | None = None,
+    phone: str | None = None,
+    website: str | None = None,
+    established_year: int | None = None,
+    welcome_email_sent: bool = True,
+) -> EmailResult | None:
+    """Tell the platform owner that a school registered.
+
+    Never raises, for the same reason as the welcome email: the workspace is
+    already committed by this point, so a mail outage must not turn a
+    successful signup into an error page. Returns ``None`` when no alert
+    address is configured.
+    """
+    recipient = (settings.owner_alert_email or "").strip()
+    if not recipient:
+        return None
+    try:
+        subject, html, text = build_new_school_alert(
+            school_name=school_name,
+            school_type=school_type,
+            admin_full_name=admin_full_name,
+            admin_email=admin_email,
+            location=location,
+            phone=phone,
+            website=website,
+            established_year=established_year,
+            welcome_email_sent=welcome_email_sent,
+        )
+        return send_email(to=recipient, subject=subject, html=html, text=text)
+    except APIError as exc:
+        logger.error(
+            "New-school alert for %s was not sent: %s", school_name, exc.message
+        )
+    except Exception:  # pragma: no cover - defensive; rendering should not fail
+        logger.exception("Unexpected error building the new-school alert for %s.", school_name)
     return None
 
 

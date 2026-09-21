@@ -237,32 +237,44 @@ class StudentCreate(BaseModel):
 ### 14. Email Service Integration — DONE
 **Was:** password resets returned tokens in the API response (DEV_EMAIL=true).
 
-Implemented in `apps/api/app/services/email_service.py` over Resend's HTTP API
-(no vendor SDK, just `httpx`). Three messages are wired up:
+Implemented in `apps/api/app/services/email_service.py`. There are two
+transports, chosen by `EMAIL_TRANSPORT` (`auto` by default): **SMTP**
+(`smtplib` + `email`, stdlib) — how the platform's own mail leaves, from the
+Clearis inbox — and **Resend's HTTP API** (no vendor SDK, just `httpx`), for a
+deployment with a verified sending domain. Sends the router makes are unchanged
+either way. Four messages are wired up:
 
 | Message | Trigger | Sender |
 |---|---|---|
 | Guardian payment receipt | `POST /api/fees/payments/{id}/receipt/email` | `fees` router |
 | New-school welcome + guide PDF | `POST /api/auth/register-school` | `auth` router, after commit |
+| New-school notice (internal) | same request, right after the welcome email | `auth` router, to `OWNER_ALERT_EMAIL` |
 | Password reset link | `POST /api/auth/passwords/reset` | `auth` router, after commit |
 
 **Required env vars for a working production deployment:**
 
 | Var | Why |
 |---|---|
-| `RESEND_API_KEY` | Without it, sends raise `503 ERR_EMAIL_NOT_CONFIGURED`. |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` | The Clearis mailbox the onboarding mail leaves from. With Gmail, `SMTP_PASSWORD` is a **16-character App Password** (create it after enabling 2-Step Verification) — the account's normal password is rejected. Gmail's daily sending limit applies: a free account handles a few hundred recipients a day, not thousands of onboarding emails. |
+| `RESEND_API_KEY` | The other transport, and the `auto` fallback. Needs a sending domain you own with SPF/DKIM records; it **cannot** send from a `gmail.com` address. |
+| `EMAIL_TRANSPORT` | `auto` (default) picks SMTP when the three vars above are set, then Resend. Pin `smtp` or `resend` when both are configured, so a leftover account cannot silently win. |
+| `OWNER_ALERT_EMAIL` | Where the internal "a new school registered" notice goes. Blank disables it. |
 | `WEB_BASE_URL` | Public origin of the web app. Reset links and the welcome email's sign-in/dashboard buttons are built from it. Defaults to `http://localhost:3000`, which is **wrong in production** — set it or every reset email links to localhost. |
-| `EMAIL_FROM` | Verified sender. Defaults to `Clearis <no-reply@clearis.app>`. |
+| `EMAIL_FROM` / `EMAIL_REPLY_TO` | Resend-only: verified sender, and where replies land. Defaults to `Clearis <no-reply@clearis.app>`. |
 | `DEV_EMAIL=false` | Already enforced by `validate_production_config()`. |
 
-Degradation stays explicit: no key + dev logs the message and reports
-`dev_skipped`; no key + production raises; a provider error raises. A reset that
-was never delivered must not look delivered — the alternative is a user waiting
-on mail that is not coming.
+With no transport configured, production sends raise `503
+ERR_EMAIL_NOT_CONFIGURED`. Degradation stays explicit: no transport + dev logs
+the message and reports `dev_skipped`; no transport + production raises; a
+provider error raises. A reset that was never delivered must not look delivered
+— the alternative is a user waiting on mail that is not coming.
 
 The registration welcome email is the one exception: it swallows failures and
 logs them, because the workspace has already committed by then and a mail outage
-must not fail a signup.
+must not fail a signup. The internal new-school notice behaves the same way, and
+reports whether the welcome email actually went out — an onboarding mail that
+never arrived is otherwise invisible, leaving a new school waiting on
+credentials nobody sent.
 
 **Remaining to do:** the welcome email contains the admin's initial password in
 plain text, which is only available at registration time. If that is not
@@ -445,7 +457,7 @@ Before going live, ensure ALL of the following:
 - [ ] Monitoring (Sentry/Datadog) configured
 - [ ] Database backups automated and tested
 - [ ] Database indexes added
-- [ ] Email service (SendGrid/SES) configured
+- [ ] Email configured: `SMTP_*` (App Password) or `RESEND_API_KEY`, plus `OWNER_ALERT_EMAIL`
 - [ ] SSL/TLS certificates installed
 - [ ] Health check endpoint monitored
 

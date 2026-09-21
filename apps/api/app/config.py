@@ -81,13 +81,36 @@ class Settings(BaseSettings):
     storage_base_dir: str = ".storage"
 
     # --- Email (transactional) ---
-    # Resend API key. When unset, sending is skipped in development (the email is
-    # logged instead) and refused with a clear error in production — receipts must
-    # never be silently "sent".
+    # Two transports. "auto" (the default) prefers SMTP when it is fully
+    # configured and otherwise uses Resend, so an existing deployment that only
+    # set RESEND_API_KEY carries on unchanged. Pin one explicitly when both are
+    # filled in — otherwise a leftover SMTP account silently wins.
+    email_transport: str = "auto"  # auto | smtp | resend
+
+    # SMTP — how the platform's own mail leaves, from the Clearis inbox. With
+    # Gmail this is smtp.gmail.com:587 and a 16-character App Password: Google
+    # rejects a normal account password, and an App Password requires 2-Step
+    # Verification on the account first.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""  # display name + address; defaults to SMTP_USER
+    smtp_starttls: bool = True
+    smtp_timeout_seconds: float = 20.0
+
+    # Resend API key, for deployments with a verified sending domain. When no
+    # transport is configured, sending is skipped in development (the email is
+    # logged instead) and refused with a clear error in production — receipts
+    # must never be silently "sent".
     resend_api_key: str = ""
     email_from: str = "Clearis <no-reply@clearis.app>"
     email_reply_to: str = ""
     email_timeout_seconds: float = 20.0
+
+    # Where the internal "a new school registered" notice goes. Empty disables
+    # it; it is never sent to the school itself.
+    owner_alert_email: str = "clearisinfo@gmail.com"
 
     # --- LLM (Groq) ---
     # When GROQ_API_KEY is unset the AI engines keep working with their
@@ -112,6 +135,14 @@ class Settings(BaseSettings):
         v = v.strip().lower()
         if v not in ("lax", "strict", "none"):
             raise ValueError("COOKIE_SAMESITE must be one of: lax, strict, none")
+        return v
+
+    @field_validator("email_transport")
+    @classmethod
+    def _email_transport_value(cls, v: str) -> str:
+        v = (v or "auto").strip().lower()
+        if v not in ("auto", "smtp", "resend"):
+            raise ValueError("EMAIL_TRANSPORT must be one of: auto, smtp, resend")
         return v
 
     def validate_production_config(self) -> None:

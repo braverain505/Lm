@@ -5,7 +5,8 @@ logout without ever exposing either token to JavaScript.
 This router is also where account email is sent: registration emails the new
 school its sign-in details, and a reset request emails the reset link. Both go
 out *after* the commit, so a mail failure can never report a link that the
-database does not know about.
+database does not know about. Registration additionally sends the platform
+owner a short internal notice, so new schools are visible as they arrive.
 """
 from typing import Annotated
 
@@ -74,6 +75,12 @@ def _client_info(request: Request) -> tuple[str | None, str | None]:
     return label, ip
 
 
+def _school_location(payload: RegisterSchoolRequest) -> str | None:
+    """Address, state and country on one line — whatever the school filled in."""
+    parts = [payload.address, payload.state, payload.country]
+    return ", ".join(p.strip() for p in parts if p and p.strip()) or None
+
+
 @router.post("/register-school", response_model=TokenResponse, status_code=201)
 @limiter.limit("3/hour")  # Prevent registration spam
 def register_school(
@@ -103,11 +110,25 @@ def register_school(
     db.commit()
     # Committed first: the workspace exists whether or not the mail goes out, and
     # the service logs (rather than raises) so a mail outage cannot fail a signup.
-    email_service.send_school_welcome_email(
+    welcome = email_service.send_school_welcome_email(
         school_name=payload.school_name,
         admin_full_name=payload.admin_full_name,
         admin_email=payload.admin_email,
         password=payload.password,
+    )
+    # ...and the owner hears about the signup either way. Passing the welcome
+    # outcome on means an undelivered onboarding mail is visible to a person
+    # instead of quietly leaving a new school waiting for credentials.
+    email_service.send_new_school_alert(
+        school_name=payload.school_name,
+        school_type=payload.school_type,
+        admin_full_name=payload.admin_full_name,
+        admin_email=payload.admin_email,
+        location=_school_location(payload),
+        phone=payload.phone,
+        website=payload.website,
+        established_year=payload.established_year,
+        welcome_email_sent=bool(welcome and welcome.delivered),
     )
     _set_cookies(response, result)
     return TokenResponse(

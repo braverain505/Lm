@@ -1,14 +1,17 @@
 """Transactional email for the account lifecycle: the getting-started PDF, the
-welcome message sent when a school registers, and the reset link that makes
-"forgot password" actually reach the user.
+welcome message sent when a school registers, the internal new-school notice,
+and the reset link that makes "forgot password" actually reach the user.
 
-The suite never talks to the provider — ``conftest`` clears ``RESEND_API_KEY``
-and each test patches ``email_service.send_email`` when it wants to inspect an
-outgoing message.
+The suite never talks to the provider — ``conftest`` clears the mail
+credentials (both transports, so ``EMAIL_TRANSPORT=auto`` cannot pick up an
+SMTP account from .env). Tests either patch ``email_service.send_email`` to
+inspect an outgoing message, or patch ``smtplib.SMTP`` to inspect what the SMTP
+transport would put on the wire.
 """
 from __future__ import annotations
 
 import base64
+import smtplib
 
 import pytest
 
@@ -46,6 +49,13 @@ def sent(monkeypatch) -> list[dict]:
 
     monkeypatch.setattr(email_service, "send_email", fake_send)
     return outbox
+
+
+def _only_to(outbox: list[dict], address: str) -> dict:
+    """The single message addressed to ``address`` — fails if there are 0 or 2."""
+    matches = [mail for mail in outbox if mail["to"] == address]
+    assert len(matches) == 1, f"expected exactly one message to {address}, got {len(matches)}"
+    return matches[0]
 
 
 # --- The guide document -------------------------------------------------------
@@ -106,13 +116,91 @@ def test_registering_a_school_emails_the_admin_their_credentials(client, sent):
         password="Str0ng!Pass",
     )
 
-    assert len(sent) == 1, "registration must send exactly one onboarding email"
-    mail = sent[0]
-    assert mail["to"] == "jane@school.edu"
+    # Registration sends two messages: the admin's onboarding mail, and an
+    # internal notice to the platform owner.
+    mail = _only_to(sent, "jane@school.edu")
     assert "Brightfield Academy" in mail["subject"]
     assert "jane@school.edu" in mail["html"]
     assert "Str0ng!Pass" in mail["html"]
     assert mail["attachments"][0]["filename"] == "Clearis-Getting-Started.pdf"
+
+
+# --- The internal new-school notice -------------------------------------------
+
+
+def test_registration_alerts_the_platform_owner(client, sent):
+    register_school(
+        client,
+        name="Brightfield Academy",
+        email="jane@school.edu",
+        password="Str0ng!Pass",
+    )
+
+    assert settings.owner_alert_email, "the notice needs somewhere to go"
+    alert = _only_to(sent, settings.owner_alert_email)
+    assert "Brightfield Academy" in alert["subject"]
+    assert "jane@school.edu" in alert["html"]
+    # It is an internal notice, not the onboarding mail: it carries no password
+    # and no guide, so a credential never sits in the owner's inbox.
+    assert "Str0ng!Pass" not in alert["html"]
+    assert "Str0ng!Pass" not in alert["text"]
+    assert alert["attachments"] == []
+
+
+def test_new_school_alert_carries_the_registration_details():
+    subject, html, text = email_service.build_new_school_alert(
+        school_name="Brightfield Academy",
+        school_type="secondary",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        location="12 Broad Street, Lagos, NG",
+        phone="08012345678",
+        website="https://brightfield.test",
+        established_year=1998,
+    )
+
+    assert "Brightfield Academy" in subject
+    for keyword in ("jane@school.edu", "Lagos", "08012345678", "1998"):
+        assert keyword in html, keyword
+        assert keyword in text, keyword
+
+
+def test_new_school_alert_flags_an_onboarding_email_that_never_went_out():
+    """The welcome mail is the one delivery worth acting on: if it did not go,
+    the school is sitting there waiting for credentials nobody sent."""
+    _, html, text = email_service.build_new_school_alert(
+        school_name="Brightfield Academy",
+        school_type="secondary",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        welcome_email_sent=False,
+    )
+    assert "not delivered" in html.lower()
+    assert "not delivered" in text.lower()
+
+    _, html, text = email_service.build_new_school_alert(
+        school_name="Brightfield Academy",
+        school_type="secondary",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        welcome_email_sent=True,
+    )
+    assert "not delivered" not in html.lower()
+    assert "not delivered" not in text.lower()
+
+
+def test_no_owner_alert_is_built_when_it_is_switched_off(monkeypatch):
+    monkeypatch.setattr(settings, "owner_alert_email", "")
+
+    assert (
+        email_service.send_new_school_alert(
+            school_name="Brightfield Academy",
+            school_type="secondary",
+            admin_full_name="Jane Doe",
+            admin_email="jane@school.edu",
+        )
+        is None
+    )
 
 
 def test_welcome_email_failure_does_not_fail_the_registration(client, monkeypatch):
@@ -190,6 +278,147 @@ def test_send_email_reports_a_dev_skip_rather_than_claiming_delivery(monkeypatch
 def test_send_email_refuses_in_production_without_a_key(monkeypatch):
     monkeypatch.setattr(settings, "dev_email", False)
 
+    with pytest.raises(EmailNotConfiguredError):
+        email_service.send_email(
+            to="jane@school.edu", subject="Test", html="<p>Hello</p>"
+        )
+
+
+# --- The SMTP transport -------------------------------------------------------
+
+
+class _FakeSMTP:
+    """Stands in for ``smtplib.SMTP``: records the conversation, opens no socket."""
+
+    instances: list["_FakeSMTP"] = []
+
+    def __init__(self, host, port, timeout=None):
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.started_tls = False
+        self.credentials: tuple[str, str] | None = None
+        self.message = None
+        _FakeSMTP.instances.append(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def ehlo(self):
+        return 250, b"ok"
+
+    def starttls(self):
+        self.started_tls = True
+        return 220, b"ready"
+
+    def login(self, user, password):
+        self.credentials = (user, password)
+
+    def send_message(self, message):
+        self.message = message
+
+
+@pytest.fixture()
+def smtp(monkeypatch) -> list[_FakeSMTP]:
+    """Configure the Gmail transport and capture what would go on the wire."""
+    _FakeSMTP.instances = []
+    monkeypatch.setattr(settings, "email_transport", "auto")
+    monkeypatch.setattr(settings, "smtp_host", "smtp.gmail.com")
+    monkeypatch.setattr(settings, "smtp_port", 587)
+    monkeypatch.setattr(settings, "smtp_user", "clearisinfo@gmail.com")
+    monkeypatch.setattr(settings, "smtp_password", "abcd efgh ijkl mnop")
+    monkeypatch.setattr(settings, "smtp_from", "")
+    monkeypatch.setattr(settings, "email_reply_to", "clearisinfo@gmail.com")
+    monkeypatch.setattr(email_service.smtplib, "SMTP", _FakeSMTP)
+    return _FakeSMTP.instances
+
+
+def test_send_email_goes_over_smtp_when_it_is_configured(smtp):
+    result = email_service.send_email(
+        to="jane@school.edu",
+        subject="Hello",
+        html="<p>Hello</p>",
+        text="Hello",
+        attachments=[email_service.pdf_attachment("guide.pdf", b"%PDF-1.4 test")],
+    )
+
+    assert result.delivered is True
+    assert result.provider_id, "an SMTP send still needs an id to log and trace"
+
+    client = smtp[0]
+    assert (client.host, client.port) == ("smtp.gmail.com", 587)
+    assert client.started_tls is True
+    # Google displays the App Password in groups of four; the spaces are not
+    # part of the password, and pasting it with them is the usual bad login.
+    assert client.credentials == ("clearisinfo@gmail.com", "abcdefghijklmnop")
+
+    message = client.message
+    assert message["From"] == "clearisinfo@gmail.com"
+    assert message["To"] == "jane@school.edu"
+    assert message["Reply-To"] == "clearisinfo@gmail.com"
+
+    # A whole message, not just the HTML part: both bodies and the PDF.
+    kinds = {part.get_content_type() for part in message.walk()}
+    assert {"text/plain", "text/html", "application/pdf"} <= kinds
+    pdf = next(p for p in message.walk() if p.get_content_type() == "application/pdf")
+    assert pdf.get_filename() == "guide.pdf"
+    assert pdf.get_payload(decode=True).startswith(b"%PDF")
+
+
+def test_smtp_from_can_carry_a_display_name(smtp, monkeypatch):
+    monkeypatch.setattr(settings, "smtp_from", "Clearis <clearisinfo@gmail.com>")
+
+    email_service.send_email(to="jane@school.edu", subject="Hi", html="<p>Hi</p>")
+
+    assert smtp[0].message["From"] == "Clearis <clearisinfo@gmail.com>"
+
+
+def test_smtp_rejects_a_bad_app_password_with_a_named_error(smtp, monkeypatch):
+    """This failure is almost always the App Password, so the error says so
+    instead of leaving a generic 502 to be debugged from the server logs."""
+
+    class _Rejecting(_FakeSMTP):
+        def login(self, user, password):
+            raise smtplib.SMTPAuthenticationError(
+                535, b"Username and Password not accepted"
+            )
+
+    monkeypatch.setattr(email_service.smtplib, "SMTP", _Rejecting)
+
+    with pytest.raises(email_service.EmailSendError) as excinfo:
+        email_service.send_email(to="jane@school.edu", subject="Hi", html="<p>Hi</p>")
+
+    assert excinfo.value.status_code == 502
+    assert "App Password" in excinfo.value.message
+
+
+def test_auto_transport_prefers_smtp_and_falls_back_to_resend(monkeypatch):
+    monkeypatch.setattr(settings, "email_transport", "auto")
+    monkeypatch.setattr(settings, "smtp_host", "smtp.gmail.com")
+    monkeypatch.setattr(settings, "smtp_user", "clearisinfo@gmail.com")
+    monkeypatch.setattr(settings, "smtp_password", "app-password")
+    monkeypatch.setattr(settings, "resend_api_key", "re_key")
+    assert email_service._transport() == "smtp"
+
+    # A half-filled SMTP block must not shadow a working Resend key.
+    monkeypatch.setattr(settings, "smtp_password", "")
+    assert email_service._transport() == "resend"
+
+    monkeypatch.setattr(settings, "resend_api_key", "")
+    assert email_service._transport() is None
+
+
+def test_pinning_a_transport_without_credentials_is_not_configured(monkeypatch):
+    """EMAIL_TRANSPORT=smtp with nothing to log in as has to fail loudly — it
+    must not quietly fall through to Resend and send from another address."""
+    monkeypatch.setattr(settings, "email_transport", "smtp")
+    monkeypatch.setattr(settings, "dev_email", False)
+    monkeypatch.setattr(settings, "resend_api_key", "re_key")
+
+    assert email_service._transport() is None
     with pytest.raises(EmailNotConfiguredError):
         email_service.send_email(
             to="jane@school.edu", subject="Test", html="<p>Hello</p>"
