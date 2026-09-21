@@ -250,15 +250,9 @@ export default function LoginPage() {
                   transition={{ duration: 0.22, ease }}
                   className="space-y-5"
                 >
-                  <div className="space-y-1">
-                    <h1 className="text-[19px] font-bold tracking-tight">
-                      Check your result
-                    </h1>
-                    <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-                      Enter the result code your school issued for the student
-                      &mdash; that&apos;s all you need.
-                    </p>
-                  </div>
+                  <h1 className="text-[19px] font-bold tracking-tight">
+                    Check your result
+                  </h1>
 
                   <form
                     onSubmit={(e) => {
@@ -311,17 +305,6 @@ export default function LoginPage() {
                       {!resultBusy && <ArrowRight className="ml-1 h-4 w-4" />}
                     </Button>
                   </form>
-
-                  <div className="rounded-xl border border-border/50 bg-muted/25 px-3.5 py-3">
-                    <p className="text-[11.5px] leading-relaxed text-muted-foreground">
-                      Results shown here are{" "}
-                      <span className="font-semibold text-foreground/80">
-                        published only
-                      </span>
-                      . Codes are issued by your school&apos;s exam office — ask
-                      them if you don&apos;t have one.
-                    </p>
-                  </div>
                 </motion.div>
               )}
 

@@ -160,7 +160,9 @@ export const PANEL_SECTIONS: NavSection[] = [
   {
     label: "Administration",
     items: [
-      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
+      // The Exam Office holds ``students.view`` — it needs the roster to issue
+      // result codes and read a candidate's record — so it sees this link too.
+      { href: "/students", label: "Students", icon: Users, perm: "students.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant", "exam_officer"] },
       { href: "/teachers", label: "Teachers", icon: GraduationCap, perm: "staff.view", roles: ["super_admin", "admin", "principal", "vp_academics", "accountant"] },
       { href: "/inventory", label: "Inventory", icon: Package, perm: "inventory.view" },
       { href: "/library", label: "Library", icon: BookCopy, perm: "library.view" },

@@ -23,6 +23,7 @@ import {
   useUpdateStudent,
 } from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
+import { useHasPermission } from "@/components/access-denied";
 
 /** Resolve a stored photo URL to a loadable <img> src.
  * data:/blob:/http(s): URLs pass through; backend-relative /api/uploads/...
@@ -40,6 +41,13 @@ function photoSrc(url?: string | null): string | undefined {
 
 export default function StudentsPage() {
   const schoolId = useActiveSchoolId();
+  // This page is readable by anyone with ``students.view`` — the Exam Office
+  // included — but only the admissions side may write to it. Each control is
+  // shown only to a caller the API would actually accept, so nobody fills in a
+  // form that can only answer with a 403.
+  const canCreate = useHasPermission("students.create");
+  const canEdit = useHasPermission("students.edit");
+  const canEnroll = useHasPermission("students.enroll");
   const { data = [], isLoading } = useStudents();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -245,12 +253,16 @@ export default function StudentsPage() {
           <p className="mt-1 text-[13px] text-muted-foreground">{data.length} student records</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setPromoteOpen((v) => !v)} className="gap-1.5">
-            <ArrowUpRight className="h-4 w-4" /> Promote
-          </Button>
-          <Button onClick={() => setAddOpen((v) => !v)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> {addOpen ? "Close" : "Add student"}
-          </Button>
+          {canEnroll && (
+            <Button variant="outline" onClick={() => setPromoteOpen((v) => !v)} className="gap-1.5">
+              <ArrowUpRight className="h-4 w-4" /> Promote
+            </Button>
+          )}
+          {canCreate && (
+            <Button onClick={() => setAddOpen((v) => !v)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> {addOpen ? "Close" : "Add student"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -584,7 +596,11 @@ export default function StudentsPage() {
                           <UserPlus className="h-5 w-5 text-muted-foreground/40" />
                         </div>
                         <p className="text-[13px] font-medium text-muted-foreground/70">
-                          {data.length === 0 ? "No students yet. Add your first student." : "No matches found."}
+                          {data.length > 0
+                            ? "No matches found."
+                            : canCreate
+                              ? "No students yet. Add your first student."
+                              : "No students have been added yet."}
                         </p>
                       </div>
                     </td>
@@ -611,12 +627,21 @@ export default function StudentsPage() {
                         </td>
                         <td className="py-3">
                           <div className="flex justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
-                              Edit
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
-                              Enroll
-                            </Button>
+                            {canEdit && (
+                              <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
+                                Edit
+                              </Button>
+                            )}
+                            {canEnroll && (
+                              <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
+                                Enroll
+                              </Button>
+                            )}
+                            {!canEdit && !canEnroll && (
+                              <span className="text-[11px] text-muted-foreground/40">
+                                View only
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
