@@ -1,6 +1,6 @@
-"""Result portal: the result codes and per-student PINs that open it.
+"""Result portal: the result codes that open it.
 
-Three ways into the public report card, deliberately layered:
+Two ways into the public report card, deliberately layered:
 
 * ``StudentResultCode`` — **one live code per student**, carrying the school's
   initials (``GVS-7K42Q``). This is what the login screen asks for: the code
@@ -9,8 +9,6 @@ Three ways into the public report card, deliberately layered:
 * ``SchoolResultPin`` — the legacy **one-code-per-school** credential. A parent
   types it together with their child's admission number; kept for schools that
   broadcast a single code.
-* ``StudentPin`` — the narrow per-student numeric PIN, kept for schools that
-  would rather hand each family its own secret.
 """
 import uuid
 from datetime import datetime
@@ -24,8 +22,8 @@ from .base import Base, TenantScopedBase
 class SchoolResultPin(TenantScopedBase, Base):
     """The school's result-check code — exactly one live row per school.
 
-    Unlike ``StudentPin`` (a per-person secret, stored only as a hash), this code
-    is a *shared, distributable* credential: the exam office prints it on the
+    This code is a *shared, distributable* credential: the exam office prints it
+    on the
     results notice and broadcasts it to parents, and has to be able to re-read
     and reprint it at any time. So it is stored as issued, and is only ever used
     to narrow a lookup to *one school* — the publish gate and the child's
@@ -103,36 +101,4 @@ class StudentResultCode(TenantScopedBase, Base):
     )
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     use_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
-class StudentPin(TenantScopedBase, Base):
-    """One live PIN per student. A PIN is *replaced* on rotation and old rows
-    stay (with ``revoked_at``) for audit. ``pin_hash`` is SHA-256 of
-    ``school_id:student_id:pin`` — never store the plaintext."""
-
-    __tablename__ = "student_pins"
-    __table_args__ = (
-        # Uniqueness is over the *live* rows only: revocation keeps the old row
-        # for audit, so several historical rows per student are expected. (Same
-        # technique as ``school_result_pins.uq_school_result_pin_one``.)
-        Index(
-            "uq_student_pin_one",
-            "school_id",
-            "student_id",
-            unique=True,
-            postgresql_where="revoked_at IS NULL",
-        ),
-    )
-
-    student_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("students.id", ondelete="CASCADE"), index=True
-    )
-    pin_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    failed_pin_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    pin_locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    created_by: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL")
-    )
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

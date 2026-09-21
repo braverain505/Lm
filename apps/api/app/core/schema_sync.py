@@ -63,10 +63,6 @@ _REQUIRED_COLUMNS: dict[str, dict[str, str]] = {
         "failed_login_count": "INTEGER NOT NULL DEFAULT 0",
         "locked_until": "TIMESTAMPTZ",
     },
-    "student_pins": {
-        "failed_pin_count": "INTEGER NOT NULL DEFAULT 0",
-        "pin_locked_until": "TIMESTAMPTZ",
-    },
 }
 
 _DISABLED = {"0", "false", "no", "off"}
@@ -243,13 +239,13 @@ def _ensure_required_columns() -> None:
         still_missing = _missing_required_columns()
         if still_missing:
             logger.error(
-                "Column repair did not stick; still missing: %s. Login and the "
-                "PIN portal will keep failing until these exist.",
+                "Column repair did not stick; still missing: %s. Login will "
+                "keep failing until these exist.",
                 _describe(still_missing),
             )
         else:
             logger.info(
-                "Schema check: repaired %s — login and the PIN portal should work now",
+                "Schema check: repaired %s — login should work now",
                 _describe(missing),
             )
     except Exception:

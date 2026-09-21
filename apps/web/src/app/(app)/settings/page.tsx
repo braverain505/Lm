@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Check, Copy, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, RefreshCw, Search, ShieldCheck, ShieldOff, Ticket, Timer, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Unlock } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,272 +14,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useStudentResultCodes, useGenerateMissingStudentResultCodes, useGenerateStudentResultCode, useRevokeStudentResultCode } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { isSchoolAdminRole } from "@/lib/roles";
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/toast";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
-
-/**
- * The result codes parents use: one per student, each carrying the school's
- * initials (e.g. ``GVS-7K42Q``).
- *
- * Because a code names the child, the login screen asks for the code alone — no
- * admission number. Codes are shown in full (not masked) because the exam office
- * has to be able to reprint them; see the model docstring for why a
- * distributable code is stored as issued rather than hashed.
- */
-function ResultCodeCard() {
-  const { data: rows = [], isLoading } = useStudentResultCodes();
-  const generateMissing = useGenerateMissingStudentResultCodes();
-  const generateOne = useGenerateStudentResultCode();
-  const revokeOne = useRevokeStudentResultCode();
-  const { toast } = useToast();
-  const [query, setQuery] = useState("");
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const withCode = rows.filter((r) => r.active).length;
-
-  const needle = query.trim().toLowerCase();
-  const filtered = needle
-    ? rows.filter(
-        (r) =>
-          r.student_name.toLowerCase().includes(needle) ||
-          r.admission_no.toLowerCase().includes(needle),
-      )
-    : rows;
-
-  const copy = async (rowId: string, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedId(rowId);
-      window.setTimeout(
-        () => setCopiedId((c) => (c === rowId ? null : c)),
-        1800,
-      );
-      toast("Result code copied");
-    } catch {
-      toast("Could not copy — select the code and copy it manually", "error");
-    }
-  };
-
-  const onGenerateMissing = async () => {
-    if (
-      !window.confirm(
-        "Generate a result code for every student who does not have one?\n\nExisting codes are left untouched.",
-      )
-    ) {
-      return;
-    }
-    try {
-      const result = await generateMissing.mutateAsync();
-      toast(
-        result.issued === 0
-          ? "Every student already has a code"
-          : `Issued ${result.issued} result code${result.issued === 1 ? "" : "s"}`,
-      );
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to generate codes", "error");
-    }
-  };
-
-  const onGenerateOne = async (studentId: string, name: string, hasCode: boolean) => {
-    if (
-      hasCode &&
-      !window.confirm(
-        `Replace the result code for ${name}?\n\nTheir current code stops working immediately.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      const row = await generateOne.mutateAsync(studentId);
-      toast(`Code ${row.code} is now live for ${name}`);
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to generate the code", "error");
-    }
-  };
-
-  const onRevokeOne = async (studentId: string, name: string) => {
-    if (
-      !window.confirm(
-        `Withdraw the result code for ${name}?\n\nIt will no longer open their result.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await revokeOne.mutateAsync(studentId);
-      toast(`Code withdrawn for ${name}`);
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to withdraw the code", "error");
-    }
-  };
-
-  return (
-    <Card className="premium-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[15px]">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
-            <Ticket className="h-4 w-4 text-primary" />
-          </span>
-          Results portal codes
-        </CardTitle>
-        <CardDescription>
-          Every student has their own code. A parent enters it on the login
-          screen to open that student&apos;s published report card — no
-          admission number needed.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {isLoading ? (
-          <Skeleton className="h-48 w-full" />
-        ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-8 text-center">
-            <p className="text-[13px] font-medium">No students yet</p>
-            <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
-              Add students first, then issue each of them a result code.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
-                <Input
-                  placeholder="Search by name or admission number…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="h-10 pl-9"
-                />
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onGenerateMissing}
-                isLoading={generateMissing.isPending}
-                disabled={withCode === rows.length}
-              >
-                <Ticket className="h-3.5 w-3.5" />
-                Generate missing codes
-              </Button>
-            </div>
-
-            <p className="text-[11.5px] text-muted-foreground/70">
-              <strong className="font-semibold text-foreground">{withCode}</strong>{" "}
-              of <strong className="font-semibold text-foreground">{rows.length}</strong>{" "}
-              students have a live code.
-            </p>
-
-            <div className="max-h-[440px] space-y-2 overflow-y-auto pr-1">
-              {filtered.length === 0 ? (
-                <p className="py-8 text-center text-[12.5px] text-muted-foreground/60">
-                  No students match “{query.trim()}”.
-                </p>
-              ) : (
-                filtered.map((row) => {
-                  const busy =
-                    (generateOne.isPending &&
-                      generateOne.variables === row.student_id) ||
-                    (revokeOne.isPending && revokeOne.variables === row.student_id);
-                  return (
-                    <div
-                      key={row.student_id}
-                      className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold">
-                          {row.student_name}
-                        </p>
-                        <p className="font-mono text-[11px] text-muted-foreground/60">
-                          {row.admission_no}
-                        </p>
-                      </div>
-
-                      {row.active && row.code ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => copy(row.student_id, row.code!)}
-                            title="Copy code"
-                            className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-1.5 font-mono text-[14px] font-bold tracking-[0.12em] text-primary transition-colors hover:bg-primary/10"
-                          >
-                            {row.code}
-                          </button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copy(row.student_id, row.code!)}
-                            aria-label="Copy code"
-                          >
-                            {copiedId === row.student_id ? (
-                              <Check className="h-3.5 w-3.5 text-success" />
-                            ) : (
-                              <Copy className="h-3.5 w-3.5" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              onGenerateOne(row.student_id, row.student_name, true)
-                            }
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" />
-                            Regenerate
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={busy}
-                            onClick={() => onRevokeOne(row.student_id, row.student_name)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <ShieldOff className="h-3.5 w-3.5" />
-                            Withdraw
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[11.5px] text-muted-foreground/60">
-                            Not issued
-                          </span>
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            isLoading={
-                              generateOne.isPending &&
-                              generateOne.variables === row.student_id
-                            }
-                            onClick={() =>
-                              onGenerateOne(row.student_id, row.student_name, false)
-                            }
-                          >
-                            <Ticket className="h-3.5 w-3.5" />
-                            Generate
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </>
-        )}
-
-        <p className="text-[11.5px] leading-relaxed text-muted-foreground/70">
-          A code identifies one student, so it only ever opens that student&apos;s
-          published result. Regenerating invalidates the old code immediately;
-          withdrawn codes stop working at once and a new one can be issued later.
-        </p>
-      </CardContent>
-    </Card>
-  );
-}
 
 export default function SettingsPage() {
   const { user, activeSchool } = useAuth();
@@ -466,10 +207,6 @@ export default function SettingsPage() {
   });
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
-  // Issuing the code is the Exam Office's job (same capability that gates
-  // report cards), so a school admin or principal may not always hold it.
-  const canIssueResultCode =
-    activeSchool?.permissions?.includes("results.report_card") ?? false;
 
   // School Settings is admin/principal only — teachers and other staff should
   // not be able to reach it even by URL.
@@ -607,9 +344,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Results portal code — Exam Office / admin only */}
-      {canIssueResultCode && <ResultCodeCard />}
 
       {/* Academic Sessions — admin only */}
       {canManage && (

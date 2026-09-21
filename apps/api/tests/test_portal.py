@@ -1,15 +1,15 @@
-"""Result-portal tests: PIN + school-code issuance (admin) and the public checks.
+"""Result-portal tests: result-code issuance (exam office) and the public checks.
 
 The portal is deliberately narrow. These tests pin the defensive behavior:
 
-* ``PUT /students/{id}/pin`` requires ``students.edit``; the school result code
-  requires ``results.report_card`` (the exam office's capability).
-* Any check failure — wrong PIN/code, unknown admission no, unknown or revoked
+* Issuing the result code requires ``results.report_card`` (the exam office's
+  capability), whether it is the school-wide code or a per-student code.
+* Any check failure — wrong code, unknown admission no, unknown or revoked
   credential — answers the *same* generic 404 so the endpoint can't enumerate
   schools, students or live codes.
 * The portal token only unlocks published subjects, and bad/expired/wrong-scope
   tokens are rejected at the report endpoint.
-* The school code carries the school's initials and rotation revokes the old one.
+* The codes carry the school's initials and rotation revokes the old one.
 """
 import re
 import uuid
@@ -21,13 +21,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.core.security import hash_password
-from app.models import Role, SchoolMembership, SchoolResultPin, StudentPin, User
+from app.models import Role, SchoolMembership, SchoolResultPin, User
 from app.services.portal_service import school_initials
 from app.seed import seed_grade_scale
 from .conftest import active_school_id, register_school
 
 PUBLIC = "/api/public"
-PIN = "/api/students"
 CODE = "/api/results/portal-pin"
 
 
@@ -194,201 +193,6 @@ def _add_limited_user(db: Session, school_id: str, role_code: str) -> User:
     return user
 
 
-# --- PIN issuance ---------------------------------------------------------------
-def test_set_pin_requires_students_edit(client, db):
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-
-    # Unauthenticated: rejected at the door.
-    r = client.put(f"{PIN}/{w['student_ids'][0]}/pin", json={"pin": "1234"})
-    assert r.status_code == 401
-
-    # The secretary template has students.view but NOT students.edit.
-    user = _add_limited_user(db, sid, "secretary")
-    client.post(
-        "/api/auth/login",
-        json={"email": user.email, "password": "Str0ng!Pass"},
-    )
-    r = client.put(
-        f"{PIN}/{w['student_ids'][0]}/pin",
-        json={"pin": "1234"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 403
-    assert r.json()["error"]["code"] == "ERR_PERMISSION_DENIED"
-
-
-def test_set_and_rotate_pin(client, db):
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-    student_id = w["student_ids"][0]
-
-    r = client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "4321"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 200, r.text
-    assert r.json()["student_id"] == student_id
-
-    rows = db.scalars(
-        select(StudentPin).where(StudentPin.student_id == student_id)
-    ).all()
-    assert len(rows) == 1
-    assert rows[0].revoked_at is None
-    assert rows[0].pin_hash != "4321"  # hashed, never plaintext
-
-    # Rotation replaces the live row; the old one stays revoked for audit.
-    r = client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "9999"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 200, r.text
-    rows = db.scalars(
-        select(StudentPin)
-        .where(StudentPin.student_id == student_id)
-        .order_by(StudentPin.created_at)
-    ).all()
-    assert len(rows) == 2
-    assert rows[0].revoked_at is not None
-    assert rows[1].revoked_at is None
-
-
-def test_pin_must_be_digits(client, db):
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-
-    r = client.put(
-        f"{PIN}/{w['student_ids'][0]}/pin",
-        json={"pin": "12ab56"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 422
-    assert r.json()["error"]["code"] == "ERR_VALIDATION"
-
-
-# --- Public PIN check -----------------------------------------------------------
-def test_pin_check_happy_path_unlocks_published_card(client, db):
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-    comps = _add_components(client, sid, w["term_id"])
-    _publish(client, sid, w, comps)
-    student_id = w["student_ids"][0]
-
-    r = client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "2468"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 200, r.text
-
-    r = client.post(
-        f"{PUBLIC}/pin-check",
-        json={
-            "school_slug": _school_slug(client),
-            "admission_no": "STU-001",
-            "pin": "2468",
-        },
-    )
-    assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["student"]["full_name"] == "Aisha Bello"
-    assert body["student"]["admission_no"] == "STU-001"
-    assert body["expires_minutes"] == 30
-    token = body["token"]
-
-    # The token unlocks only published subjects.
-    r = client.get(
-        f"{PUBLIC}/report-card",
-        params={"token": token, "term_id": w["term_id"]},
-    )
-    assert r.status_code == 200, r.text
-    card = r.json()
-    assert [s["subject_name"] for s in card["subjects"]] == ["Mathematics"]
-    assert card["summary"]["total"] == 60.0
-    assert card["summary"]["class_rank"] == 1
-
-
-def test_pin_check_generic_404_on_every_failure(client, db):
-    """Wrong PIN, unknown admission, unknown school — all one generic 404."""
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-    student_id = w["student_ids"][0]
-    client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "2468"},
-        headers={"X-School-Id": sid},
-    )
-    slug = _school_slug(client)
-
-    cases = [
-        {"school_slug": slug, "admission_no": "STU-001", "pin": "0000"},  # bad pin
-        {"school_slug": slug, "admission_no": "STU-999", "pin": "2468"},  # unknown student
-        {"school_slug": "no-such-school", "admission_no": "STU-001", "pin": "2468"},
-    ]
-    for body in cases:
-        r = client.post(f"{PUBLIC}/pin-check", json=body)
-        assert r.status_code == 404, body
-        err = r.json()["error"]
-        assert err["code"] == "ERR_NOT_FOUND"
-        assert err["message"] == "Invalid portal credentials"
-
-
-def test_pin_check_stamps_last_used(client, db):
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-    student_id = w["student_ids"][0]
-    client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "2468"},
-        headers={"X-School-Id": sid},
-    )
-    client.post(
-        f"{PUBLIC}/pin-check",
-        json={
-            "school_slug": _school_slug(client),
-            "admission_no": "STU-001",
-            "pin": "2468",
-        },
-    )
-    row = db.scalar(
-        select(StudentPin).where(
-            StudentPin.student_id == student_id, StudentPin.revoked_at.is_(None)
-        )
-    )
-    assert row.last_used_at is not None
-
-
-def test_pin_check_rejects_revoked_pin(client, db):
-    """A rotated-away PIN must not unlock anything."""
-    register_school(client)
-    sid = active_school_id(client)
-    w = _configure(client, sid, db)
-    student_id = w["student_ids"][0]
-    r = client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "2468"},
-        headers={"X-School-Id": sid},
-    )
-    assert r.status_code == 200, r.text
-    client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "9999"},
-        headers={"X-School-Id": sid},
-    )
-
-    r = client.post(
-        f"{PUBLIC}/pin-check",
-        json={
-            "school_slug": _school_slug(client),
-            "admission_no": "STU-001",
-            "pin": "2468",
-        },
-    )
-    assert r.status_code == 404
-    assert r.json()["error"]["message"] == "Invalid portal credentials"
-
-
 # --- Portal tokens --------------------------------------------------------------
 def _token_with(claims: dict) -> str:
     return jwt.encode(
@@ -456,11 +260,8 @@ def test_public_report_card_404_when_nothing_published(client, db):
     sid = active_school_id(client)
     w = _configure(client, sid, db)
     student_id = w["student_ids"][0]
-    client.put(
-        f"{PIN}/{student_id}/pin", json={"pin": "2468"},
-        headers={"X-School-Id": sid},
-    )
-    # No PIN check; hand-craft a valid portal token to isolate the 404 source.
+    # Hand-craft a valid portal token to isolate the 404 source (no credential
+    # check is involved).
     token = _token_with_exp(sid, student_id, minutes=30)
     r = client.get(
         f"{PUBLIC}/report-card",

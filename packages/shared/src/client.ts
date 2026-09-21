@@ -57,8 +57,6 @@ import {
   PaymentSchema,
   PinCheckOut,
   PinCheckOutSchema,
-  PinSetOut,
-  PinSetOutSchema,
   PinTermBrief,
   PinTermBriefSchema,
   SchoolPinOut,
@@ -692,18 +690,6 @@ export const changeEmail = (body: {
 // --- Public result portal (no auth, no school header) ----------------------------
 export async function publicSchools(): Promise<SchoolBrief[]> {
   return request("/public/schools", { zod: SchoolBriefSchema.array().parse });
-}
-
-export async function pinCheck(body: {
-  school_slug: string;
-  admission_no: string;
-  pin: string;
-}): Promise<PinCheckOut> {
-  return request("/public/pin-check", {
-    method: "POST",
-    body: JSON.stringify(body),
-    zod: PinCheckOutSchema.parse,
-  });
 }
 
 /**
@@ -1818,14 +1804,6 @@ export const revokeStudentResultCode = (schoolId: string, studentId: string) =>
     StudentResultCodeSchema.parse,
   );
 
-export const setStudentPin = (schoolId: string, studentId: string, pin: string) =>
-  schoolFetch<PinSetOut>(
-    schoolId,
-    `/students/${studentId}/pin`,
-    { method: "PUT", body: JSON.stringify({ pin }) },
-    PinSetOutSchema.parse,
-  );
-
 function postTransition(
   schoolId: string,
   cell: ResultCell,
@@ -2188,7 +2166,6 @@ export const api = {
   generateLessonPlan,
   fetchQuestionBank,
   generateQuestionBank,
-  setStudentPin,
   fetchSchoolResultPin,
   generateSchoolResultPin,
   revokeSchoolResultPin,
@@ -2197,7 +2174,6 @@ export const api = {
   generateStudentResultCode,
   revokeStudentResultCode,
   publicSchools,
-  pinCheck,
   schoolResultCheck,
   publicTerms,
   publicReportCard,

@@ -1869,21 +1869,6 @@ export function useAskCopilot() {
 }
 
 // --- Result portal -----------------------------------------------------------
-export function useSetStudentPin() {
-  const schoolId = useActiveSchoolId();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ studentId, pin }: { studentId: string; pin: string }) => {
-      if (!schoolId) throw new Error("No active school");
-      return api.setStudentPin(schoolId, studentId, pin);
-    },
-    onSuccess: () => {
-      // PIN changes don't touch any list row, but keep a fresh read anyway.
-      queryClient.invalidateQueries({ queryKey: ["students"] });
-    },
-  });
-}
-
 // --- School result code (the code parents type instead of per-student PINs) ---
 export function useSchoolResultPin() {
   const schoolId = useActiveSchoolId();

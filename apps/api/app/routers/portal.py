@@ -1,17 +1,16 @@
-"""Public result portal: code/PIN check + the published report card it unlocks.
+"""Public result portal: result-code check + the published report card it unlocks.
 
 Deliberately unauthenticated and narrow. The endpoint reads ONLY published
 results (the report-card service enforces this), answers generic 404s on any
 bad credential, and the token is a short-lived JWT scoped to a single student
 at a single school.
 
-Three credentials open the same door:
+One credential opens the door:
 
 * ``/result-check`` — the **result code** (``GVS-7K42Q``). A per-student code
   names the child on its own, so this is the single field the login screen
   asks for. A legacy school-wide code still works when accompanied by the
   child's admission number.
-* ``/pin-check`` — the older, narrower per-student numeric PIN.
 """
 import uuid
 
@@ -24,7 +23,6 @@ from ..core.rate_limit import limiter
 from ..core.security import decode_portal_token
 from ..models import School
 from ..schemas.portal import (
-    PinCheck,
     PinCheckOut,
     PinTermBrief,
     SchoolBrief,
@@ -50,7 +48,7 @@ def _student_brief(student) -> dict:
 
 @router.get("/schools", response_model=list[SchoolBrief])
 def public_schools(db: DbSession):
-    """Schools that publish results through the PIN portal."""
+    """Schools that publish results through the public result portal."""
     schools = db.scalars(select(School).order_by(School.name)).all()
     return [SchoolBrief(id=s.id, name=s.name, slug=s.slug) for s in schools]
 
@@ -66,20 +64,6 @@ def result_check(body: SchoolPinCheck, request: Request, db: DbSession):
     """
     school, student = portal_service.resolve_result_code(
         db, code=body.pin, admission_no=body.admission_no
-    )
-    return PinCheckOut(
-        token=portal_service.portal_token(school, student),
-        student=_student_brief(student),
-        school=_school_brief(school),
-    )
-
-
-@router.post("/pin-check", response_model=PinCheckOut)
-@limiter.limit("5/minute")  # Per-IP backstop to the per-student PIN lockout
-def pin_check(body: PinCheck, request: Request, db: DbSession):
-    """Exchange admission no + PIN for a short-lived portal token."""
-    school, student = portal_service.resolve_pin(
-        db, school_slug=body.school_slug, admission_no=body.admission_no, pin=body.pin
     )
     return PinCheckOut(
         token=portal_service.portal_token(school, student),

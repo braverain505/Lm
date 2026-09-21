@@ -1,23 +1,21 @@
-"""Result portal: the school result code, per-student PINs, and the public
-card-lookup helpers.
+"""Result portal: the school result code, per-student result codes, and the
+public card-lookup helpers.
 
 The portal is deliberately minimal and defensive:
 
-* Both credentials unlock *published* results only — the report-card service
+* Every credential unlocks *published* results only — the report-card service
   already refuses anything not at the published stage.
-* Every lookup failure (unknown school, unknown admission no, wrong PIN/code)
+* Every lookup failure (unknown school, unknown admission no, wrong code)
   answers the same generic ``NotFoundError`` so the endpoint can't be used
   to enumerate students or their credentials.
-* Student PINs are stored hashed as SHA-256 of ``school_id:student_id:pin`` and
-  replaced (never mutated) on rotation, with old rows kept for audit. The
-  school-wide result code is a different animal — see ``issue_school_pin``.
+* Per-student result codes are issued by the exam office (see
+  ``issue_student_result_code``); the legacy school-wide code is a different
+  animal — see ``issue_school_pin``.
 """
-import hashlib
-import hmac
 import re
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -30,16 +28,12 @@ from ..models import (
     SchoolResultPin,
     Student,
     StudentEnrollment,
-    StudentPin,
     StudentResultCode,
     Term,
 )
 from ..models.enums import ResultStatus
 from .people_service import get_student
 from .results_service import report_card
-
-PIN_MIN = 4
-PIN_MAX = 6
 
 # --- School result code ------------------------------------------------------
 #
@@ -54,10 +48,6 @@ INITIALS_MAX = 4
 # Words that carry no meaning as an initial ("University *of* Lagos").
 _INITIAL_STOPWORDS = frozenset({"OF", "AND", "THE", "FOR", "AT", "DE", "LA", "DU"})
 
-# PIN brute-force defense: N wrong guesses per student cool the PIN down.
-MAX_PIN_ATTEMPTS = 5
-PIN_LOCKOUT_MINUTES = 15
-
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
@@ -66,12 +56,6 @@ def _utcnow() -> datetime:
 def _bad_credentials() -> NotFoundError:
     # One shape for every failure; never hint which field was wrong.
     return NotFoundError("Invalid portal credentials")
-
-
-def _pin_hash(school_id: uuid.UUID, student_id: uuid.UUID, pin: str) -> str:
-    return hashlib.sha256(
-        f"{school_id}:{student_id}:{pin}".encode("utf-8")
-    ).hexdigest()
 
 
 # --- School result code ----------------------------------------------------------
@@ -418,94 +402,6 @@ def resolve_result_code(
     # No student code matched: fall back to the school-wide code, which is only
     # usable with an admission number.
     return resolve_school_pin(db, code=code, admission_no=admission_no or "")
-
-
-def set_student_pin(
-    db: Session,
-    *,
-    school_id: uuid.UUID,
-    student_id: uuid.UUID,
-    actor_id: uuid.UUID,
-    pin: str,
-) -> StudentPin:
-    """Issue a PIN for a student. Digit-only, 4–6 chars; replaces the current
-    live PIN (revoking it) so each student has exactly one live row."""
-    if not (pin.isdigit() and PIN_MIN <= len(pin) <= PIN_MAX):
-        raise ValidationError(f"PIN must be {PIN_MIN}-{PIN_MAX} digits")
-    get_student(db, school_id, student_id)  # raises if tenant mismatch
-
-    for live in db.scalars(
-        select(StudentPin).where(
-            StudentPin.school_id == school_id,
-            StudentPin.student_id == student_id,
-            StudentPin.revoked_at.is_(None),
-        )
-    ).all():
-        live.revoked_at = _utcnow()
-
-    row = StudentPin(
-        school_id=school_id,
-        student_id=student_id,
-        pin_hash=_pin_hash(school_id, student_id, pin),
-        created_by=actor_id,
-    )
-    db.add(row)
-    db.flush()
-    return row
-
-
-def resolve_pin(
-    db: Session, *, school_slug: str, admission_no: str, pin: str
-) -> tuple[School, Student]:
-    """Resolve a portal credential. Any failure raises the same generic 404;
-    a successful check stamps ``last_used_at``."""
-    school = db.scalar(select(School).where(School.slug == school_slug))
-    if school is None:
-        raise _bad_credentials()
-    student = db.scalar(
-        select(Student).where(
-            Student.school_id == school.id,
-            Student.admission_no == admission_no,
-            Student.is_deleted.is_(False),
-        )
-    )
-    if student is None:
-        raise _bad_credentials()
-    row = db.scalar(
-        select(StudentPin)
-        .where(
-            StudentPin.school_id == school.id,
-            StudentPin.student_id == student.id,
-            StudentPin.revoked_at.is_(None),
-        )
-        .order_by(StudentPin.created_at.desc())
-        .limit(1)
-    )
-    if row is not None:
-        # Per-student PIN lockout: 4–6 digit PINs are low-entropy, so repeated
-        # failures cool the PIN down instead of staying guessable forever.
-        now = _utcnow()
-        if row.pin_locked_until is not None and row.pin_locked_until > now:
-            db.commit()  # persist attempt bookkeeping before the neutral 404
-            raise _bad_credentials()
-        if not hmac.compare_digest(
-            row.pin_hash, _pin_hash(school.id, student.id, pin)
-        ):
-            row.failed_pin_count = (row.failed_pin_count or 0) + 1
-            if row.failed_pin_count >= MAX_PIN_ATTEMPTS:
-                row.pin_locked_until = now + timedelta(minutes=PIN_LOCKOUT_MINUTES)
-                row.failed_pin_count = 0
-            db.commit()  # survive the rollback that the raise triggers
-            raise _bad_credentials()
-        # Correct PIN: clear counters and stamp last-used.
-        row.failed_pin_count = 0
-        row.pin_locked_until = None
-    else:
-        raise _bad_credentials()
-
-    row.last_used_at = _utcnow()
-    db.flush()
-    return school, student
 
 
 def portal_token(school: School, student: Student) -> str:

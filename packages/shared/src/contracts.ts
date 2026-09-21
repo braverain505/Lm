@@ -684,12 +684,6 @@ export const PinCheckOutSchema = z.object({
 });
 export type PinCheckOut = z.infer<typeof PinCheckOutSchema>;
 
-export const PinSetOutSchema = z.object({
-  ok: z.boolean(),
-  student_id: z.string().uuid(),
-});
-export type PinSetOut = z.infer<typeof PinSetOutSchema>;
-
 // The legacy school-wide result code (e.g. "GVS-7K42Q") the exam office issues
 // and parents type alongside their child's admission number. Superseded on the
 // login screen by the per-student code below, but still honoured at the door.

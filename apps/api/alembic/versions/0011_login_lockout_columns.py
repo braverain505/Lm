@@ -35,6 +35,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 # (table, column, DDL type + default). NOT NULL with a DEFAULT backfills any
 # existing rows in place; the nullable timestamp columns can simply be added.
+# ``student_pins`` was later removed with the per-student numeric PIN feature,
+# so a fresh database built from the current models no longer creates that
+# table — the ALTERs are guarded by a table-existence check below.
 _COLUMNS: list[tuple[str, str, str]] = [
     ("users", "failed_login_count", "INTEGER NOT NULL DEFAULT 0"),
     ("users", "locked_until", "TIMESTAMPTZ"),
@@ -43,8 +46,21 @@ _COLUMNS: list[tuple[str, str, str]] = [
 ]
 
 
+def _table_exists(table: str) -> bool:
+    bind = op.get_bind()
+    return bool(
+        bind.exec_driver_sql(
+            f"SELECT to_regclass('public.{table}') IS NOT NULL"
+        ).scalar()
+    )
+
+
 def upgrade() -> None:
     for table, column, ddl in _COLUMNS:
+        # Skip a table the current models no longer declare (a fresh database),
+        # so the squashed baseline + this revision stay applicable end to end.
+        if not _table_exists(table):
+            continue
         op.execute(
             f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{column}" {ddl}'
         )
@@ -52,4 +68,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     for table, column, _ in _COLUMNS:
+        if not _table_exists(table):
+            continue
         op.execute(f'ALTER TABLE "{table}" DROP COLUMN IF EXISTS "{column}"')

@@ -25,8 +25,7 @@ from ..schemas.people import (
     StudentOut,
     StudentUpdate,
 )
-from ..schemas.portal import PinSet, PinSetOut
-from ..services import academics_service, people_service, portal_service
+from ..services import academics_service, people_service
 
 router = APIRouter(prefix="/students", tags=["students"])
 
@@ -248,21 +247,3 @@ def add_guardian(
     )
     db.commit()
     return GuardianOut.model_validate(guardian)
-
-@router.put("/{student_id}/pin", response_model=PinSetOut)
-def set_pin(
-    student_id: uuid.UUID,
-    payload: PinSet,
-    db: DbSession,
-    ctx=Depends(require_permission(STUDENTS_EDIT)),
-):
-    """Issue or rotate a student's result-portal PIN (4–6 digits)."""
-    portal_service.set_student_pin(
-        db,
-        school_id=ctx.school.id,
-        student_id=student_id,
-        actor_id=ctx.user.id,
-        pin=payload.pin,
-    )
-    db.commit()
-    return PinSetOut(student_id=student_id)

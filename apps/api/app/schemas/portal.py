@@ -1,18 +1,8 @@
-"""Result portal schemas: PIN setup, the school result code, and the public
-check-in flow."""
+"""Result portal schemas: the school result code and the public check-in flow."""
 import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
-
-
-class PinSet(BaseModel):
-    pin: str = Field(min_length=4, max_length=6)
-
-
-class PinSetOut(BaseModel):
-    ok: bool = True
-    student_id: uuid.UUID
 
 
 class SchoolBrief(BaseModel):
@@ -68,12 +58,6 @@ class SchoolPinCheck(BaseModel):
 
     pin: str = Field(min_length=4, max_length=24)
     admission_no: str | None = Field(default=None, max_length=40)
-
-
-class PinCheck(BaseModel):
-    school_slug: str = Field(min_length=1)
-    admission_no: str = Field(min_length=1)
-    pin: str = Field(min_length=4, max_length=6)
 
 
 class PinStudentBrief(BaseModel):

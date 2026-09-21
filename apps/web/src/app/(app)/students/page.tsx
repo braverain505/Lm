@@ -162,22 +162,6 @@ export default function StudentsPage() {
     );
   };
 
-  // --- Portal PIN -------------------------------------------------------------
-  const [pinFor, setPinFor] = useState<string | null>(null);
-  const [pinValue, setPinValue] = useState("");
-  const setPin = useMutation({
-    mutationFn: async (pin: string) => {
-      if (!schoolId || !pinFor) throw new Error("No active school");
-      await api.setStudentPin(schoolId, pinFor, pin);
-    },
-    onSuccess: () => {
-      setPinFor(null);
-      setPinValue("");
-      toast("PIN set successfully");
-    },
-    onError: () => toast("Failed to set PIN", "error"),
-  });
-
   const createStudent = useMutation({
     mutationFn: async (values: typeof form) => {
       if (!schoolId) throw new Error("No active school");
@@ -481,45 +465,6 @@ export default function StudentsPage() {
         </motion.div>
       )}
 
-      {/* PIN inline panel */}
-      {pinFor && (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-          <Card className="premium-card">
-            <CardHeader>
-              <CardTitle>Set result-portal PIN for {data.find((s) => s.id === pinFor)?.full_name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-[13px] text-muted-foreground">
-                A 4–6 digit PIN lets this student view their published report cards on the public portal.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setPin.mutate(pinValue);
-                }}
-                className="flex flex-wrap items-end gap-3"
-              >
-                <div className="w-40 space-y-1.5">
-                  <Label>PIN</Label>
-                  <Input
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="••••"
-                    value={pinValue}
-                    onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ""))}
-                    required
-                  />
-                </div>
-                <Button type="submit" disabled={setPin.isPending || pinValue.length < 4}>
-                  {setPin.isPending ? "Saving…" : "Set PIN"}
-                </Button>
-                <Button type="button" variant="ghost" onClick={() => setPinFor(null)}>Cancel</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-
       {/* Edit student panel */}
       {editFor && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
@@ -668,9 +613,6 @@ export default function StudentsPage() {
                           <div className="flex justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
                               Edit
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setPinFor(s.id)}>
-                              PIN
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
                               Enroll

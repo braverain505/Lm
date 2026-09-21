@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentManager } from "@/components/comment-manager";
 import { ReportCardDocument } from "@/components/report-card-document";
+import { ResultCodeCard } from "@/components/result-codes-card";
 import { useArms, useReportCard, useReportCards, useReportIndex, useSessions, useTerms } from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { downloadPdf, downloadBulkPdf } from "@/lib/pdf";
@@ -258,6 +259,11 @@ function ReportsWorkspace() {
             </Card>
           </motion.div>
         )}
+      </div>
+
+      {/* Result codes: the credential the Exam Office issues for parents. */}
+      <div className="print:hidden">
+        <ResultCodeCard />
       </div>
 
       {/* Template picker (admin/principal only, hidden on print) */}
