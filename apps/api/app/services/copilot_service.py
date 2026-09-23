@@ -107,6 +107,36 @@ def _has(tokens: set[str], *words: str) -> bool:
 
 
 # ----------------------------------------------------------------------------
+# Small talk — a greeting is not a query
+# ----------------------------------------------------------------------------
+# Phrases that mean "hello" / "how are you" / "thanks" rather than a question
+# about the school. Matched on the raw question because word order matters here.
+_SMALL_TALK_PATTERNS = re.compile(
+    r"^\s*(hi|hey|hello|yo|howdy|greetings)\b"
+    r"|\bgood (morning|afternoon|evening)\b"
+    r"|\bhow (are|r) (you|u|things)\b"
+    r"|\bhow'?s (it going|things|life)\b"
+    r"|\bwhat'?s up\b"
+    r"|\bhow am i\b"
+    r"|\b(who|what) are you\b"
+    r"|\byour name\b"
+    r"|\bthank(s| you)\b",
+    re.IGNORECASE,
+)
+
+# If the question carries any of these, it is a real query that merely opens
+# with a greeting ("hi, how many students are enrolled?") — route it to the
+# intent catalog, not to small talk.
+_DATA_CUES = {
+    "student", "students", "teacher", "teachers", "staff", "subject",
+    "subjects", "class", "classes", "arm", "arms", "level", "levels",
+    "result", "results", "score", "scores", "average", "top", "report",
+    "reports", "readiness", "enrolled", "enrollment", "boy", "boys",
+    "girl", "girls", "term", "terms", "performance", "attendance",
+}
+
+
+# ----------------------------------------------------------------------------
 # Slot resolvers — everything resolved against the school's real rows
 # ----------------------------------------------------------------------------
 
@@ -267,6 +297,48 @@ def _published_rows(
 # returns (text, payload, updated_context) or None when it doesn't apply.
 # Handlers run in order; the first match wins.
 # ----------------------------------------------------------------------------
+
+
+def _h_small_talk(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    **_,
+) -> tuple[str, dict, dict] | None:
+    """Greetings, "how are you" and thanks.
+
+    A greeting must not be answered with a data dump — "how are you doing?"
+    contains the word "how", and before this handler existed that was enough to
+    trigger the school-overview intent. Any question that actually names school
+    data is passed through to the catalog, so "hi, how many students?" is still
+    a real query.
+    """
+    if not _SMALL_TALK_PATTERNS.search(question or ""):
+        return None
+    if tokens & _DATA_CUES:
+        return None
+    q = question.lower()
+    if re.search(r"how am i\b", q):
+        text = (
+            "I keep this school's records rather than your personal marks, so I "
+            "can't grade you. Ask me about a class, a student, or the school's "
+            "published results and I'll have a real answer."
+        )
+    elif re.search(r"how (are|r) (you|u|things)\b|how'?s (it going|things|life)\b", q):
+        text = (
+            "I'm well, thank you — and ready to help. I answer questions about "
+            "this school from its own records: students, staff, classes, "
+            "subjects, score entry and published results."
+        )
+    else:
+        text = (
+            "Hello! I'm this school's copilot. I answer questions about it from "
+            "its own records — students, staff, classes, subjects, score entry "
+            "and published results. What would you like to know?"
+        )
+    return text, {"intent": "small_talk"}, {}
 
 
 def _h_help(
@@ -660,7 +732,9 @@ def _h_readiness(
 def _h_school_overview(
     db: Session, school_id: uuid.UUID, *, tokens: set[str], **_
 ) -> tuple[str, dict, dict] | None:
-    if not _has(tokens, "how", "many", "overview", "count", "enrolled"):
+    # Deliberately not keyed on a bare "how": that word appears in greetings and
+    # in questions belonging to other intents ("how did the class do overall?").
+    if not _has(tokens, "many", "overview", "count", "enrolled"):
         return None
     students = len(list_students(db, school_id))
     teachers = len(list_staff(db, school_id, membership_type="teaching"))
@@ -697,6 +771,7 @@ def _h_school_overview(
 
 
 _INTERNAL_ORDER = [
+    ("small_talk", _h_small_talk),
     ("help", _h_help),
     ("class_subjects", _h_class_subjects),
     ("class_snapshot", _h_class_snapshot),
@@ -771,7 +846,10 @@ _COPILOT_SYSTEM = (
     "published scores is not a subject with a score of zero.\n"
     "4. Answer in 1 to 4 sentences of clear British English. Plain text only — "
     "no markdown, no headings, no bullet characters, no code fences.\n"
-    "5. Address the question asked. Do not summarise the whole brief."
+    "5. Address the question asked. Do not summarise the whole brief.\n"
+    "6. If the user greets you or makes small talk, reply briefly and warmly in "
+    "one sentence, then invite a question about the school. Do not recite the "
+    "brief or volunteer unrelated figures."
 )
 
 

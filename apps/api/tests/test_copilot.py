@@ -121,6 +121,33 @@ def test_school_overview_counts(client, db):
     assert "3" in msg["content"]
 
 
+def test_greeting_is_small_talk_not_a_data_dump(client, db):
+    """"how are you doing?" contains the word "how" — it must not be answered
+    as a school-overview query."""
+    register_school(client)
+    sid = active_school_id(client)
+    enable_premium(db, sid)
+    _configure(client, sid, db)
+
+    for question in ("hello", "how are you doing?", "thanks!"):
+        msg = _ask(client, sid, question)["message"]
+        assert msg["intent"] == "small_talk", question
+        # The reply is a greeting, not the school's statistics: no count cards.
+        assert "students" not in msg["answer_payload"]
+        assert "teachers" not in msg["answer_payload"]
+        assert "enrolled students" not in msg["content"]
+
+    # A personal "how am I doing" is honestly out of scope, not a stats dump.
+    msg = _ask(client, sid, "how am I doing?")["message"]
+    assert msg["intent"] == "small_talk"
+    assert "records" in msg["content"]
+
+    # But a greeting wrapped around a real question still routes to the catalog.
+    msg = _ask(client, sid, "hi, how many students are enrolled?")["message"]
+    assert msg["intent"] == "school_overview"
+    assert msg["answer_payload"]["students"] == 3
+
+
 def test_class_snapshot_gender(client, db):
     register_school(client)
     sid = active_school_id(client)

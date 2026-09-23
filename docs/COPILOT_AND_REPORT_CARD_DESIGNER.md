@@ -23,7 +23,7 @@ Run from the repo root `clearis/`:
 ```bash
 # Backend tests — the whole suite passes (273 tests)
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest -q -p no:warnings
-#   -> 273 passed
+#   -> the full API suite passes
 
 # Copilot + report-card tests specifically (40 tests)
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_report_card_templates.py -q
@@ -80,7 +80,7 @@ The previously documented `SIGBUS` Next.js build crash is no longer reproducible
 - `GET /api/copilot/intents` → suggested-question chips for the UI.
 
 ### Tests
-`apps/api/tests/test_copilot.py` (22 tests) pins the deterministic rules text exactly, plus: LLM used & metered as the real provider; grounding brief carries real facts (no inventions); unusable LLM output falls back to rules; provider exception never fails the turn; LLM can answer a question no intent matches; follow-up history is sent to the model; tenant isolation.
+`apps/api/tests/test_copilot.py` pins the deterministic rules text exactly, plus: greetings route to `small_talk` (not a stats dump); LLM used & metered as the real provider; grounding brief carries real facts (no inventions); unusable LLM output falls back to rules; provider exception never fails the turn; LLM can answer a question no intent matches; follow-up history is sent to the model; tenant isolation.
 
 ---
 
@@ -103,7 +103,7 @@ The previously documented `SIGBUS` Next.js build crash is no longer reproducible
 | Schemas | `apps/api/app/schemas/report_card.py`. |
 | Migration | `apps/api/alembic/versions/0015_report_card_templates.py` (revises `0014_student_result_codes`; builds the table from model metadata, idempotent). |
 | Registration | `apps/api/app/main.py` includes `report_card_templates` router; `apps/api/app/models/__init__.py` exports the model. |
-| Tests | `apps/api/tests/test_report_card_templates.py` (18 tests). |
+| Tests | `apps/api/tests/test_report_card_templates.py`. |
 
 **API surface** (`/api/report-card-templates`):
 - `GET ""` (list, any member) — default first.
