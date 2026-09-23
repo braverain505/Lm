@@ -34,7 +34,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import {
   REPORT_THEMES,
@@ -189,7 +189,19 @@ export const SAMPLE_CARD: ReportCard = {
 
 /* ------------------------------------------------------------------ */
 
-function PaletteItem({ type, disabled }: { type: ReportWidgetType; disabled: boolean }) {
+function PaletteItem({
+  type,
+  disabled,
+  onAdd,
+  onDragPointerDown,
+}: {
+  type: ReportWidgetType;
+  disabled: boolean;
+  /** Clicking the block adds it; dragging it in places it where it lands. */
+  onAdd: () => void;
+  /** Lets the parent tell a fresh click apart from the click a drop emits. */
+  onDragPointerDown: () => void;
+}) {
   const def = widgetDef(type);
   // No inline transform: the DragOverlay draws the thing being dragged, so the
   // palette entry itself stays put and the drop preview stays crisp.
@@ -199,12 +211,20 @@ function PaletteItem({ type, disabled }: { type: ReportWidgetType; disabled: boo
     disabled,
   });
   const Icon = def.icon;
+  const dragListeners = listeners ?? {};
   return (
     <button
       ref={setNodeRef}
       type="button"
-      {...listeners}
       {...attributes}
+      {...dragListeners}
+      // Each interaction starts with a pointerdown, so this is where a fresh
+      // click is distinguished from the click a completed drop would emit.
+      onPointerDown={(event) => {
+        onDragPointerDown();
+        dragListeners.onPointerDown?.(event);
+      }}
+      onClick={() => onAdd()}
       disabled={disabled}
       title={disabled ? `${def.label} is already on this card` : def.description}
       className={cn(
@@ -530,6 +550,10 @@ export function ReportCardDesigner({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draggingType, setDraggingType] = useState<ReportWidgetType | null>(null);
   const [view, setView] = useState<"design" | "preview">("design");
+  // A finished drag also fires a click on the palette block it started from;
+  // the flag lets that one click be swallowed rather than adding the block
+  // twice (once where it was dropped, once at the end).
+  const droppedRef = useRef(false);
 
   // The card itself is a drop target, so a palette block dropped on empty space
   // lands at the end rather than being rejected.
@@ -574,6 +598,14 @@ export function ReportCardDesigner({
     setSelectedId(widget.id);
   }
 
+  function addFromPalette(type: ReportWidgetType) {
+    if (droppedRef.current) {
+      droppedRef.current = false;
+      return;
+    }
+    addWidget(type);
+  }
+
   function duplicateWidget(widget: ReportWidget) {
     if (widgetDef(widget.type).unique) {
       onDuplicateWidgetHint?.(
@@ -594,7 +626,10 @@ export function ReportCardDesigner({
 
   function handleDragStart(event: DragStartEvent) {
     const data = event.active.data.current;
-    if (data?.kind === "palette") setDraggingType(data.widgetType as ReportWidgetType);
+    if (data?.kind === "palette") {
+      droppedRef.current = true;
+      setDraggingType(data.widgetType as ReportWidgetType);
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -702,6 +737,10 @@ export function ReportCardDesigner({
                         key={def.type}
                         type={def.type}
                         disabled={!canAdd(layout, def.type)}
+                        onAdd={() => addFromPalette(def.type)}
+                        onDragPointerDown={() => {
+                          droppedRef.current = false;
+                        }}
                       />
                     ))}
                   </div>

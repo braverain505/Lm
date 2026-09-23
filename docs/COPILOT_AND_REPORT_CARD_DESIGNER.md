@@ -1,7 +1,7 @@
 # School Copilot + Report Card Designer — Handoff / Status
 
 **Last updated:** 2026-09-23
-**Status:** Both features are implemented and verified green (API tests, web typecheck, production build). The work is **uncommitted** in the working tree. This document is written so another model (or a human) can pick it up with no prior context.
+**Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). This document is written so another model (or a human) can pick it up with no prior context.
 
 ---
 
@@ -30,6 +30,11 @@ cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest t
 
 # Web typecheck — clean
 cd apps/web && npx tsc --noEmit
+
+# Web unit/component tests — 70 pass (Vitest + Testing Library)
+#   report-layout.test.ts    — the catalog + editing helpers (pure logic)
+#   report-card-designer.test.tsx — palette, canvas, inspector, theme, preview
+cd apps/web && npm test
 
 # Web production build — SUCCEEDS (the old "SIGBUS" blocker is gone)
 cd apps/web && NODE_OPTIONS="--max-old-space-size=4096" npx next build
@@ -163,7 +168,10 @@ The features are functionally complete and green. Remaining items are polish and
 1. **Commit the work.** It is entirely uncommitted. Suggested split: (a) conversational copilot, (b) report card templates + designer + migration `0015`, (c) email/config transport hardening (looks unrelated — likely should be its own commit). Per repo convention use the `Generated with Codebuff` footer.
 2. **Manual/browser verification** (not automated): open `/reports/designer`, drag palette→canvas, reorder, edit each widget's settings, switch theme + preview, save, set default, duplicate, delete; then confirm `/reports`, `/settings` and the public portal all render the saved design. Open `/copilot`, ask a question and a follow-up, and confirm the `source` badge shows `rules` when no Groq key is configured.
 3. **Check `/copilot` is reachable for the intended roles** — it needs `ai.copilot` (leadership templates) AND the school's premium/AI plan (`ensure_ai`). Verify the permission is provisioned for the roles in `apps/api/app/seed.py`, and that `useCanCopilot` matches.
-4. **Optional:** add frontend/e2e tests for the designer (there are none — only typecheck/build cover the web side). Backend coverage is good.
+4. ~~Add frontend tests for the designer.~~ **Done** — `apps/web` now uses Vitest (`vitest.config.ts`, `vitest.setup.ts`, `npm test`, 70 tests). Two real bugs were found and fixed in the process:
+   - `report-layout.ts`'s `prop()` compared `typeof raw === fallback` instead of `typeof raw === typeof fallback`, so every stored **string and boolean** setting was silently discarded (custom headings reverted to defaults; every inspector toggle read as off). Numbers still coerced, which is why it slipped through. Fixed + pinned by tests.
+   - The palette said "Drag onto the card, or click to add" but had no click handler. `PaletteItem` now adds on click, with a `droppedRef` guard so the click a completed drop emits is not counted as a second add.
+   Still **not** covered: live drag-and-drop (jsdom can't measure layout) and the reports/settings/portal pages. Those remain manual or e2e work.
 5. **Follow-up idea (not started):** surface the copilot contextually *from* a dashboard widget (management/teacher dashboards already reference copilot) so it appears "in the context of the school" without navigating to `/copilot`.
 
 If you change the widget catalog, remember the two-halves rule: update `WIDGET_TYPES` (Python) **and** `WIDGET_CATALOG` (TS) **and** `ReportCardDocument`'s switch, or a design will be rejected/rendered wrong.

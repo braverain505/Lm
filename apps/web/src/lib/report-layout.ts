@@ -359,7 +359,7 @@ export function prop<T extends string | number | boolean>(
   fallback: T,
 ): T {
   const raw = widget.props?.[key];
-  if (typeof raw === fallback) return raw as T;
+  if (typeof raw === typeof fallback) return raw as T;
   // Numbers arrive from JSONB and from <input> as strings; coerce rather than
   // silently discarding a value the school typed.
   if (typeof fallback === "number" && raw != null && `${raw}`.trim() !== "") {
