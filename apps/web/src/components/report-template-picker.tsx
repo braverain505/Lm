@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Check, Palette, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, Palette } from "lucide-react";
+
+import type { ReportTheme } from "@clearis/shared";
+
+import { REPORT_TEMPLATES, type TemplateId } from "@/lib/report-templates";
 import { cn } from "@/lib/utils";
-import {
-  REPORT_TEMPLATES,
-  getSelectedTemplate,
-  setSelectedTemplate,
-  type TemplateId,
-} from "@/lib/report-templates";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
-function TemplateThumbnail({ template, selected }: { template: (typeof REPORT_TEMPLATES)[number]; selected: boolean }) {
+function ThemeThumbnail({
+  template,
+  selected,
+}: {
+  template: (typeof REPORT_TEMPLATES)[number];
+  selected: boolean;
+}) {
   return (
     <div
       className="relative flex flex-col overflow-hidden rounded-xl border transition-all duration-300"
@@ -32,14 +35,13 @@ function TemplateThumbnail({ template, selected }: { template: (typeof REPORT_TE
       >
         <div className="h-5 w-5 rounded-full border border-white/30 bg-white/20" />
         <div className="flex-1 space-y-1">
-          <div className="h-2 w-20 rounded bg-white/30" style={{ fontFamily: template.preview.fontFamily }} />
+          <div className="h-2 w-20 rounded bg-white/30" />
           <div className="h-1.5 w-14 rounded bg-white/15" />
         </div>
       </div>
 
       {/* Mini body */}
       <div className="flex flex-col gap-2 p-3">
-        {/* Student info mock */}
         <div className="flex gap-2">
           <div className="h-6 w-16 rounded border" style={{ borderColor: template.preview.borderColor }} />
           <div className="flex-1 space-y-1">
@@ -48,7 +50,6 @@ function TemplateThumbnail({ template, selected }: { template: (typeof REPORT_TE
           </div>
         </div>
 
-        {/* Table mock */}
         <div className="space-y-1">
           <div className="flex gap-1">
             {[...Array(4)].map((_, i) => (
@@ -75,52 +76,44 @@ function TemplateThumbnail({ template, selected }: { template: (typeof REPORT_TE
             </div>
           ))}
         </div>
-
-        {/* Summary bar mock */}
-        <div className="flex gap-1">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="h-3 flex-1 rounded"
-              style={{ background: template.accent + "10" }}
-            />
-          ))}
-        </div>
       </div>
 
-      {/* Selected badge */}
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full"
-            style={{ background: template.accent }}
-          >
-            <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {selected && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full"
+          style={{ background: template.accent }}
+        >
+          <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+        </motion.div>
+      )}
     </div>
   );
 }
 
 interface ReportTemplatePickerProps {
-  /** If provided, control externally. Otherwise uses internal state. */
-  value?: TemplateId;
+  /** The theme of the design currently in effect — this is a controlled input. */
+  value: TemplateId;
+  /** Persist the choice. Omit to render the themes read-only. */
   onChange?: (id: TemplateId) => void;
+  disabled?: boolean;
 }
 
-export function ReportTemplatePicker({ value, onChange }: ReportTemplatePickerProps) {
-  const [selected, setSelected] = useState<TemplateId>(value ?? getSelectedTemplate());
-
-  function handleSelect(id: TemplateId) {
-    setSelected(id);
-    setSelectedTemplate(id);
-    onChange?.(id);
-  }
+/**
+ * The card style picker.
+ *
+ * A theme belongs to the school's saved design, so this is controlled and has no
+ * storage of its own: the caller decides whether selecting a style edits the
+ * design (admins) or simply shows which style is in use (everyone else).
+ */
+export function ReportTemplatePicker({
+  value,
+  onChange,
+  disabled = false,
+}: ReportTemplatePickerProps) {
+  const interactive = !!onChange && !disabled;
 
   return (
     <div className="space-y-4">
@@ -129,8 +122,12 @@ export function ReportTemplatePicker({ value, onChange }: ReportTemplatePickerPr
           <Palette className="h-5 w-5 text-violet-600" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-foreground">Report Card Templates</h3>
-          <p className="text-xs text-muted-foreground/60">Choose a visual style for your school&apos;s report cards</p>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">Card style</h3>
+          <p className="text-xs text-muted-foreground/60">
+            {interactive
+              ? "Applies to the school's current report card design, for everyone"
+              : "The style your school's report cards are printed in"}
+          </p>
         </div>
       </div>
 
@@ -138,37 +135,32 @@ export function ReportTemplatePicker({ value, onChange }: ReportTemplatePickerPr
         {REPORT_TEMPLATES.map((template, idx) => (
           <motion.button
             key={template.id}
-            onClick={() => handleSelect(template.id)}
+            type="button"
+            disabled={!interactive}
+            onClick={() => onChange?.(template.id as ReportTheme)}
             className={cn(
               "group relative flex flex-col items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all duration-300",
-              selected === template.id
+              value === template.id
                 ? "border-foreground/20 bg-foreground/[0.02]"
-                : "border-transparent bg-white hover:border-foreground/10 hover:bg-foreground/[0.01] hover:-translate-y-0.5 hover:shadow-lg",
+                : "border-transparent bg-white hover:border-foreground/10 hover:bg-foreground/[0.01]",
+              interactive
+                ? "hover:-translate-y-0.5 hover:shadow-lg"
+                : "cursor-default",
             )}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: idx * 0.08, ease }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={interactive ? { scale: 0.98 } : undefined}
           >
-            <TemplateThumbnail template={template} selected={selected === template.id} />
+            <ThemeThumbnail template={template} selected={value === template.id} />
 
             <div className="w-full">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-foreground">{template.name}</p>
-                {selected === template.id && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary"
-                  >
-                    <Sparkles className="h-2.5 w-2.5" /> Active
-                  </motion.span>
-                )}
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/60">{template.description}</p>
+              <p className="text-sm font-semibold text-foreground">{template.name}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/60">
+                {template.description}
+              </p>
             </div>
 
-            {/* Accent color dot */}
             <div
               className="absolute right-3 top-3 h-3 w-3 rounded-full ring-2 ring-white"
               style={{ background: template.accent }}
@@ -176,6 +168,13 @@ export function ReportTemplatePicker({ value, onChange }: ReportTemplatePickerPr
           </motion.button>
         ))}
       </div>
+
+      {!interactive && (
+        <p className="text-xs text-muted-foreground/60">
+          Only a school admin can change the card style — ask them, or open the Report card
+          designer.
+        </p>
+      )}
     </div>
   );
 }

@@ -1,20 +1,21 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Unlock } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { api } from "@clearis/shared";
+import { api, type ReportTheme } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useReportCardDesign, useCreateReportCardTemplate, useUpdateReportCardTemplate } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { isSchoolAdminRole } from "@/lib/roles";
@@ -34,6 +35,31 @@ export default function SettingsPage() {
 
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // The school's card style lives on its saved report card design, so changing it
+  // here writes the design (everyone's cards then match) rather than a browser
+  // preference.
+  const { data: design } = useReportCardDesign();
+  const updateCardTemplate = useUpdateReportCardTemplate();
+  const createCardTemplate = useCreateReportCardTemplate();
+  const themeBusy = updateCardTemplate.isPending || createCardTemplate.isPending;
+
+  function handleThemeChange(theme: ReportTheme) {
+    if (!design || design.theme === theme || themeBusy) return;
+    const layout = { ...design.layout, theme };
+    const onError = () => toast("Could not update the card style", "error");
+    if (design.template_id) {
+      updateCardTemplate.mutate(
+        { templateId: design.template_id, layout },
+        { onSuccess: () => toast("Card style updated for the school"), onError },
+      );
+      return;
+    }
+    createCardTemplate.mutate(
+      { name: "School report card", layout, is_default: true },
+      { onSuccess: () => toast("Card style saved for the school"), onError },
+    );
+  }
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["sessions"] });
@@ -302,14 +328,23 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Report Card Template */}
+        {/* Report Card Style */}
         <Card className="premium-card">
           <CardHeader>
             <CardTitle className="text-[15px]">Report card style</CardTitle>
-            <CardDescription>Choose the visual template for report cards</CardDescription>
+            <CardDescription>Set the card style, and design the card itself</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ReportTemplatePicker />
+          <CardContent className="space-y-4">
+            <ReportTemplatePicker
+              value={design?.theme ?? "classic"}
+              onChange={handleThemeChange}
+              disabled={themeBusy}
+            />
+            <Button variant="outline" asChild>
+              <Link href="/reports/designer">
+                <LayoutTemplate className="h-4 w-4" /> Design the card (blocks &amp; layout)
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { Download, Files, Printer, X } from "lucide-react";
+import { Download, Files, PenLine, Printer, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
+
+import type { ReportTheme } from "@clearis/shared";
 
 const ease = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -11,17 +13,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+
 import { CommentManager } from "@/components/comment-manager";
 import { ReportCardDocument } from "@/components/report-card-document";
 import { ResultCodeCard } from "@/components/result-codes-card";
-import { useArms, useReportCard, useReportCards, useReportIndex, useSessions, useTerms } from "@/hooks/use-api";
+import {
+  useArms,
+  useCreateReportCardTemplate,
+  useReportCard,
+  useReportCardDesign,
+  useReportCards,
+  useReportIndex,
+  useSessions,
+  useTerms,
+  useUpdateReportCardTemplate,
+} from "@/hooks/use-api";
 import { cn } from "@/lib/utils";
 import { downloadPdf, downloadBulkPdf } from "@/lib/pdf";
 import { useToast } from "@/components/toast";
 import "@/app/report-card.css";
 import "@/app/report-card-templates.css";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
-import { getSelectedTemplate } from "@/lib/report-templates";
 import { useAuth } from "@/providers/auth-provider";
 import { isSchoolAdminRole } from "@/lib/roles";
 import { NoAccess } from "@/components/access-denied";
@@ -70,11 +83,39 @@ function ReportsWorkspace() {
   const [armId, setArmId] = useState("");
   const [studentId, setStudentId] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
-  // Only admins/principals may switch the report-card template; everyone else
-  // always gets the default.
-  const [templateId, setTemplateId] = useState(() =>
-    isAdmin ? getSelectedTemplate() : "classic"
-  );
+
+  // The design every card on this page is drawn in. It comes from the school's
+  // saved template (a card is the school's document, not this browser's), so the
+  // exam office, a teacher and a parent all see the same card.
+  const { data: design } = useReportCardDesign();
+  const updateTemplate = useUpdateReportCardTemplate();
+  const createTemplate = useCreateReportCardTemplate();
+  const themeBusy = updateTemplate.isPending || createTemplate.isPending;
+
+  /**
+   * Change the card style from here.
+   *
+   * A style belongs to the school's saved design, so this writes the design
+   * rather than a browser preference — and a school that has never saved one gets
+   * its first design created from this click, rather than a style that applies to
+   * nothing.
+   */
+  function handleThemeChange(theme: ReportTheme) {
+    if (!design || design.theme === theme || themeBusy) return;
+    const layout = { ...design.layout, theme };
+    const onError = () => toast("Could not update the card style", "error");
+    if (design.template_id) {
+      updateTemplate.mutate(
+        { templateId: design.template_id, layout },
+        { onSuccess: () => toast("Card style updated for the school"), onError },
+      );
+      return;
+    }
+    createTemplate.mutate(
+      { name: "School report card", layout, is_default: true },
+      { onSuccess: () => toast("Card style saved for the school"), onError },
+    );
+  }
 
   const { data: index = [], isLoading: indexLoading } = useReportIndex(armId || null, term?.id ?? null);
   const { data: card, isLoading: cardLoading, error } = useReportCard(studentId, term?.id ?? null);
@@ -266,7 +307,7 @@ function ReportsWorkspace() {
         <ResultCodeCard />
       </div>
 
-      {/* Template picker (admin/principal only, hidden on print) */}
+      {/* Card style + a way into the designer (admin/principal only, hidden on print) */}
       {isAdmin && (
         <motion.div
           className="print:hidden"
@@ -275,8 +316,26 @@ function ReportsWorkspace() {
           transition={{ duration: 0.35, delay: 0.12, ease }}
         >
           <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
-            <CardContent className="py-5">
-              <ReportTemplatePicker value={templateId} onChange={setTemplateId} />
+            <CardContent className="space-y-4 py-5">
+              <ReportTemplatePicker
+                value={design?.theme ?? "classic"}
+                onChange={handleThemeChange}
+                disabled={themeBusy}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-4">
+                <p className="text-xs text-muted-foreground/60">
+                  {design
+                    ? design.builtin
+                      ? "Your cards use the built-in design. Open the designer to make it your own."
+                      : `Your cards use \u201c${design.name}\u201d \u00b7 ${design.layout.widgets.length} blocks`
+                    : "Loading your card design\u2026"}
+                </p>
+                <Button variant="outline" asChild>
+                  <Link href="/reports/designer">
+                    <PenLine className="h-4 w-4" /> Open the designer
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </motion.div>
@@ -349,7 +408,7 @@ function ReportsWorkspace() {
                     if (el) bulkRefs.current.set(c.enrollment_id, el);
                   }}
                 >
-                  <ReportCardDocument card={c} template={`rc-template-${templateId}`} />
+                  <ReportCardDocument card={c} layout={design?.layout} />
                 </div>
               ))}
             </div>
@@ -385,7 +444,7 @@ function ReportsWorkspace() {
               roles keep the existing all-roles view. */}
           <CommentManager card={card} userRole={isHomeroomTeacher ? role : undefined} />
           <div ref={reportCardRef}>
-            <ReportCardDocument card={card} template={`rc-template-${templateId}`} />
+            <ReportCardDocument card={card} layout={design?.layout} />
           </div>
         </motion.div>
       )}

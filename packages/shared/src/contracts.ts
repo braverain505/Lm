@@ -654,6 +654,81 @@ export const QuestionBankInputSchema = z.object({
 });
 export type QuestionBankInput = z.infer<typeof QuestionBankInputSchema>;
 
+// --- Report card designs --------------------------------------------------------
+// The widget catalog is a closed contract: these types are the set the API will
+// accept and the set the renderer knows how to draw. Add one on both sides.
+export const REPORT_WIDGET_TYPES = [
+  "header",
+  "student_info",
+  "cognitive_domain",
+  "psychomotor_domain",
+  "performance_summary",
+  "grading_key",
+  "best_in_subjects",
+  "attendance",
+  "conduct",
+  "next_term",
+  "comments",
+  "signatures",
+  "custom_text",
+  "spacer",
+] as const;
+export type ReportWidgetType = (typeof REPORT_WIDGET_TYPES)[number];
+
+export const REPORT_THEMES = ["classic", "modern", "elegant", "minimal"] as const;
+export type ReportTheme = (typeof REPORT_THEMES)[number];
+
+export const ReportWidgetSchema = z.object({
+  id: z.string().min(1).max(64),
+  type: z.enum(REPORT_WIDGET_TYPES),
+  props: z.record(z.unknown()).default({}),
+  hidden: z.boolean().default(false),
+});
+export type ReportWidget = z.infer<typeof ReportWidgetSchema>;
+
+export const ReportLayoutSchema = z.object({
+  version: z.number().default(1),
+  theme: z.enum(REPORT_THEMES).default("classic"),
+  widgets: z.array(ReportWidgetSchema).min(1).max(40),
+});
+export type ReportLayout = z.infer<typeof ReportLayoutSchema>;
+
+export const ReportCardTemplateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  layout: ReportLayoutSchema,
+  is_default: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type ReportCardTemplate = z.infer<typeof ReportCardTemplateSchema>;
+
+export const ReportCardDesignSchema = z.object({
+  template_id: z.string().uuid().nullable(),
+  name: z.string(),
+  theme: z.enum(REPORT_THEMES),
+  layout: ReportLayoutSchema,
+  builtin: z.boolean(),
+});
+export type ReportCardDesign = z.infer<typeof ReportCardDesignSchema>;
+
+export const ReportCardTemplateInSchema = z.object({
+  name: z.string().min(1).max(80),
+  description: z.string().max(500).nullable().optional(),
+  layout: ReportLayoutSchema,
+  is_default: z.boolean().optional(),
+});
+export type ReportCardTemplateIn = z.infer<typeof ReportCardTemplateInSchema>;
+
+export const ReportCardTemplatePatchSchema = z.object({
+  name: z.string().min(1).max(80).optional(),
+  description: z.string().max(500).nullable().optional(),
+  layout: ReportLayoutSchema.optional(),
+  is_default: z.boolean().optional(),
+});
+export type ReportCardTemplatePatch = z.infer<typeof ReportCardTemplatePatchSchema>;
+
 // --- Public result portal ------------------------------------------------------
 export const SchoolBriefSchema = z.object({
   id: z.string().uuid(),
@@ -681,6 +756,9 @@ export const PinCheckOutSchema = z.object({
   expires_minutes: z.number(),
   student: PinStudentBriefSchema,
   school: SchoolBriefSchema,
+  // The school's own card design, so the parent's copy is the exam office's
+  // copy. Legitimately empty when a school has saved no design.
+  report_template: ReportLayoutSchema.nullable().optional(),
 });
 export type PinCheckOut = z.infer<typeof PinCheckOutSchema>;
 

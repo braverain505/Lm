@@ -34,6 +34,7 @@ from .routers import (
     platform,
     portal,
     question_banks,
+    report_card_templates,
     results,
     roles,
     schools,
@@ -181,7 +182,7 @@ for module in (
     auth, schools, roles, academics, staff, students, results, lesson_plans,
     question_banks, portal, copilot, imports, fees, accounting, attendance,
     timetable, payroll, inventory, library, dashboard, uploads, platform,
-    super_admin,
+    super_admin, report_card_templates,
 ):
     app.include_router(module.router, prefix=API_PREFIX)
 

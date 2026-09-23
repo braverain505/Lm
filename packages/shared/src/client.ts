@@ -78,6 +78,13 @@ import {
   TeacherOutSchema,
   ReportCard,
   ReportCardSchema,
+  ReportCardDesign,
+  ReportCardDesignSchema,
+  ReportCardTemplate,
+  ReportCardTemplateIn,
+  ReportCardTemplateInSchema,
+  ReportCardTemplatePatch,
+  ReportCardTemplateSchema,
   ReportIndexRow,
   ReportIndexRowSchema,
   ResultCell,
@@ -772,6 +779,66 @@ export const fetchReportCards = (schoolId: string, armId: string, termId: string
     {},
     ReportCardSchema.array().parse,
   );
+
+// --- Report card designs (the drag-and-drop builder) ----------------------------
+export const fetchReportCardTemplates = (schoolId: string) =>
+  schoolFetch<ReportCardTemplate[]>(
+    schoolId,
+    "/report-card-templates",
+    {},
+    ReportCardTemplateSchema.array().parse,
+  );
+
+/** The design to draw on this school's cards. Always answers: an unsaved school
+ * gets the built-in card with ``builtin: true``. */
+export const fetchReportCardDesign = (schoolId: string) =>
+  schoolFetch<ReportCardDesign>(
+    schoolId,
+    "/report-card-templates/default",
+    {},
+    ReportCardDesignSchema.parse,
+  );
+
+export const createReportCardTemplate = (schoolId: string, body: ReportCardTemplateIn) =>
+  schoolFetch<ReportCardTemplate>(
+    schoolId,
+    "/report-card-templates",
+    { method: "POST", body: JSON.stringify(ReportCardTemplateInSchema.parse(body)) },
+    ReportCardTemplateSchema.parse,
+  );
+
+export const updateReportCardTemplate = (
+  schoolId: string,
+  templateId: string,
+  body: ReportCardTemplatePatch,
+) =>
+  schoolFetch<ReportCardTemplate>(
+    schoolId,
+    `/report-card-templates/${templateId}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+    ReportCardTemplateSchema.parse,
+  );
+
+export const setDefaultReportCardTemplate = (schoolId: string, templateId: string) =>
+  schoolFetch<ReportCardTemplate>(
+    schoolId,
+    `/report-card-templates/${templateId}/default`,
+    { method: "POST" },
+    ReportCardTemplateSchema.parse,
+  );
+
+export const duplicateReportCardTemplate = (schoolId: string, templateId: string) =>
+  schoolFetch<ReportCardTemplate>(
+    schoolId,
+    `/report-card-templates/${templateId}/duplicate`,
+    { method: "POST" },
+    ReportCardTemplateSchema.parse,
+  );
+
+export const deleteReportCardTemplate = (schoolId: string, templateId: string) =>
+  schoolFetch<void>(schoolId, `/report-card-templates/${templateId}`, {
+    method: "DELETE",
+  });
 
 const reportCommentPath = (studentId: string, termId: string) =>
   `/results/${studentId}/comment?term_id=${termId}`;
@@ -2149,6 +2216,13 @@ export const api = {
   fetchReportIndex,
   fetchReportCard,
   fetchReportCards,
+  fetchReportCardDesign,
+  fetchReportCardTemplates,
+  createReportCardTemplate,
+  updateReportCardTemplate,
+  setDefaultReportCardTemplate,
+  duplicateReportCardTemplate,
+  deleteReportCardTemplate,
   fetchResultComment,
   generateResultComment,
   generateRoleComment,

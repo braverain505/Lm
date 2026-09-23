@@ -8,12 +8,23 @@
 // Both the check-in form (on /login) and the card viewer (/check-result) speak
 // this module, so the shape lives in exactly one place.
 
+import type { ReportLayout } from "@clearis/shared";
+
 const KEY = "clearis.portal.session";
 
 export type PortalSession = {
   token: string;
   student: { student_id: string; admission_no: string; full_name: string };
   school: { id: string; name: string; slug: string };
+  /**
+   * The school's report card design, handed back with the check-in.
+   *
+   * It rides on the session rather than on each card because it is school-wide:
+   * one check-in, one design. That is what makes a parent's copy and the exam
+   * office's copy the same document (previously the viewer picked a style from
+   * this browser's localStorage, so they could differ).
+   */
+  report_template?: ReportLayout | null;
 };
 
 export function savePortalSession(session: PortalSession): void {

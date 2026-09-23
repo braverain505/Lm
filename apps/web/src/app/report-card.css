@@ -584,6 +584,113 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * Designer-only blocks: attendance / conduct, signature block, custom
+ * text note and spacer. These are the widgets a school adds from the
+ * drag-and-drop palette, so they style off the same theme variables and
+ * print like every other block.
+ * ------------------------------------------------------------------ */
+.rc-block {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--rc-line);
+  border-left: 4px solid var(--rc-navy);
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rc-block-head h3 {
+  margin: 0;
+  font-family: var(--rc-serif);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+}
+
+.rc-block-head p {
+  margin: 2px 0 0;
+  font-size: 8px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--rc-muted);
+}
+
+.rc-block-value {
+  margin: 0;
+  font-family: var(--rc-serif);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--rc-navy);
+}
+
+.rc-block-value.rc-block-text {
+  font-size: 13px;
+  text-align: right;
+}
+
+.rc-conduct {
+  border-left-color: var(--rc-green);
+}
+
+.rc-signblock {
+  margin-top: 10px;
+}
+
+.rc-signblock > h3 {
+  margin: 0 0 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--rc-cream-deep);
+  font-family: var(--rc-serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+}
+
+.rc-signgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 0 10px 4px;
+}
+
+.rc-note {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px dashed var(--rc-line);
+  border-radius: 6px;
+  background: var(--rc-cream);
+}
+
+.rc-note h3 {
+  margin: 0 0 4px;
+  font-family: var(--rc-serif);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--rc-navy-soft);
+}
+
+.rc-note p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--rc-ink);
+}
+
+.rc-spacer {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ *
  * Print: A4 portrait, chrome stripped, colors kept
  * ------------------------------------------------------------------ */
 @page {
@@ -647,7 +754,10 @@
   .rc-grading,
   .rc-summary,
   .rc-next,
-  .rc-comment {
+  .rc-comment,
+  .rc-block,
+  .rc-signblock,
+  .rc-note {
     break-inside: avoid;
   }
 

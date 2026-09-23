@@ -25,7 +25,7 @@ SUPER = "/api/superadmin"
 
 def _create_platform_admin(db):
     user = User(
-        email=f"clearis-admin-{uuid.uuid4().hex[:8]}@clearis.app",
+        email=f"clearis-admin-{uuid.uuid4().hex[:8]}@clearis.site",
         password_hash=hash_password("Str0ng!Pass"),
         full_name="Clearis Admin",
         is_superadmin=True,

@@ -42,6 +42,10 @@ import type {
   PromotionRequest,
   ReadyRow,
   ReportCard,
+  ReportCardDesign,
+  ReportCardTemplate,
+  ReportCardTemplateIn,
+  ReportCardTemplatePatch,
   ReportIndexRow,
   ResultCell,
   ResultComment,
@@ -550,6 +554,112 @@ export function useResultComment(studentId: string | null, termId: string | null
     enabled: !!schoolId && !!studentId && !!termId,
     queryFn: async () => api.fetchResultComment(schoolId!, studentId!, termId!),
     retry: false, // 404 = not generated yet; don't retry a clean absence
+  });
+}
+
+// --- Report card designs --------------------------------------------------------
+// The design the renderers draw with. A school that has saved none gets the
+// built-in card (``builtin: true``), so this never has to be conditionally
+// fetched — the layout is always present.
+export function useReportCardDesign() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["report-card-design", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchReportCardDesign(schoolId!),
+  });
+}
+
+/** Every design the school has saved — the designer's template list. */
+export function useReportCardTemplates() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["report-card-templates", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchReportCardTemplates(schoolId!),
+  });
+}
+
+/**
+ * Invalidate everything a design change can affect: the designer's list, the
+ * design renderers draw with, and every open report card (which must redraw in
+ * the school's new layout immediately).
+ */
+function useInvalidateReportCardDesigns() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of [
+      "report-card-templates",
+      "report-card-design",
+      "report-card",
+      "report-cards",
+    ]) {
+      void queryClient.invalidateQueries({ queryKey: [key, schoolId] });
+    }
+  };
+}
+
+export function useCreateReportCardTemplate() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateReportCardDesigns();
+  return useMutation({
+    mutationFn: (input: ReportCardTemplateIn) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.createReportCardTemplate(schoolId, input);
+    },
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useUpdateReportCardTemplate() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateReportCardDesigns();
+  return useMutation({
+    mutationFn: ({
+      templateId,
+      ...body
+    }: ReportCardTemplatePatch & { templateId: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateReportCardTemplate(schoolId, templateId, body);
+    },
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useSetDefaultReportCardTemplate() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateReportCardDesigns();
+  return useMutation({
+    mutationFn: (templateId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.setDefaultReportCardTemplate(schoolId, templateId);
+    },
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useDuplicateReportCardTemplate() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateReportCardDesigns();
+  return useMutation({
+    mutationFn: (templateId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.duplicateReportCardTemplate(schoolId, templateId);
+    },
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useDeleteReportCardTemplate() {
+  const schoolId = useActiveSchoolId();
+  const invalidate = useInvalidateReportCardDesigns();
+  return useMutation({
+    mutationFn: (templateId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteReportCardTemplate(schoolId, templateId);
+    },
+    onSuccess: () => invalidate(),
   });
 }
 

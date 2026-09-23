@@ -76,7 +76,18 @@ class PinTermBrief(BaseModel):
 
 
 class PinCheckOut(BaseModel):
+    """What a correct result code unlocks.
+
+    ``report_template`` carries the school's own report-card design (its layout
+    document, ``{}`` when the school has never saved one) so the public portal
+    draws the *same* card the exam office printed. It rides on this response
+    rather than on each card because it is school-wide and therefore only worth
+    sending once per session; a parent and the exam office must never see two
+    different cards for one child.
+    """
+
     token: str
     expires_minutes: int = 30
     student: PinStudentBrief
     school: SchoolBrief
+    report_template: dict = Field(default_factory=dict)

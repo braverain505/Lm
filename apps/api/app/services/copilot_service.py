@@ -1,36 +1,47 @@
-"""School copilot: deterministic, data-grounded Q&A over a school's own data.
+"""School copilot: conversational, data-grounded Q&A over a school's own data.
 
-The final Phase 2 roadmap item. Like the other AI engines it honors "no fake
-implementations":
+Each turn is answered in two layers, and the layering *is* the design:
 
-* Local + deterministic: a catalog of question *intents* resolvable from the
-  school's real rows (counts, enrollments, offerings, published results). Every
-  answer is composed from actual numbers — nothing is invented or random.
-* Honest about its limits: a question the engine can't resolve to a recognized
-  intent is answered with a plain "I couldn't understand — here's what I can
-  answer" (plus example phrasings), never a fabricated number.
-* Published-only for performance questions: top performers, subject averages,
-  term summaries and student reports read exclusively from the frozen
-  ``published_snapshot`` of ``Result`` rows at ``published`` status — the same
-  record report cards and the public portal render. Entry-progress questions
-  (readiness) read live score counts by design.
-* Metered exactly like slices 4–6: each assistant turn writes one ``AiUsage``
-  row + one monthly ``UsageMeter`` bump under feature ``ai.copilot`` via
-  ``ai_service._meter_inc``. Wiring a real LLM later only swaps the
-  composition function; permissions, storage, and telemetry stay.
+1. **The rules engine resolves facts.** A catalog of question *intents*
+   (counts, enrollments, offerings, published results) is resolved against the
+   school's real rows and composed into an answer with actual numbers — nothing
+   invented or random. This is also what pins the conversation's context slots
+   (arm / subject / student / term), so follow-ups like "what about English?"
+   or "how many boys?" resolve against prior answers.
+2. **An LLM writes the answer**, given those resolved facts as its grounding
+   brief. It may phrase things conversationally and answer questions the intent
+   catalog has no handler for, but every number it is allowed to know comes from
+   step 1 — the prompt forbids inventing any, and the school's real counts,
+   arms, subjects, score-entry progress and published performance ride along in
+   the brief.
 
-Conversations carry context: last-resolved slots (arm / subject /
-student / term) persist between turns so follow-ups like "what about English?"
-or "how many boys?" resolve against prior answers.
+When there is no LLM configured, the provider fails, times out, or returns
+something unusable, the turn falls back to the deterministic text from step 1.
+That fallback is not a degraded mode — it is the documented offline behaviour,
+which is why the intent tests still pin it exactly.
+
+Published-only for performance questions: top performers, subject averages,
+term summaries and student reports read exclusively from the frozen
+``published_snapshot`` of ``Result`` rows at ``published`` status — the same
+record report cards and the public portal render. Entry-progress questions
+(readiness) read live score counts by design.
+
+Metered exactly like the other AI engines: each assistant turn writes one
+``AiUsage`` row + one monthly ``UsageMeter`` bump under feature ``ai.copilot``
+via ``ai_service._meter_inc``, carrying the real provider/model/token counts
+when an LLM produced the text. The answer's ``source`` (``llm`` or ``rules``) is
+recorded in ``answer_payload`` so the UI can say which one answered.
 """
 from __future__ import annotations
 
+import json
+import logging
 import re
 import time
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..core.errors import NotFoundError, ValidationError
@@ -47,6 +58,7 @@ from ..models import (
 )
 from ..models.enums import ResultStatus
 from .ai_service import AI_FEATURE_COPILOT, _check_ai_quota, _meter_inc
+from .llm_client import complete_text
 from .academics_service import (
     current_term,
     get_term,
@@ -55,6 +67,8 @@ from .academics_service import (
 )
 from .people_service import list_enrollments, list_staff, list_students
 from .results_service import readiness_for_term
+
+logger = logging.getLogger(__name__)
 
 # ----------------------------------------------------------------------------
 # Matching helpers
@@ -730,6 +744,218 @@ def _answer(
 # ----------------------------------------------------------------------------
 
 
+# ----------------------------------------------------------------------------
+# The LLM layer: the rules engine supplies the facts, the model writes it up
+# ----------------------------------------------------------------------------
+
+# The brief is a prompt, so it is bounded on purpose: a school with 60 arms and
+# 90 subjects must not turn one question into a 200 KB request (and a bill).
+_MAX_ARMS_IN_BRIEF = 30
+_MAX_SUBJECTS_IN_BRIEF = 40
+_MAX_HISTORY_TURNS = 6
+_MAX_HISTORY_CHARS = 300
+_MAX_ANSWER_CHARS = 2000
+
+_COPILOT_SYSTEM = (
+    "You are the Clearis school copilot, answering questions about ONE school "
+    "from the records supplied in the brief below.\n\n"
+    "Absolute rules:\n"
+    "1. Every number, name and figure you state MUST come from the brief. Never "
+    "estimate, never extrapolate, never invent one — not even a plausible "
+    "example.\n"
+    "2. If the brief does not contain what is being asked, say plainly that you "
+    "do not have that information, then name one or two things you *can* answer "
+    "from the brief.\n"
+    "3. Performance figures (scores, averages, positions, published cards) "
+    "reflect only PUBLISHED results. Say so when it matters; a subject with no "
+    "published scores is not a subject with a score of zero.\n"
+    "4. Answer in 1 to 4 sentences of clear British English. Plain text only — "
+    "no markdown, no headings, no bullet characters, no code fences.\n"
+    "5. Address the question asked. Do not summarise the whole brief."
+)
+
+
+def _class_arms_for_brief(
+    db: Session, school_id: uuid.UUID
+) -> list[tuple[ClassArm, int]]:
+    """Each class arm with its live enrollment count, ordered by name.
+
+    Counted from live enrollments rather than read off a cached total, so the
+    brief can never disagree with the counts the intents report. One grouped
+    query rather than one per arm: the brief is built on every turn, and a
+    school with sixty arms must not cost sixty round-trips.
+    """
+    counts = dict(
+        db.execute(
+            select(StudentEnrollment.class_arm_id, func.count())
+            .where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.is_current.is_(True),
+                StudentEnrollment.status == "active",
+            )
+            .group_by(StudentEnrollment.class_arm_id)
+        ).all()
+    )
+    arms = sorted(
+        db.scalars(select(ClassArm).where(ClassArm.school_id == school_id)),
+        key=lambda a: a.full_name,
+    )
+    return [(arm, int(counts.get(arm.id, 0))) for arm in arms[:_MAX_ARMS_IN_BRIEF]]
+
+
+def _grounding_brief(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term: Term | None,
+    deterministic_text: str,
+    deterministic_payload: dict,
+) -> str:
+    """The school's real facts, as plain text, for one prompt.
+
+    Everything the model is permitted to state lives in here: the counts, the
+    class arms, the subjects, this term's score-entry progress and the resolved
+    facts behind the rules answer. Nothing is derived or guessed — each line is
+    read from the school's own rows.
+    """
+    from ..models import School
+
+    school = db.get(School, school_id)
+    name = school.name if school is not None else "this school"
+    school_type = school.school_type if school is not None else "school"
+
+    lines: list[str] = [f"School name: {name} ({school_type})"]
+
+    current = db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.school_id == school_id,
+            AcademicSession.is_current.is_(True),
+        )
+    )
+    if current is not None:
+        lines.append(f"Current academic session: {current.name}")
+
+    students = len(list_students(db, school_id))
+    teachers = len(list_staff(db, school_id, membership_type="teaching"))
+    subjects = list_subjects(db, school_id)
+    lines.append(
+        f"Totals: {students} enrolled students, {teachers} teaching staff, "
+        f"{len(subjects)} subjects"
+    )
+
+    arms = _class_arms_for_brief(db, school_id)
+    if arms:
+        joined = "; ".join(f"{arm.full_name} ({count} students)" for arm, count in arms)
+        lines.append(f"Class arms: {joined}")
+    else:
+        lines.append("Class arms: none set up")
+
+    if subjects:
+        shown = [s.name for s in subjects[:_MAX_SUBJECTS_IN_BRIEF]]
+        suffix = "" if len(subjects) <= _MAX_SUBJECTS_IN_BRIEF else ", …"
+        lines.append(f"Subjects: {', '.join(shown)}{suffix}")
+
+    if term is not None:
+        lines.append(f"Term in scope: {term.name}")
+        try:
+            readiness = readiness_for_term(db, school_id, term.id)
+        except Exception:  # pragma: no cover - readiness is best-effort context
+            logger.warning("Copilot brief: readiness unavailable", exc_info=True)
+            readiness = []
+        by_arm: dict[str, dict[str, int]] = {}
+        for row in readiness:
+            agg = by_arm.setdefault(
+                row["arm_name"], {"students": 0, "entered": 0, "submitted": 0}
+            )
+            agg["students"] += row["student_count"]
+            agg["entered"] += row["entered"]
+            agg["submitted"] += row["submitted"]
+        if by_arm:
+            lines.append(
+                "Score entry for this term: "
+                + "; ".join(
+                    f"{arm}: {agg['entered']}/{agg['students']} students entered, "
+                    f"{agg['submitted']} submitted"
+                    for arm, agg in sorted(by_arm.items())
+                )
+            )
+        else:
+            lines.append("Score entry for this term: nothing entered yet")
+
+    lines.append(
+        "Facts the school's own rules engine resolved for this exact question "
+        "(treat as authoritative):"
+    )
+    lines.append(f"  answer: {deterministic_text}")
+    lines.append("  payload: " + json.dumps(deterministic_payload, default=str)[:4000])
+    lines.append(
+        "If the payload's intent is 'unknown', the rules engine could not match "
+        "the question — answer from the school facts above, or say you do not "
+        "have it."
+    )
+    return "\n".join(lines)
+
+
+def _history_for_prompt(messages: list[CopilotMessage]) -> str:
+    """The last few turns, so follow-ups read naturally.
+
+    Bounded twice (turn count and per-message characters) because the thread
+    grows without limit and the prompt must not.
+    """
+    recent = [m for m in messages[-(_MAX_HISTORY_TURNS * 2) :] if m.content]
+    if not recent:
+        return "(this is the first question in the conversation)"
+    lines = []
+    for message in recent:
+        who = "User" if message.role == "user" else "Copilot"
+        text = " ".join(message.content.split())[:_MAX_HISTORY_CHARS]
+        lines.append(f"{who}: {text}")
+    return "\n".join(lines)
+
+
+def _llm_answer(
+    *,
+    question: str,
+    brief: str,
+    history: str,
+) -> tuple[str, str, int, int, int, str] | None:
+    """One Groq attempt at the conversational answer.
+
+    Returns ``(text, model, tokens_in, tokens_out, latency_ms, provider)``, or
+    ``None`` for every failure mode — no key, network error, timeout, or an
+    answer that fails the honesty checks below. A caller that gets ``None`` uses
+    the deterministic text, which is the documented offline behaviour.
+    """
+    from ..config import settings
+
+    if not settings.groq_api_key:
+        return None
+
+    user = (
+        f"Conversation so far:\n{history}\n\n"
+        f"Current question: {question}\n\n"
+        f"--- SCHOOL BRIEF (the only facts you may use) ---\n{brief}\n"
+        f"--- END BRIEF ---\n\n"
+        f"Answer the current question now."
+    )
+    res = complete_text(
+        system=_COPILOT_SYSTEM,
+        user=user,
+        temperature=0.2,
+        max_tokens=700,
+    )
+    if res is None:
+        return None
+    text = " ".join(res.text.split())
+    # Reject rather than repair: a rambling or truncated answer is a worse
+    # document than the deterministic one, and a very short one is usually the
+    # model deflecting the whole brief.
+    if len(text) < 20 or len(text) > _MAX_ANSWER_CHARS:
+        logger.warning("Copilot LLM answer unusable (len=%d); falling back", len(text))
+        return None
+    return text, res.model, res.tokens_in, res.tokens_out, res.latency_ms, "groq"
+
+
 def _title_for(question: str) -> str:
     words = question.split()
     title = " ".join(words[:7])
@@ -749,8 +975,15 @@ def ask_copilot(
 ) -> tuple[CopilotConversation, CopilotMessage]:
     """Append one turn to a conversation (creating it if needed) and answer.
 
-    Stores the user question + the assistant answer (with intent + payload),
-    then meters the assistant turn exactly once under ``ai.copilot``.
+    Two layers per turn: the rules engine resolves the question to facts (and
+    pins the context slots follow-ups depend on), then the LLM phrases the
+    answer from those facts — falling back to the rules text whenever the model
+    is unavailable or its output is unusable.
+
+    Stores the user question + the assistant answer (with intent + payload and
+    which layer produced the text), then meters the assistant turn exactly once
+    under ``ai.copilot``, carrying the real provider/model/token counts when an
+    LLM produced it.
     """
     question = (question or "").strip()
     if not question:
@@ -777,21 +1010,67 @@ def ask_copilot(
         db.add(conversation)
         db.flush()
 
-    db.add(
+    # The prior turns, read BEFORE this question is written, so the prompt can
+    # append the current turn exactly once.
+    history = conversation_messages(db, conversation)
+
+    pending_user_turns = [
         CopilotMessage(
             school_id=school_id,
             conversation_id=conversation.id,
             role="user",
             content=question,
         )
-    )
+    ]
+    db.add(pending_user_turns[0])
+    db.flush()
+
     term = _resolve_term(db, school_id, question, conversation.term_id)
     started = time.perf_counter()
-    intent, text, payload, new_ctx = _answer(
+
+    # Layer 1 — the rules engine. Always runs: it is both the offline answer and
+    # the grounding brief the model is allowed to reason from, and it is what
+    # advances the conversation's context slots.
+    intent, rules_text, payload, new_ctx = _answer(
         db, school_id, question=question, term=term, context=conversation.context or {}
     )
-    latency_ms = int((time.perf_counter() - started) * 1000)
     conversation.context = new_ctx
+
+    # Layer 2 — the LLM writes the answer up, grounded on layer 1.
+    text = rules_text
+    provider = None
+    model = None
+    tokens_in = None
+    tokens_out = None
+    source = "rules"
+    try:
+        brief = _grounding_brief(
+            db,
+            school_id,
+            term=term,
+            deterministic_text=rules_text,
+            deterministic_payload=payload,
+        )
+        llm = _llm_answer(
+            question=question,
+            brief=brief,
+            history=_history_for_prompt([*history, *pending_user_turns]),
+        )
+    except Exception:  # a brief or a provider must never fail the turn
+        logger.exception("Copilot LLM layer failed; using the rules answer")
+        llm = None
+    if llm is not None:
+        text, model, tokens_in, tokens_out, _llm_latency, provider = llm
+        source = "llm"
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    # The resolved facts travel with the answer either way, so the UI can render
+    # its cards and so `source` records which layer produced the prose.
+    payload = {**payload, "source": source}
+    if model:
+        payload["model"] = model
+
     message = CopilotMessage(
         school_id=school_id,
         conversation_id=conversation.id,
@@ -801,7 +1080,16 @@ def ask_copilot(
         answer_payload=payload,
     )
     db.add(message)
-    _meter_inc(db, school_id, actor_id, AI_FEATURE_COPILOT, question, text, latency_ms)
+    _meter_inc(
+        db,
+        school_id,
+        actor_id,
+        AI_FEATURE_COPILOT,
+        question,
+        text,
+        latency_ms,
+        **({"provider": provider, "model": model, "tokens_in": tokens_in, "tokens_out": tokens_out} if provider else {}),
+    )
     db.flush()
     return conversation, message
 

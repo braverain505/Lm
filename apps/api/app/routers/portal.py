@@ -29,7 +29,7 @@ from ..schemas.portal import (
     SchoolPinCheck,
 )
 from ..schemas.results import ReportCard
-from ..services import portal_service
+from ..services import portal_service, report_card_service
 
 router = APIRouter(prefix="/public", tags=["public"])
 
@@ -69,6 +69,10 @@ def result_check(body: SchoolPinCheck, request: Request, db: DbSession):
         token=portal_service.portal_token(school, student),
         student=_student_brief(student),
         school=_school_brief(school),
+        # The school's own card design, so a parent's copy and the exam
+        # office's copy are the same document. Read here (not per card) because
+        # it is school-wide and this response happens once per portal session.
+        report_template=report_card_service.default_layout(db, school.id),
     )
 
 

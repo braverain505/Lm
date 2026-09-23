@@ -1,18 +1,25 @@
 /**
- * Report Card Template System
+ * Report card visual themes.
  *
- * Schools can choose from different report card visual styles.
- * Templates are stored in localStorage and applied via CSS class on the report card sheet.
+ * A theme is a *property of a school's saved design* (``layout.theme``), not a
+ * browser preference — this file only describes what each one looks like so the
+ * designer can draw its swatches and previews. The styles themselves live in
+ * ``report-card-templates.css`` under ``.rc-template-<id>``.
+ *
+ * The four here are the ones the app shipped with, so a school that liked its
+ * old card keeps it: the designer's "Classic" theme renders exactly what the
+ * hardcoded card did.
  */
+import type { ReportTheme } from "@clearis/shared";
 
-export type TemplateId = "classic" | "modern" | "elegant" | "minimal";
+export type TemplateId = ReportTheme;
 
 export interface ReportTemplate {
   id: TemplateId;
   name: string;
   description: string;
-  accent: string;       // Primary accent color for preview thumbnail
-  accentLight: string;  // Lighter variant for bg
+  accent: string;       // Primary accent color for the swatch
+  accentLight: string;  // Lighter variant for backgrounds
   preview: {
     headerBg: string;
     headerText: string;
@@ -81,31 +88,7 @@ export const REPORT_TEMPLATES: ReportTemplate[] = [
   },
 ];
 
-const STORAGE_KEY = "clearis.report_template";
-
-/** Get the currently selected template ID. Falls back to "classic". */
-export function getSelectedTemplate(): TemplateId {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && REPORT_TEMPLATES.some((t) => t.id === stored)) {
-      return stored as TemplateId;
-    }
-  } catch {
-    /* SSR or storage unavailable */
-  }
-  return "classic";
-}
-
-/** Save the selected template ID to localStorage. */
-export function setSelectedTemplate(id: TemplateId): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, id);
-  } catch {
-    /* SSR or storage unavailable */
-  }
-}
-
-/** Get a template definition by ID. */
+/** Get a theme definition by ID (falls back to the first). */
 export function getTemplate(id: TemplateId): ReportTemplate {
   return REPORT_TEMPLATES.find((t) => t.id === id) ?? REPORT_TEMPLATES[0];
 }

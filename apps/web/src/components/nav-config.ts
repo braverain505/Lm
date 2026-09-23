@@ -13,6 +13,7 @@ import {
   GraduationCap,
   HelpCircle,
   LayoutDashboard,
+  LayoutTemplate,
   ListChecks,
   MessageSquareText,
   MonitorPlay,
@@ -147,6 +148,15 @@ export const PANEL_SECTIONS: NavSection[] = [
       // decides, with no role list to drift out of sync.
       { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.enter" },
       { href: "/reports", label: "Report Cards", icon: FileText, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
+      // Designing the card is `school.manage`, so this link is the admin's half
+      // of the same feature. The API enforces it on every write.
+      {
+        href: "/reports/designer",
+        label: "Card Designer",
+        icon: LayoutTemplate,
+        perm: "school.manage",
+        roles: ["super_admin", "director", "admin", "principal"],
+      },
     ],
   },
   {
@@ -254,6 +264,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
   "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
+  "/reports/designer": { title: "Report Card Designer", breadcrumb: "Result Generation" },
   "/attendance": { title: "Attendance", breadcrumb: "Academics" },
   "/timetable": { title: "Timetable", breadcrumb: "Academics" },
   "/billing": { title: "Fees & Billing", breadcrumb: "Finance" },

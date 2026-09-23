@@ -133,6 +133,9 @@ export default function LoginPage() {
         token: session.token,
         student: session.student,
         school: session.school,
+        // The school's own card design, so the parent sees the card the school
+        // printed rather than one this browser happened to have chosen.
+        report_template: session.report_template ?? null,
       });
       router.push("/check-result");
     } catch (e) {

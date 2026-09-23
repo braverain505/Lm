@@ -73,6 +73,7 @@ from .results import (  # noqa: F401
     Score,
 )
 from .portal import SchoolResultPin, StudentResultCode  # noqa: F401
+from .report_card import ReportCardTemplate  # noqa: F401
 from .copilot import CopilotConversation, CopilotMessage  # noqa: F401
 from .imports import ImportBatch, ImportRow  # noqa: F401
 from .crosscut import (  # noqa: F401
@@ -154,6 +155,7 @@ __all__ = [
     "CommentBankEntry",
     "SchoolResultPin",
     "StudentResultCode",
+    "ReportCardTemplate",
     "CopilotConversation",
     "CopilotMessage",
     "ImportBatch",

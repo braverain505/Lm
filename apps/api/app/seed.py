@@ -616,7 +616,9 @@ def seed_demo_data(db: Session, school_id: uuid.UUID) -> None:
     db.flush()
 
 
-PLATFORM_ADMIN_EMAIL = "admin@clearis.app"
+# On the deployment's own domain (clearis.site), not a placeholder: this is a
+# real login, so a password reset for it has to be able to arrive somewhere.
+PLATFORM_ADMIN_EMAIL = "admin@clearis.site"
 PLATFORM_ADMIN_PASSWORD = os.getenv("SEED_PLATFORM_PASSWORD", "Clearis#2026")
 PLATFORM_ADMIN_NAME = "Clearis Platform Admin"
 

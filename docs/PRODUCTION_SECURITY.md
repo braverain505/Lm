@@ -257,10 +257,10 @@ either way. Four messages are wired up:
 |---|---|
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` | The Clearis mailbox the onboarding mail leaves from. With Gmail, `SMTP_PASSWORD` is a **16-character App Password** (create it after enabling 2-Step Verification) — the account's normal password is rejected. Gmail's daily sending limit applies: a free account handles a few hundred recipients a day, not thousands of onboarding emails. |
 | `RESEND_API_KEY` | The other transport, and the `auto` fallback. Needs a sending domain you own with SPF/DKIM records; it **cannot** send from a `gmail.com` address. |
-| `EMAIL_TRANSPORT` | `auto` (default) picks SMTP when the three vars above are set, then Resend. Pin `smtp` or `resend` when both are configured, so a leftover account cannot silently win. |
+| `EMAIL_TRANSPORT` | `auto` (default) picks SMTP when the three vars above are set, then Resend. Pin `smtp` or `resend` when both are configured, so a leftover account cannot silently win. **On a host that blocks outbound SMTP (Render free web services block ports 25/465/587) pin `resend`:** `auto` prefers a configured SMTP block and would fail on every send with `[Errno 101] Network is unreachable`. |
 | `OWNER_ALERT_EMAIL` | Where the internal "a new school registered" notice goes. Blank disables it. |
 | `WEB_BASE_URL` | Public origin of the web app. Reset links and the welcome email's sign-in/dashboard buttons are built from it. Defaults to `http://localhost:3000`, which is **wrong in production** — set it or every reset email links to localhost. |
-| `EMAIL_FROM` / `EMAIL_REPLY_TO` | Resend-only: verified sender, and where replies land. Defaults to `Clearis <no-reply@clearis.app>`. |
+| `EMAIL_FROM` / `EMAIL_REPLY_TO` | Resend-only: verified sender, and where replies land. Defaults to `Clearis <no-reply@clearis.site>`. Must be on the domain verified with Resend; a reply-to of your real inbox keeps the "just reply to this email" promise true without a mailbox on that domain. |
 | `DEV_EMAIL=false` | Already enforced by `validate_production_config()`. |
 
 With no transport configured, production sends raise `503

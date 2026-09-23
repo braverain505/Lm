@@ -25,7 +25,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { PinTermBrief, ReportCard } from "@clearis/shared";
+import type { PinTermBrief, ReportCard, ReportLayout } from "@clearis/shared";
 import { api } from "@clearis/shared";
 
 import { FlintwireCredit } from "@/components/flintwire-credit";
@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { downloadPdf } from "@/lib/pdf";
 import { clearPortalSession, readPortalSession, type PortalSession } from "@/lib/portal-session";
-import { getSelectedTemplate } from "@/lib/report-templates";
+
 import "@/app/report-card.css";
 import "@/app/report-card-templates.css";
 
@@ -65,8 +65,9 @@ export default function CheckResultPage() {
   const [cardLoading, setCardLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
-  // Read on the client so the server render and the first client render agree.
-  const [template, setTemplate] = useState("classic");
+  // The school's card design, read on the client with the session so the server
+  // render and the first client render agree.
+  const [design, setDesign] = useState<ReportLayout | null>(null);
 
   // 1. Establish the session. Without a token there is nothing to show, and the
   //    check-in form (on /login) is the only way to get one.
@@ -77,7 +78,7 @@ export default function CheckResultPage() {
       return;
     }
     setSession(stored);
-    setTemplate(getSelectedTemplate());
+    setDesign(stored.report_template ?? null);
     setReady(true);
   }, [router]);
 
@@ -382,7 +383,7 @@ export default function CheckResultPage() {
                 className="rc-print-page"
               >
                 <div ref={stageRef} className="report-card-stage">
-                  <ReportCardDocument card={card} template={`rc-template-${template}`} />
+                  <ReportCardDocument card={card} layout={design} />
                 </div>
               </motion.div>
             )}

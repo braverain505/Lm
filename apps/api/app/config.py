@@ -103,8 +103,16 @@ class Settings(BaseSettings):
     # transport is configured, sending is skipped in development (the email is
     # logged instead) and refused with a clear error in production — receipts
     # must never be silently "sent".
+    #
+    # This is the only transport that survives a host which blocks outbound
+    # SMTP (Render's free web services block 25/465/587): it is plain HTTPS on
+    # 443. Pin EMAIL_TRANSPORT=resend on such a host — "auto" would otherwise
+    # pick a configured-but-unreachable SMTP account.
     resend_api_key: str = ""
-    email_from: str = "Clearis <no-reply@clearis.app>"
+    # Must be on the domain verified with Resend, or every send is rejected.
+    # This is the deployment's own domain, not the platform inbox: no mailbox
+    # has to exist behind it, only the DNS records Resend asks for.
+    email_from: str = "Clearis <no-reply@clearis.site>"
     email_reply_to: str = ""
     email_timeout_seconds: float = 20.0
 

@@ -12,6 +12,13 @@ Two transports, selected by ``EMAIL_TRANSPORT`` (``auto`` by default):
   enabling receipts-by-email needs a key and nothing else installed. SMTP needs
   no dependency at all: everything it uses ships with Python.
 
+On a host that blocks outbound SMTP (Render's free web services block ports
+25, 465 and 587) the SMTP transport cannot work at all — the connection never
+leaves the machine and fails as ``OSError`` / ``[Errno 101] Network is
+unreachable``. Nothing about the account or its App Password is at fault and no
+setting changes it. Pin ``EMAIL_TRANSPORT=resend`` there: the HTTP transport is
+plain HTTPS on 443 and is unaffected.
+
 Degradation is explicit, never silent:
 
 * **No transport configured, development** (``dev_email=True``): the email is
