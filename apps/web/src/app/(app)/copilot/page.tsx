@@ -1,7 +1,7 @@
 "use client";
 
-import { Bot, MessageSquare, Plus, Send, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Bot, MessageSquare, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 import type { CopilotMessage } from "@clearis/shared";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   useConversation,
   useConversations,
   useCopilotIntents,
+  useDeleteConversation,
   useSessions,
   useTerms,
 } from "@/hooks/use-api";
@@ -110,7 +111,7 @@ function PayloadCard({ payload }: { payload: Record<string, unknown> | null }) {
     const rows = payload.students as Record<string, unknown>[];
     if (rows.length === 0) return null;
     return (
-      <div className="mt-2 overflow-hidden rounded-md border">
+      <div className="mt-2 overflow-hidden rounded-md border bg-background">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs text-muted-foreground">
             <tr>
@@ -138,7 +139,7 @@ function PayloadCard({ payload }: { payload: Record<string, unknown> | null }) {
   if (intent === "top_performers" && Array.isArray(payload.rows)) {
     const rows = payload.rows as Record<string, unknown>[];
     return (
-      <div className="mt-2 overflow-hidden rounded-md border">
+      <div className="mt-2 overflow-hidden rounded-md border bg-background">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs text-muted-foreground">
             <tr>
@@ -268,13 +269,42 @@ export default function CopilotPage() {
   const [scopeTermId, setScopeTermId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading: railLoading } = useConversations();
   const { data: conversation, isLoading: threadLoading } = useConversation(activeConvId);
   const { data: intents = [] } = useCopilotIntents();
   const ask = useAskCopilot();
+  const del = useDeleteConversation();
 
   const messages: CopilotMessage[] = conversation?.messages ?? [];
+  const activeConv = conversations.find((c) => c.id === activeConvId) ?? null;
+
+  // Messenger behavior: the newest message is always the one you're reading.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, thinking, activeConvId]);
+
+  const newChat = () => {
+    setActiveConvId(null);
+    setScopeTermId(null);
+    setInput("");
+    setThinking(null);
+  };
+
+  const removeChat = (id: string, title: string) => {
+    if (
+      !window.confirm(
+        `Delete “${title}”? This removes the chat and its messages for everyone.`,
+      )
+    ) {
+      return;
+    }
+    del.mutate(id, {
+      onSuccess: () => setActiveConvId((cur) => (cur === id ? null : cur)),
+    });
+  };
 
   const send = (text?: string) => {
     const q = (text ?? input).trim();
@@ -345,97 +375,174 @@ export default function CopilotPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {header}
 
-      <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
-        {/* Left rail: saved conversations */}
-        <Card className="flex max-h-[calc(100vh-11rem)] flex-col">
-          <div className="border-b p-3">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setActiveConvId(null);
-                setScopeTermId(null);
-                setInput("");
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" /> New chat
+      {/* The messenger window: sidebar + thread in one rounded frame. */}
+      <div className="flex h-[calc(100vh-12rem)] min-h-[28rem] overflow-hidden rounded-xl border bg-card shadow-sm">
+        {/* Sidebar: saved conversations */}
+        <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/20 sm:flex">
+          <div className="flex items-center justify-between gap-2 border-b px-3 py-3">
+            <p className="text-sm font-semibold">Chats</p>
+            <Button size="sm" variant="outline" onClick={newChat}>
+              <Plus className="mr-1 h-4 w-4" />
+              New
             </Button>
           </div>
           <div className="flex-1 space-y-1 overflow-y-auto p-2">
             {railLoading &&
               Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 w-full" />
+                <Skeleton key={i} className="h-14 w-full rounded-lg" />
               ))}
             {!railLoading && conversations.length === 0 && (
-              <p className="px-2 py-4 text-center text-xs text-muted-foreground">
+              <p className="px-2 py-6 text-center text-xs text-muted-foreground">
                 No conversations yet
               </p>
             )}
             {conversations.map((c) => (
-              <button
+              <div
                 key={c.id}
-                onClick={() => {
-                  setActiveConvId(c.id);
-                  setThinking(null);
-                }}
                 className={cn(
-                  "flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors",
-                  c.id === activeConvId
-                    ? "bg-primary/10 text-primary"
-                    : "hover:bg-accent",
+                  "group flex items-center gap-1 rounded-lg transition-colors",
+                  c.id === activeConvId ? "bg-primary/10" : "hover:bg-accent",
                 )}
               >
-                <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{c.title}</span>
-                  <span className="block text-xs text-muted-foreground">
-                    {fmtTime(c.created_at)}
+                <button
+                  onClick={() => {
+                    setActiveConvId(c.id);
+                    setThinking(null);
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left"
+                >
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                      c.id === activeConvId
+                        ? "bg-primary/15 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <MessageSquare className="h-4 w-4" />
                   </span>
-                </span>
-              </button>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{c.title}</span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {fmtTime(c.created_at)}
+                    </span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => removeChat(c.id, c.title)}
+                  aria-label={`Delete chat ${c.title}`}
+                  title="Delete chat"
+                  className="mr-1 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             ))}
           </div>
-        </Card>
+        </aside>
 
-        {/* Main chat pane */}
-        <Card className="flex max-h-[calc(100vh-11rem)] flex-col">
-          {/* Term scope pills — compose a new question's results scope */}
-          <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5">
-            <span className="text-xs text-muted-foreground">New-chat term scope</span>
-            {terms.map((t) => (
-              <button
-                key={t.id}
-                disabled={!!activeConvId}
-                onClick={() => setScopeTermId(scopeTermId === t.id ? null : t.id)}
-                className={cn(
-                  "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-                  scopeTermId === t.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-input text-muted-foreground hover:bg-accent",
-                  activeConvId && "opacity-50",
-                )}
+        {/* Thread */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Chat header */}
+          <header className="flex items-center gap-3 border-b px-3 py-3 sm:px-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">
+                {activeConv?.title ?? "School copilot"}
+              </p>
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Grounded in your school&apos;s own records
+              </p>
+            </div>
+
+            {/* On phones the sidebar is hidden, so switching threads lives here. */}
+            <select
+              value={activeConvId ?? ""}
+              onChange={(e) => {
+                setActiveConvId(e.target.value || null);
+                setThinking(null);
+                setScopeTermId(null);
+              }}
+              className="max-w-[9rem] truncate rounded-md border border-input bg-transparent px-2 py-1 text-xs sm:hidden"
+              aria-label="Switch chat"
+            >
+              <option value="">New chat</option>
+              {conversations.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={newChat}
+              aria-label="New chat"
+              title="New chat"
+              className="sm:hidden"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            {activeConvId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  removeChat(activeConvId, activeConv?.title ?? "this chat")
+                }
+                aria-label="Delete this chat"
+                title="Delete this chat"
+                className="hover:bg-destructive/10 hover:text-destructive"
               >
-                {t.name}
-              </button>
-            ))}
-            {/* The active conversation's own term scope, once known */}
-            {activeConvId && conversation?.term_id && (
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </header>
+
+          {/* Term scope — only meaningful for a chat that has not started yet. */}
+          <div className="flex flex-wrap items-center gap-2 border-b bg-muted/20 px-3 py-2 sm:px-4">
+            {activeConvId ? (
               <span className="text-xs text-muted-foreground">
-                · scoped to{" "}
-                {terms.find((t) => t.id === conversation.term_id)?.name ?? "this term"}
+                Scoped to{" "}
+                {terms.find((t) => t.id === conversation?.term_id)?.name ?? "the current term"}
               </span>
+            ) : (
+              <>
+                <span className="text-xs text-muted-foreground">New-chat term scope</span>
+                {terms.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setScopeTermId(scopeTermId === t.id ? null : t.id)}
+                    className={cn(
+                      "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                      scopeTermId === t.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-input text-muted-foreground hover:bg-accent",
+                    )}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </>
             )}
           </div>
 
-          {/* Thread */}
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="flex-1 space-y-3 overflow-y-auto bg-muted/10 px-3 py-4 sm:px-5"
+          >
             {activeConvId && threadLoading && (
               <div className="space-y-3">
-                <Skeleton className="ml-auto h-9 w-2/3" />
-                <Skeleton className="h-16 w-3/4" />
+                <Skeleton className="ml-auto h-9 w-2/3 rounded-2xl" />
+                <Skeleton className="h-16 w-3/4 rounded-2xl" />
               </div>
             )}
 
@@ -463,20 +570,21 @@ export default function CopilotPage() {
                     created_at: new Date().toISOString(),
                   }}
                 />
-                <div className="flex items-start gap-2">
-                  <Bot className="mt-1 h-4 w-4 text-primary" />
-                  <div className="flex items-center gap-1 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                <div className="flex items-end gap-2">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+                    <Bot className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border bg-background px-3 py-2 text-sm text-muted-foreground">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                     Thinking…
                   </div>
                 </div>
               </>
             )}
-
-            </div>
+          </div>
 
           {/* Composer */}
-          <div className="border-t p-3">
+          <div className="border-t bg-card p-3">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -494,11 +602,17 @@ export default function CopilotPage() {
                   }
                 }}
                 rows={1}
-                placeholder="Ask about this school, or give a command (e.g. add Genesis John to Nursery 1)…"
-                className="max-h-32 min-h-[2.5rem] flex-1 resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                placeholder="Message the copilot… (try “add Genesis John to Nursery 1”)"
+                className="max-h-32 min-h-[2.75rem] flex-1 resize-y rounded-2xl border border-input bg-transparent px-3.5 py-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
-              <Button type="submit" disabled={!input.trim() || ask.isPending}>
-                <Send className="mr-2 h-4 w-4" /> Ask
+              <Button
+                type="submit"
+                size="icon"
+                className="h-11 w-11 shrink-0 rounded-full"
+                disabled={!input.trim() || ask.isPending}
+                aria-label="Send"
+              >
+                <Send className="h-4 w-4" />
               </Button>
             </form>
             <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -508,7 +622,7 @@ export default function CopilotPage() {
               audited
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );
@@ -547,28 +661,30 @@ function MessageBubble({ message }: { message: CopilotMessage }) {
   const isUser = message.role === "user";
   if (isUser) {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
+      <div className="flex flex-col items-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2.5 text-sm text-primary-foreground">
           {message.content}
         </div>
+        <p className="mt-1 pr-1 text-[10px] text-muted-foreground">
+          {fmtTime(message.created_at)}
+        </p>
       </div>
     );
   }
   return (
-    <div className="flex items-start gap-2">
-      <Bot className="mt-1 h-4 w-4 shrink-0 text-primary" />
+    <div className="flex items-end gap-2">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+        <Bot className="h-3.5 w-3.5" />
+      </div>
       <div className="max-w-[92%]">
-        <div className="rounded-lg border bg-card px-3 py-2">
-          <p className="text-sm">{message.content}</p>
+        <div className="rounded-2xl rounded-bl-sm border bg-background px-3.5 py-2.5 shadow-sm">
+          <p className="whitespace-pre-wrap text-sm">{message.content}</p>
           <PayloadCard payload={message.answer_payload} />
         </div>
-        {message.intent && message.intent !== "unknown" && (
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            intent {message.intent} · {fmtTime(message.created_at)}
-          </p>
-        )}
+        <p className="mt-1 pl-1 text-[10px] text-muted-foreground">
+          {fmtTime(message.created_at)}
+        </p>
       </div>
     </div>
   );
 }
-

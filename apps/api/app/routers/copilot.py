@@ -14,7 +14,7 @@ answered with an honest refusal, not a write.
 """
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from ..core.deps import DbSession, ensure_ai, require_permission
 from ..core.errors import NotFoundError
@@ -107,6 +107,19 @@ def get_conversation(
         **_conv_out(conversation).model_dump(),
         messages=[_msg_out(m) for m in messages],
     )
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+def delete_conversation(
+    conversation_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(AI_COPILOT)),
+    _ai=Depends(ensure_ai),
+):
+    """Delete one of the school's chat threads and its messages."""
+    copilot_service.delete_conversation(db, ctx.school.id, str(conversation_id))
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/intents", response_model=list[IntentOut])

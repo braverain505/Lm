@@ -1,7 +1,7 @@
 # School Copilot + Report Card Designer — Handoff / Status
 
-**Last updated:** 2026-09-23
-**Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). The copilot now also runs **admin commands** (section 3b). This document is written so another model (or a human) can pick it up with no prior context.
+**Last updated:** 2026-09-24
+**Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). The copilot now also runs **admin commands** (section 3b), and its chat window has been reworked (section 3c). For the dated, running log of copilot work see [`COPILOT_PROGRESS.md`](./COPILOT_PROGRESS.md). This document is written so another model (or a human) can pick it up with no prior context.
 
 ---
 
@@ -121,6 +121,7 @@ Results commands run across every subject offered in that class for the term (th
 ### Parsing notes (do not "simplify" these)
 - Arm/class names resolve by **exact normalised match first** (`_norm`, so `"JSS 1 A"` ≡ `"jss1a"`), then prefix/containment. This is deliberate: the old `_name_in` stem matcher drops numeric tokens (`"Nursery 1"` reduced to just `["nursery"]`), which would resolve "Nursery 10" to "Nursery 1". For the free-question roster the longest stored name found in the text wins.
 - Detectors are ordered most-specific-first in `_DETECTORS`, and every one of them requires its own keyword (`session` / `term` / `class|arm` / `subject` / `teacher|staff` / a `to|in` clause), so "add X to Y" can never be read as "add staff".
+- **A polite preamble is stripped once, in `detect_action`, before any detector runs** (`_POLITE` / `_strip_polite`): `please…`, `can/could/would/will you…`, `I want (you) to…`, `I'd like (you) to…`, `I'd love to…`, `I would like you to…`, `kindly…`, `help me…`, `go ahead and…`, `let's…`. Without it, "I want you to add Genesis John to Nursery 2" matched no detector and fell through to the LLM, which answered "I can't do that" — the same failure a *bare* "add Genesis John to Nursery 2" never hits. Note the contracted forms collapse the space (`I'd`, not `I 'd`), which is why the alternation carries both shapes.
 - The read side gained one intent: **`class_roster`** (`_h_class_roster` in `copilot_service.py`), registered *before* `class_snapshot` so "list the students in JSS 1A" names them while "how many students are in JSS 1A" still falls through to the count. It follows the conversation's pinned `arm_id`, which is what makes the bare "give me the names" work.
 
 ### Files
@@ -131,8 +132,19 @@ Results commands run across every subject offered in that class for the term (th
 | Route | `apps/api/app/routers/copilot.py` (passes the real permission set through) |
 | UI cards | `apps/web/src/app/(app)/copilot/page.tsx` (`ActionCard`, roster table, copy) |
 | Tests | `apps/api/tests/test_copilot_actions.py` (new) |
+| Delete a chat | `copilot_service.delete_conversation` + `DELETE /copilot/conversations/{id}` (§3c) |
 
 `copilot_actions.py` deliberately imports **nothing** from `copilot_service` (the dependency runs one way only) and re-implements the tiny matching helpers; do not wire them together or you get an import cycle.
+
+---
+
+## 3c. The chat window (2026-09-24)
+
+Three UI/behavior changes on `/copilot`, all in `apps/web/src/app/(app)/copilot/page.tsx` (plus the delete endpoint):
+
+1. **The intent label is no longer rendered.** An assistant bubble shows its time only — `intent class_roster · 05:37` was developer noise. (`answer_payload` still carries `intent`; only the label is gone.)
+2. **Delete a chat from history.** `DELETE /copilot/conversations/{id}` → 204. It is gated on `ai.copilot` like the other routes and resolves through `get_conversation`, so another school's thread is a 404, never a delete. Messages go with it (the `messages` relationship cascades) and there is **no** audit entry — a chat is the user's own scratch space, not a school record. The rail row and the chat header both expose a trash button behind a `window.confirm`.
+3. **Messenger layout.** One rounded frame holds a "Chats" sidebar and the thread; bubbles have tails (user → right/primary, assistant → left/carded with a bot avatar), the message pane auto-scrolls to the newest turn, and the composer is a pill with a circular send button. On phones the sidebar collapses and a thread `<select>` + New button appear in the chat header.
 
 ---
 

@@ -90,6 +90,24 @@ def _clause(value: str) -> str:
     return " ".join((value or "").split())
 
 
+# A command is rarely typed bare. "please add…", "can you add…", "I want you to
+# add…" all mean the same write, so the polite preamble is stripped before the
+# verb is read. Without this a natural sentence like "I want you to add Genesis
+# John to Nursery 2" matched no detector at all and fell through to the LLM,
+# which answered "I can't do that" — the exact bug this fixes.
+_POLITE = (
+    r"(?:please\s+|kindly\s+|can you\s+|could you\s+|would you\s+|will you\s+|"
+    # "I'd like" contracts to no space after the I, hence the two shapes.
+    r"i(?:'d like|'d love| want| need| would like)(?:\s+you)?\s+to\s+|"
+    r"help me\s+|go ahead and\s+|let'?s\s+)*"
+)
+
+
+def _strip_polite(value: str) -> str:
+    """Drop a leading "please / can you / I want you to" preamble."""
+    return re.sub(r"^\s*" + _POLITE, "", value or "", flags=re.IGNORECASE)
+
+
 # ---------------------------------------------------------------------------
 # Proposal / reply value types
 # ---------------------------------------------------------------------------
@@ -734,8 +752,8 @@ def _detect_add_staff(
 
 
 _ADMIT_HEAD = (
-    r"^\s*(?:please\s+|can you\s+|could you\s+|i want to\s+|i'd like to\s+)*"
-    r"(?:add|admit|enrol|enroll|register)\s+"
+    r"^\s*" + _POLITE
+    + r"(?:add|admit|enrol|enroll|register)\s+"
     r"(?:(?:a|an|the|new)\s+)*(?:student|pupil|child)?\s*"
 )
 
@@ -838,7 +856,8 @@ def _detect_change_class(
     **__,
 ) -> Proposal | DirectReply | None:
     match = re.match(
-        r"^\s*(?:please\s+)?(?:move|transfer|change)\s+(?P<name>.+?)"
+        r"^\s*" + _POLITE
+        + r"(?:move|transfer|change)\s+(?P<name>.+?)"
         r"\s+(?:to|into)\s+(?P<arm>.+?)\s*$",
         question,
         re.IGNORECASE,
@@ -917,6 +936,10 @@ def detect_action(
     context: dict,
 ) -> Proposal | DirectReply | None:
     """Parse a chat message into an admin command, or ``None`` for a question."""
+    # Strip the polite preamble once, here, so every detector sees the same
+    # bare command shape ("create subject X", not "I want you to create
+    # subject X"). The name-scraping detectors then don't have to know about it.
+    question = _strip_polite(question)
     tokens = _tokens(question)
     for detector in _DETECTORS:
         out = detector(

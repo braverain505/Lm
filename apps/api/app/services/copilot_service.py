@@ -1514,6 +1514,22 @@ def conversation_messages(
     )
 
 
+def delete_conversation(
+    db: Session, school_id: uuid.UUID, conversation_id: str
+) -> None:
+    """Delete a thread and every message in it.
+
+    The thread is the user's own scratch space, not a school record, so it is
+    hard-deleted (the ``messages`` relationship cascades) and there is no audit
+    entry — an audit trail is for changes to pupils, staff and results, not for
+    clearing your own chat. Tenant isolation is enforced by ``get_conversation``:
+    a thread belonging to another school is a 404, never a delete.
+    """
+    conversation = get_conversation(db, school_id, conversation_id)
+    db.delete(conversation)
+    db.flush()
+
+
 def intents_catalog() -> list[dict]:
     """Descriptions + example phrasings the UI renders as suggested chips."""
     return [

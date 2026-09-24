@@ -24,6 +24,7 @@ from sqlalchemy import select
 from app.models import (
     AcademicSession,
     AuditLog,
+    CopilotMessage,
     Result,
     Staff,
     Student,
@@ -431,3 +432,127 @@ def test_command_turn_never_calls_the_llm(client, db, monkeypatch):
     assert msg["answer_payload"]["action"]["status"] == "pending"
     assert msg["answer_payload"]["source"] == "command"
     assert calls == []
+
+
+# --- Natural phrasing resolves like the bare imperative -----------------------
+# The reported bug: "I want you to add Genesis John to Nursery 2" was not read
+# as a command at all, so it fell through to the LLM and got "I can't do that".
+
+
+def test_polite_phrasing_is_recognized_as_a_command(client, db):
+    sid, _w = _world(client, db, with_nursery=True)
+
+    msg = _ask(
+        client, sid, "I want you to add Godiya Markus to Nursery 1"
+    )["message"]
+    assert msg["intent"] == "admit_student"
+    action = msg["answer_payload"]["action"]
+    assert action["status"] == "pending"
+    assert action["params"]["first_name"] == "Godiya"
+    assert action["params"]["last_name"] == "Markus"
+    assert action["params"]["arm_name"] == "Nursery 1"
+
+
+def test_polite_phrasing_admits_end_to_end(client, db):
+    sid, w = _world(client, db, with_nursery=True)
+    conv = _ask(
+        client, sid, "I want you to add Godiya Markus to Nursery 1"
+    )["conversation"]["id"]
+
+    _ask(client, sid, "male", conversation_id=conv)
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Godiya"
+        )
+    )
+    assert student is not None
+    assert student.last_name == "Markus"
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(
+            StudentEnrollment.student_id == student.id,
+            StudentEnrollment.is_current.is_(True),
+        )
+    )
+    assert enrollment is not None
+    assert str(enrollment.class_arm_id) == w["nursery_arm_id"]
+
+
+def test_contracted_politeness_moves_a_student(client, db):
+    sid, w = _world(client, db, with_nursery=True)
+
+    msg = _ask(
+        client, sid, "I'd like you to move Aisha Bello to Nursery 1"
+    )["message"]
+    assert msg["intent"] == "change_class"
+    assert msg["answer_payload"]["action"]["status"] == "pending"
+
+    conv = _ask(
+        client, sid, "I'd like you to move Aisha Bello to Nursery 1"
+    )["conversation"]["id"]
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Aisha"
+        )
+    )
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(
+            StudentEnrollment.student_id == student.id,
+            StudentEnrollment.is_current.is_(True),
+        )
+    )
+    assert str(enrollment.class_arm_id) == w["nursery_arm_id"]
+
+
+def test_polite_phrasing_still_creates_academic_structure(client, db):
+    sid, _w = _world(client, db)
+    conv = _ask(
+        client, sid, "I want you to create subject Further Mathematics"
+    )["conversation"]["id"]
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+
+    subject = db.scalar(
+        select(Subject).where(
+            Subject.school_id == uuid.UUID(sid), Subject.name == "Further Mathematics"
+        )
+    )
+    assert subject is not None
+
+
+# --- Deleting a chat from the history rail ------------------------------------
+
+
+def test_delete_conversation_removes_the_thread_and_its_messages(client, db):
+    sid, _w = _world(client, db)
+    conv = _ask(client, sid, "how many students are enrolled?")["conversation"]["id"]
+
+    r = client.delete(f"{COPILOT}/conversations/{conv}", headers={"X-School-Id": sid})
+    assert r.status_code == 204, r.text
+
+    # Gone from the thread endpoint (404) and from the rail.
+    assert client.get(
+        f"{COPILOT}/conversations/{conv}", headers={"X-School-Id": sid}
+    ).status_code == 404
+    convs = client.get(f"{COPILOT}/conversations", headers={"X-School-Id": sid}).json()
+    assert all(c["id"] != conv for c in convs)
+    # ...and its messages went with it.
+    assert (
+        db.scalars(
+            select(CopilotMessage).where(CopilotMessage.conversation_id == uuid.UUID(conv))
+        ).all()
+        == []
+    )
+
+
+def test_delete_unknown_conversation_is_a_404(client, db):
+    sid, _w = _world(client, db)
+    r = client.delete(
+        f"{COPILOT}/conversations/{uuid.uuid4()}", headers={"X-School-Id": sid}
+    )
+    assert r.status_code == 404

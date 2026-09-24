@@ -1943,6 +1943,14 @@ export const fetchConversation = (schoolId: string, conversationId: string) =>
     CopilotConversationDetailSchema.parse,
   );
 
+export const deleteCopilotConversation = (
+  schoolId: string,
+  conversationId: string,
+) =>
+  schoolFetch<void>(schoolId, `/copilot/conversations/${conversationId}`, {
+    method: "DELETE",
+  });
+
 // --- Payroll --------------------------------------------------------------------
 export const fetchSalaryStructures = (schoolId: string, activeOnly = true) =>
   schoolFetch<SalaryStructure[]>(
@@ -2257,6 +2265,7 @@ export const api = {
   askCopilot,
   fetchConversations,
   fetchConversation,
+  deleteCopilotConversation,
   fetchTimeSlots,
   generateSchedule,
   fetchWeeklySchedule,

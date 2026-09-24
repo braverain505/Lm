@@ -1978,6 +1978,25 @@ export function useAskCopilot() {
   });
 }
 
+export function useDeleteConversation() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (conversationId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteCopilotConversation(schoolId, conversationId);
+    },
+    onSuccess: (_result, conversationId) => {
+      // Drop the thread from the rail and evict its cached detail, so reopening
+      // it can never render a deleted conversation from stale cache.
+      queryClient.invalidateQueries({ queryKey: ["copilot-conversations", schoolId] });
+      queryClient.removeQueries({
+        queryKey: ["copilot-conversation", schoolId, conversationId],
+      });
+    },
+  });
+}
+
 // --- Result portal -----------------------------------------------------------
 // --- School result code (the code parents type instead of per-student PINs) ---
 export function useSchoolResultPin() {
