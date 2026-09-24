@@ -1,9 +1,16 @@
-"""School copilot: free-form Q&A over a school's own data.
+"""School copilot: free-form Q&A over a school's own data, plus admin commands.
 
 All routes are gated on ``ai.copilot`` (leadership tool, provisioned into the
 director/principal/vp-academics/head-teacher/academic-coordinator templates).
 POST asks and gets conversation history; GET /intents serves the catalog the UI
 renders as suggested-question chips.
+
+POST /ask also accepts *admin commands* ("add Genesis John to Nursery 1"). The
+route only proves you may use the copilot: the caller's full permission set is
+passed through to the service, where each command names the permission it needs
+(``students.create``, ``academics.manage``, ``results.publish``, …) and is
+re-checked before it runs. A user with ``ai.copilot`` but no admission rights is
+answered with an honest refusal, not a write.
 """
 import uuid
 
@@ -53,8 +60,12 @@ def ask(
     ctx=Depends(require_permission(AI_COPILOT)),
     _ai=Depends(ensure_ai),
 ):
-    """Ask the copilot one question — appends to a conversation or starts one,
-    meters the assistant turn into ``ai_usage``, and returns the answer."""
+    """Ask the copilot a question, or give it an admin command to run.
+
+    Appends to a conversation or starts one, meters the assistant turn into
+    ``ai_usage``, and returns the answer. Commands come back as a proposal to
+    confirm, or as the result of one already confirmed.
+    """
     conversation, message = copilot_service.ask_copilot(
         db,
         ctx.school.id,
@@ -62,6 +73,8 @@ def ask(
         conversation_id=str(payload.conversation_id) if payload.conversation_id else None,
         term_id=payload.term_id,
         actor_id=ctx.user.id,
+        permission_codes=ctx.permission_codes,
+        is_superadmin=ctx.user.is_superadmin,
     )
     db.commit()
     return AskResponse(

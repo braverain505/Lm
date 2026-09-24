@@ -38,9 +38,102 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+// Command outcomes carry an `action` object rather than an intent-shaped payload:
+// a pending proposal, a denial, a cancellation, or what a confirmed run changed.
+const ACTION_TONES: Record<string, string> = {
+  pending: "border-amber-300 bg-amber-50 text-amber-900",
+  done: "border-emerald-300 bg-emerald-50 text-emerald-900",
+  denied: "border-rose-300 bg-rose-50 text-rose-900",
+  failed: "border-rose-300 bg-rose-50 text-rose-900",
+  cancelled: "border-input bg-muted/40 text-muted-foreground",
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  pending: "Awaiting confirmation",
+  done: "Done",
+  denied: "Not permitted",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
+
+function ActionCard({ action }: { action: Record<string, unknown> }) {
+  const status = String(action.status ?? "");
+  const result = (action.result ?? {}) as Record<string, unknown>;
+  const totals = result.totals as Record<string, unknown> | undefined;
+  const entries: Array<[string, string]> = [];
+  if (result.admission_no) entries.push(["Admission no", String(result.admission_no)]);
+  if (result.class_arm) entries.push(["Class", String(result.class_arm)]);
+  if (result.staff_no) entries.push(["Staff no", String(result.staff_no)]);
+  if (result.name) entries.push(["Name", String(result.name)]);
+  if (totals && typeof totals === "object") {
+    for (const [key, value] of Object.entries(totals)) entries.push([key, String(value)]);
+  }
+  const missing = Array.isArray(action.missing) ? (action.missing as unknown[]) : [];
+
+  return (
+    <div
+      className={cn(
+        "mt-2 rounded-md border px-3 py-2",
+        ACTION_TONES[status] ?? "border-input bg-muted/40",
+      )}
+    >
+      <p className="text-[11px] font-semibold uppercase tracking-wide">
+        {ACTION_LABELS[status] ?? status}
+      </p>
+      {action.detail ? <p className="mt-1 text-sm">{String(action.detail)}</p> : null}
+      {action.error ? <p className="mt-1 text-sm">{String(action.error)}</p> : null}
+      {missing.length > 0 ? (
+        <p className="mt-1 text-xs">Still needed: {missing.map(String).join(", ")}</p>
+      ) : null}
+      {entries.length > 0 ? (
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {entries.map(([label, value]) => (
+            <Stat key={label} label={label} value={value} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function PayloadCard({ payload }: { payload: Record<string, unknown> | null }) {
   if (!payload) return null;
   const intent = typeof payload.intent === "string" ? payload.intent : "";
+
+  // A command turn: proposal, denial, cancellation or result.
+  const action = payload.action;
+  if (action && typeof action === "object") {
+    return <ActionCard action={action as Record<string, unknown>} />;
+  }
+
+  if (intent === "class_roster" && Array.isArray(payload.students)) {
+    const rows = payload.students as Record<string, unknown>[];
+    if (rows.length === 0) return null;
+    return (
+      <div className="mt-2 overflow-hidden rounded-md border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 text-left font-medium">#</th>
+              <th className="px-3 py-2 text-left font-medium">Student</th>
+              <th className="px-3 py-2 text-left font-medium">Admission no</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t">
+                <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                <td className="px-3 py-2">{String(r.full_name ?? "")}</td>
+                <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
+                  {String(r.admission_no ?? "")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   if (intent === "top_performers" && Array.isArray(payload.rows)) {
     const rows = payload.rows as Record<string, unknown>[];
@@ -209,7 +302,10 @@ export default function CopilotPage() {
         <h1 className="text-2xl font-semibold tracking-tight">School copilot</h1>
         <p className="text-sm text-muted-foreground">
           Ask questions about this school and get answers grounded in its own
-          records — no invented numbers. Every turn is metered under ai.copilot.
+          records — no invented numbers. You can also give it commands (like
+          &ldquo;add Genesis John to Nursery 1&rdquo;): it shows you exactly what
+          will change and waits for you to reply &ldquo;confirm&rdquo;. Every
+          turn is metered under ai.copilot.
         </p>
       </div>
     </div>
@@ -398,7 +494,7 @@ export default function CopilotPage() {
                   }
                 }}
                 rows={1}
-                placeholder="Ask about this school… (Enter to send, Shift+Enter for a new line)"
+                placeholder="Ask about this school, or give a command (e.g. add Genesis John to Nursery 1)…"
                 className="max-h-32 min-h-[2.5rem] flex-1 resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               />
               <Button type="submit" disabled={!input.trim() || ask.isPending}>
@@ -408,7 +504,8 @@ export default function CopilotPage() {
             <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
               <Sparkles className="h-3 w-3" />
               AI copilot · clearis-copilot-v1 · deterministic and data-grounded ·
-              every turn metered
+              commands are permission-checked, confirmed before they run, and
+              audited
             </p>
           </div>
         </Card>
@@ -425,8 +522,11 @@ function Intro({ intents, onPick }: { intents: string[]; onPick: (q: string) => 
       </div>
       <p className="mt-3 font-medium">Ask anything about this school</p>
       <p className="text-sm text-muted-foreground">
-        Counts, subjects, score-entry progress, published results, top performers
-        and term averages — answered from your school&apos;s own records.
+        Counts, class lists, subjects, score-entry progress, published results,
+        top performers and term averages — answered from your school&apos;s own
+        records. You can also ask it to do things: admit a student, add a
+        teacher, create a subject or class, or run results through to
+        published.
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {intents.map((q) => (

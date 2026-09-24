@@ -57,6 +57,7 @@ from ..models import (
     Term,
 )
 from ..models.enums import ResultStatus
+from . import copilot_actions
 from .ai_service import AI_FEATURE_COPILOT, _check_ai_quota, _meter_inc
 from .llm_client import complete_text
 from .academics_service import (
@@ -133,6 +134,19 @@ _DATA_CUES = {
     "result", "results", "score", "scores", "average", "top", "report",
     "reports", "readiness", "enrolled", "enrollment", "boy", "boys",
     "girl", "girls", "term", "terms", "performance", "attendance",
+    "name", "names", "roster",
+}
+
+# Words that mean the question is about marks, not about who is in the class —
+# used to keep "who scored highest?" away from the roster handler.
+# Roster answers are bounded the same way the LLM brief is: a school with
+# thousands of pupils must not return its whole roll in one response.
+_MAX_ROSTER_ROWS = 300
+
+_PERFORMANCE_WORDS = {
+    "scored", "score", "scores", "scoring", "highest", "best", "top",
+    "average", "avg", "mean", "perform", "performed", "performance",
+    "rank", "ranking", "grade", "grades", "result", "results",
 }
 
 
@@ -352,11 +366,12 @@ def _h_help(
     if "help" in tokens or "what can you do" in question.lower():
         text = (
             "I can answer questions about this school from its own records — "
-            "student and staff counts, what subjects a class offers, result "
-            "entry progress, published scores, top performers and class "
-            "averages. Try: 'how many students are enrolled?', 'what subjects "
-            "does JSS 1A offer?', 'who scored highest in Mathematics?', or "
-            "'how did Aisha Bello do this term?'."
+            "student and staff counts, who is in a class, what subjects a class "
+            "offers, result entry progress, published scores, top performers and "
+            "class averages. Try: 'how many students are enrolled?', 'give me "
+            "the names in JSS 1A', 'what subjects does JSS 1A offer?', 'who "
+            "scored highest in Mathematics?', or 'how did Aisha Bello do this "
+            "term?'.\n\n" + copilot_actions.command_help()
         )
         return text, {"intent": "help"}, {}
     return None
@@ -386,6 +401,87 @@ def _h_class_subjects(
         )
     payload = {"class": label, "subject_names": names}
     return text, payload, ctx
+
+
+def _h_class_roster(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    context: dict,
+    **_,
+) -> tuple[str, dict, dict] | None:
+    """The names of the students in a class — "give me the names".
+
+    The count snapshot answers *how many*; this answers *who*. An explicit
+    "in/of/for <class>" clause wins, then the longest class name in the
+    question, then the arm already pinned on the conversation — so a bare
+    "give me the names" right after "how many students are in Nursery 1"
+    lists that class.
+    """
+    # "all" is deliberately not a cue: it is far too common in count questions.
+    wants_names = _has(
+        tokens, "name", "names", "roster", "register", "list", "everyone"
+    )
+    asks_who = "who" in tokens and not (tokens & _PERFORMANCE_WORDS)
+    if not (wants_names or asks_who):
+        return None
+
+    arm = None
+    clause = re.search(
+        r"\b(?:in|of|for|from)\s+(?:class\s+)?(?P<arm>.+?)\s*$", question, re.IGNORECASE
+    )
+    if clause:
+        arm = copilot_actions.resolve_arm_by_phrase(db, school_id, clause.group("arm"))
+    arm = arm or copilot_actions.find_arm_in_text(db, school_id, question)
+    arm = arm or _ctx_arm(db, school_id, context)
+    if arm is None:
+        return None
+
+    rows = list_enrollments(db, school_id, arm.id)
+    students = sorted(
+        rows, key=lambda env: (env.student.last_name or "", env.student.first_name or "")
+    )
+    label = arm.full_name
+    brief = [
+        {
+            "student_id": str(env.student.id),
+            "admission_no": env.student.admission_no,
+            "full_name": env.student.full_name,
+            "gender": env.student.gender,
+        }
+        for env in students
+    ]
+    ctx = {**context, "arm_id": str(arm.id)}
+    if not brief:
+        return (
+            f"{label} has no enrolled students yet.",
+            {"intent": "class_roster", "class": label, "count": 0, "students": []},
+            ctx,
+        )
+    shown = brief[:40]
+    listed = _join_names(
+        [f"{s['full_name']} ({s['admission_no']})" for s in shown]
+    )
+    more = "" if len(brief) <= len(shown) else f" and {len(brief) - len(shown)} more"
+    text = (
+        f"{label} has {len(brief)} enrolled student"
+        f"{'s' if len(brief) != 1 else ''}: {listed}{more}."
+    )
+    # The count is exact; the rows are bounded so a 2,000-pupil school does not
+    # put its whole roster into one answer payload.
+    return (
+        text,
+        {
+            "intent": "class_roster",
+            "class": label,
+            "count": len(brief),
+            "students": brief[:_MAX_ROSTER_ROWS],
+            "truncated": len(brief) > _MAX_ROSTER_ROWS,
+        },
+        ctx,
+    )
 
 
 def _h_class_snapshot(
@@ -774,6 +870,10 @@ _INTERNAL_ORDER = [
     ("small_talk", _h_small_talk),
     ("help", _h_help),
     ("class_subjects", _h_class_subjects),
+    # Roster before the count snapshot: "list the students in JSS 1A" names
+    # them, while "how many students are in JSS 1A" carries none of the roster
+    # cues and still falls through to the count handler.
+    ("class_roster", _h_class_roster),
     ("class_snapshot", _h_class_snapshot),
     ("student_report", _h_student_report),
     ("subject_average", _h_subject_average),
@@ -1042,6 +1142,170 @@ def _title_for(question: str) -> str:
     return title[:200] or "New conversation"
 
 
+# ---------------------------------------------------------------------------
+# Admin command layer
+#
+# A turn is either a *command* (parse → confirm → execute) or a *question*
+# (the rules engine + LLM). Commands never reach the LLM: a model that phrases
+# an answer must not be able to phrase a write. The pending proposal lives on
+# the conversation's ``context`` JSONB so confirmation survives across turns.
+# ---------------------------------------------------------------------------
+
+
+def _run_proposal(
+    db: Session,
+    school_id: uuid.UUID,
+    proposal: copilot_actions.Proposal,
+    *,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict]:
+    reply = copilot_actions.execute_proposal(
+        db,
+        school_id,
+        proposal,
+        actor_id=actor_id,
+        permission_codes=permission_codes,
+        is_superadmin=is_superadmin,
+    )
+    return reply.text, reply.payload
+
+
+def _resume_pending(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    context: dict,
+    question: str,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict] | None:
+    """Handle a turn that arrives while a proposal is awaiting confirmation.
+
+    ``None`` means "drop the proposal and let this turn be handled as a fresh
+    command or a question" — which is what happens when the user asks about
+    something else entirely.
+    """
+    raw = context.get("pending_action")
+    if not raw:
+        return None
+    proposal = copilot_actions.Proposal.from_context(raw)
+
+    if copilot_actions.is_cancellation(question):
+        context.pop("pending_action", None)
+        return (
+            "Cancelled — nothing was changed.",
+            copilot_actions.proposal_payload(proposal, "cancelled"),
+        )
+
+    if proposal.missing:
+        if copilot_actions.apply_reply(db, school_id, proposal, question):
+            context["pending_action"] = proposal.to_context()
+            if not proposal.missing and copilot_actions.is_affirmation(question):
+                context.pop("pending_action", None)
+                return _run_proposal(
+                    db, school_id, proposal,
+                    actor_id=actor_id, permission_codes=permission_codes,
+                    is_superadmin=is_superadmin,
+                )
+            return (
+                copilot_actions.render_proposal(proposal),
+                copilot_actions.proposal_payload(proposal, "pending"),
+            )
+        # Not a field value. If it is a whole new command, replace the pending
+        # one; otherwise keep asking rather than silently dropping the action.
+        if copilot_actions.detect_action(
+            db, school_id, question=question, context=context
+        ) is None:
+            return (
+                copilot_actions.render_proposal(proposal),
+                copilot_actions.proposal_payload(proposal, "pending"),
+            )
+        context.pop("pending_action", None)
+        return None
+
+    if copilot_actions.is_affirmation(question):
+        context.pop("pending_action", None)
+        return _run_proposal(
+            db, school_id, proposal,
+            actor_id=actor_id, permission_codes=permission_codes,
+            is_superadmin=is_superadmin,
+        )
+
+    # Nothing missing and no confirmation: the user moved on. Drop the proposal
+    # and answer whatever they actually asked.
+    context.pop("pending_action", None)
+    return None
+
+
+def _start_command(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    context: dict,
+    question: str,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict] | None:
+    """Parse a fresh admin command, or ``None`` when it is just a question."""
+    parsed = copilot_actions.detect_action(
+        db, school_id, question=question, context=context
+    )
+    if parsed is None:
+        return None
+    if isinstance(parsed, copilot_actions.DirectReply):
+        return parsed.text, parsed.payload
+
+    proposal = parsed
+    missing = copilot_actions.missing_permissions(
+        proposal, permission_codes, is_superadmin=is_superadmin
+    )
+    if missing:
+        # Say so up front rather than after a confirmation round-trip; the same
+        # check runs again at execution time.
+        denied = copilot_actions.deny(proposal, missing)
+        return denied.text, denied.payload
+
+    context["pending_action"] = proposal.to_context()
+    return (
+        copilot_actions.render_proposal(proposal),
+        copilot_actions.proposal_payload(proposal, "pending"),
+    )
+
+
+def _command_reply(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    context: dict,
+    question: str,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict] | None:
+    """Deterministic admin-command handling for one turn.
+
+    Returns ``(text, payload)`` when the turn was a command, or ``None`` to
+    fall through to the normal Q&A engine. Mutates ``context`` in place (the
+    pending proposal).
+    """
+    if context.get("pending_action"):
+        handled = _resume_pending(
+            db, school_id,
+            context=context, question=question, actor_id=actor_id,
+            permission_codes=permission_codes, is_superadmin=is_superadmin,
+        )
+        if handled is not None:
+            return handled
+    return _start_command(
+        db, school_id,
+        context=context, question=question,
+        permission_codes=permission_codes, is_superadmin=is_superadmin,
+    )
+
+
 def ask_copilot(
     db: Session,
     school_id: uuid.UUID,
@@ -1050,13 +1314,20 @@ def ask_copilot(
     conversation_id: str | None = None,
     term_id: uuid.UUID | None = None,
     actor_id: uuid.UUID,
+    permission_codes: set[str] | None = None,
+    is_superadmin: bool = False,
 ) -> tuple[CopilotConversation, CopilotMessage]:
     """Append one turn to a conversation (creating it if needed) and answer.
 
-    Two layers per turn: the rules engine resolves the question to facts (and
-    pins the context slots follow-ups depend on), then the LLM phrases the
-    answer from those facts — falling back to the rules text whenever the model
-    is unavailable or its output is unusable.
+    A turn is one of two things:
+
+    * An **admin command** ("add Genesis John to Nursery 1") — parsed
+      deterministically, gated on the caller's real permissions, and executed
+      only after an explicit "confirm". Commands never reach the LLM.
+    * A **question** — the rules engine resolves it to facts (and pins the
+      context slots follow-ups depend on), then the LLM phrases the answer from
+      those facts, falling back to the rules text whenever the model is
+      unavailable or its output is unusable.
 
     Stores the user question + the assistant answer (with intent + payload and
     which layer produced the text), then meters the assistant turn exactly once
@@ -1103,8 +1374,43 @@ def ask_copilot(
     db.add(pending_user_turns[0])
     db.flush()
 
-    term = _resolve_term(db, school_id, question, conversation.term_id)
     started = time.perf_counter()
+
+    # --- Admin command layer -------------------------------------------------
+    # Runs before anything else: a command must not be reinterpreted as a
+    # question, and its outcome must not be paraphrased by the model. The
+    # conversation context is copied out so a proposal can be added/cleared and
+    # written back once (JSONB needs an explicit reassignment to be seen).
+    context = dict(conversation.context or {})
+    command = _command_reply(
+        db, school_id,
+        context=context, question=question, actor_id=actor_id,
+        permission_codes=permission_codes or set(), is_superadmin=is_superadmin,
+    )
+    # Write the context back even when the turn is a plain question: a pending
+    # proposal that was abandoned (or a slot the command layer cleared) has to
+    # be persisted, not silently resurrected by the next turn's JSONB read.
+    conversation.context = context
+    if command is not None:
+        text, payload = command
+        payload = {**payload, "source": "command"}
+        message = CopilotMessage(
+            school_id=school_id,
+            conversation_id=conversation.id,
+            role="assistant",
+            content=text,
+            intent=payload.get("intent"),
+            answer_payload=payload,
+        )
+        db.add(message)
+        _meter_inc(
+            db, school_id, actor_id, AI_FEATURE_COPILOT, question, text,
+            int((time.perf_counter() - started) * 1000),
+        )
+        db.flush()
+        return conversation, message
+
+    term = _resolve_term(db, school_id, question, conversation.term_id)
 
     # Layer 1 — the rules engine. Always runs: it is both the offline answer and
     # the grounding brief the model is allowed to reason from, and it is what
@@ -1220,6 +1526,11 @@ def intents_catalog() -> list[dict]:
             "id": "class_snapshot",
             "name": "Class snapshot",
             "examples": ["How many students are in JSS 1A?", "How many boys are in JSS 1B?"],
+        },
+        {
+            "id": "class_roster",
+            "name": "Class list",
+            "examples": ["Give me the names in JSS 1A", "Who is in Nursery 1?"],
         },
         {
             "id": "class_subjects",

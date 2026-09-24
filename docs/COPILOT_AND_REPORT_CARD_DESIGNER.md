@@ -1,7 +1,7 @@
 # School Copilot + Report Card Designer — Handoff / Status
 
 **Last updated:** 2026-09-23
-**Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). This document is written so another model (or a human) can pick it up with no prior context.
+**Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). The copilot now also runs **admin commands** (section 3b). This document is written so another model (or a human) can pick it up with no prior context.
 
 ---
 
@@ -25,8 +25,8 @@ Run from the repo root `clearis/`:
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest -q -p no:warnings
 #   -> the full API suite passes
 
-# Copilot + report-card tests specifically (40 tests)
-cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_report_card_templates.py -q
+# Copilot tests specifically — the Q&A engine, the command layer, the report card
+cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_copilot_actions.py tests/test_report_card_templates.py -q
 
 # Web typecheck — clean
 cd apps/web && npx tsc --noEmit
@@ -86,6 +86,53 @@ The previously documented `SIGBUS` Next.js build crash is no longer reproducible
 
 ### Tests
 `apps/api/tests/test_copilot.py` pins the deterministic rules text exactly, plus: greetings route to `small_talk` (not a stats dump); LLM used & metered as the real provider; grounding brief carries real facts (no inventions); unusable LLM output falls back to rules; provider exception never fails the turn; LLM can answer a question no intent matches; follow-up history is sent to the model; tenant isolation.
+
+---
+
+## 3b. Admin commands — the copilot can now *change* records
+
+**Status: implemented and green (20 tests in `apps/api/tests/test_copilot_actions.py`).**
+
+Before this, /copilot could only read: "add Genesis John to Nursery 1" got "I don't have that information", and the follow-up "give me the names" got nothing because `class_snapshot` returns counts only. Both now work.
+
+### The three rules (this is the design)
+1. **The model never executes anything.** Commands are parsed by rules in `copilot_actions.py`, never offered to the LLM as a tool. A command turn never calls the provider — `answer_payload["source"]` is `"command"`, and a test asserts the LLM is not invoked.
+2. **Nothing is written without an explicit confirmation.** A command first renders a *proposal* naming exactly what will change (with real class names and the generated admission number); the user must reply `confirm`. The pending proposal lives on `CopilotConversation.context['pending_action']` (JSONB), so it survives turns. `cancel` drops it; a question asked while nothing is missing also drops it; a new command replaces it. While a required field is *missing* the copilot stays on the command and re-asks (the prompt tells the user to say `cancel` to get out).
+3. **Permissions are re-checked per action, server-side.** `/copilot/ask` is gated only on `ai.copilot`; each command additionally names the permission it needs and the caller's real `permission_codes` are consulted (a principal may chat and still be refused `students.create`). The same check runs at propose time (honest refusal up front) and again at execution.
+
+A confirmed run is journalled to `audit_logs` (`entity_type` = the record family, `details` = "… via the school copilot chat command"). Execution runs inside a **SAVEPOINT** so a two-step action that fails halfway (create the student → enrol them) unwinds its own rows while the conversation turn still commits with an honest reply. `execute_proposal` never raises for an expected failure.
+
+### What it can do
+| Command (example) | Code | Needs |
+|---|---|---|
+| `add Genesis John to Nursery 1` | `admit_student` | `students.create` + `students.enroll` |
+| `move Genesis John to Nursery 2` | `change_class` | `students.enroll` |
+| `add teacher Grace Ade` | `add_staff` | `staff.create` |
+| `create subject Further Mathematics` | `create_subject` | `academics.manage` |
+| `create class Nursery 3` | `create_class_arm` | `academics.manage` |
+| `create session 2027/2028` | `create_session` | `academics.manage` |
+| `create second term in 2025/2026` | `create_term` | `academics.manage` |
+| `submit / verify / approve results for JSS 1 A` | `*_results` | the matching results permission |
+| `publish results for JSS 1 A` | `publish_results` | `results.publish` |
+| `compile results for JSS 1 A` | `compile_results` | `results.verify` + `approve` + `publish` |
+
+Results commands run across every subject offered in that class for the term (the live/current term unless one is named). Admission numbers (`STU-<year>-NNN`) and staff numbers (`STF-<year>-NNN`) are **generated**, never guessed; a subject's code is derived from its name and de-duplicated. A gender is **never** invented — it is asked for.
+
+### Parsing notes (do not "simplify" these)
+- Arm/class names resolve by **exact normalised match first** (`_norm`, so `"JSS 1 A"` ≡ `"jss1a"`), then prefix/containment. This is deliberate: the old `_name_in` stem matcher drops numeric tokens (`"Nursery 1"` reduced to just `["nursery"]`), which would resolve "Nursery 10" to "Nursery 1". For the free-question roster the longest stored name found in the text wins.
+- Detectors are ordered most-specific-first in `_DETECTORS`, and every one of them requires its own keyword (`session` / `term` / `class|arm` / `subject` / `teacher|staff` / a `to|in` clause), so "add X to Y" can never be read as "add staff".
+- The read side gained one intent: **`class_roster`** (`_h_class_roster` in `copilot_service.py`), registered *before* `class_snapshot` so "list the students in JSS 1A" names them while "how many students are in JSS 1A" still falls through to the count. It follows the conversation's pinned `arm_id`, which is what makes the bare "give me the names" work.
+
+### Files
+| Piece | File |
+|---|---|
+| The command engine | `apps/api/app/services/copilot_actions.py` (new) |
+| Roster read intent + command wiring | `apps/api/app/services/copilot_service.py` (`_h_class_roster`, `_command_reply`, `_resume_pending`, `_start_command`, `_run_proposal`; `ask_copilot` now takes `permission_codes` / `is_superadmin`) |
+| Route | `apps/api/app/routers/copilot.py` (passes the real permission set through) |
+| UI cards | `apps/web/src/app/(app)/copilot/page.tsx` (`ActionCard`, roster table, copy) |
+| Tests | `apps/api/tests/test_copilot_actions.py` (new) |
+
+`copilot_actions.py` deliberately imports **nothing** from `copilot_service` (the dependency runs one way only) and re-implements the tiny matching helpers; do not wire them together or you get an import cycle.
 
 ---
 
@@ -153,11 +200,14 @@ apps/api/tests/test_report_card_templates.py
 apps/web/src/app/(app)/reports/designer/page.tsx
 apps/web/src/components/report-card-designer.tsx
 apps/web/src/lib/report-layout.ts
+# admin commands (this change)
+apps/api/app/services/copilot_actions.py
+apps/api/tests/test_copilot_actions.py
 ```
 
 **Modified:** `apps/api/app/{config,main}.py`, `models/__init__.py`, `routers/portal.py`, `schemas/portal.py`, `seed.py`, `services/copilot_service.py`, `services/email_service.py`, `tests/test_copilot.py`, `tests/test_{platform,superadmin}.py`; `apps/web/src/app/(app)/{reports,settings}/page.tsx`, `app/{check-result,login}/page.tsx`, `app/report-card.css`, `components/{nav-config,report-card-document,report-template-picker}.ts(x)`, `hooks/use-api.ts`, `lib/{portal-session,report-templates}.ts`, `apps/web/package.json`; `packages/shared/src/{client,contracts}.ts`; `docs/PRODUCTION_SECURITY.md`, `package-lock.json`.
 
-> Note: the `copilot_service.py` diff is large (+352 lines) — that is the LLM layer + grounding brief + the expanded intent catalog. `email_service.py`/`config.py` changes are unrelated SMTP/Resend transport hardening; `report-card.css` + `report-card-document.tsx` are the widget renderer rewrite. Nothing is committed yet.
+> Note: the `copilot_service.py` diff is large (+352 lines) — that is the LLM layer + grounding brief + the expanded intent catalog. `email_service.py`/`config.py` changes are unrelated SMTP/Resend transport hardening; `report-card.css` + `report-card-document.tsx` are the widget renderer rewrite.
 
 ---
 
@@ -165,8 +215,8 @@ apps/web/src/lib/report-layout.ts
 
 The features are functionally complete and green. Remaining items are polish and release hygiene, roughly in priority order:
 
-1. **Commit the work.** It is entirely uncommitted. Suggested split: (a) conversational copilot, (b) report card templates + designer + migration `0015`, (c) email/config transport hardening (looks unrelated — likely should be its own commit). Per repo convention use the `Generated with Codebuff` footer.
-2. **Manual/browser verification** (not automated): open `/reports/designer`, drag palette→canvas, reorder, edit each widget's settings, switch theme + preview, save, set default, duplicate, delete; then confirm `/reports`, `/settings` and the public portal all render the saved design. Open `/copilot`, ask a question and a follow-up, and confirm the `source` badge shows `rules` when no Groq key is configured.
+1. ~~Commit the work.~~ **Done** — the features are committed (`a45f6f4`, `6dc7b7e`, `6dc3181`, plus the copilot admin-command layer).
+2. **Manual/browser verification** (not automated): open `/reports/designer`, drag palette→canvas, reorder, edit each widget's settings, switch theme + preview, save, set default, duplicate, delete; then confirm `/reports`, `/settings` and the public portal all render the saved design. Open `/copilot`, ask a question and a follow-up, and confirm the `source` badge shows `rules` when no Groq key is configured. Then walk one command end-to-end: type "add <name> to <class>", supply the gender, reply "confirm", and check the pupil exists in `/students` and the row is in the audit log.
 3. **Check `/copilot` is reachable for the intended roles** — it needs `ai.copilot` (leadership templates) AND the school's premium/AI plan (`ensure_ai`). Verify the permission is provisioned for the roles in `apps/api/app/seed.py`, and that `useCanCopilot` matches.
 4. ~~Add frontend tests for the designer.~~ **Done** — `apps/web` now uses Vitest (`vitest.config.ts`, `vitest.setup.ts`, `npm test`, 70 tests). Two real bugs were found and fixed in the process:
    - `report-layout.ts`'s `prop()` compared `typeof raw === fallback` instead of `typeof raw === typeof fallback`, so every stored **string and boolean** setting was silently discarded (custom headings reverted to defaults; every inspector toggle read as off). Numbers still coerced, which is why it slipped through. Fixed + pinned by tests.
