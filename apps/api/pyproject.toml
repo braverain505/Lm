@@ -6,7 +6,11 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
-    "sqlalchemy>=2.0.35",
+    # Upper bound is deliberate: SQLAlchemy 2.1 switched the default DBAPI for
+    # bare "postgresql://" URLs from psycopg2 to psycopg (v3). Held at 2.0.x so
+    # the engine keeps using the psycopg2-binary driver below; see
+    # Settings.pin_sync_driver, which makes that choice explicit in the URL too.
+    "sqlalchemy>=2.0.35,<2.1",
     "alembic>=1.13",
     "pydantic>=2.9",
     "pydantic-settings>=2.5",

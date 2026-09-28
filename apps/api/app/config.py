@@ -54,6 +54,25 @@ class Settings(BaseSettings):
         "postgresql+psycopg2://clearis:clearis@localhost:5432/clearis_dev"
     )
 
+    @field_validator("database_url", mode="after")
+    @classmethod
+    def pin_sync_driver(cls, v: str) -> str:
+        """Pin the PostgreSQL driver to psycopg2, whatever the URL says.
+
+        Managed Postgres add-ons (Render, Heroku, Supabase) hand out a bare
+        ``postgresql://`` connection string, and SQLAlchemy 2.1 changed that
+        scheme's default DBAPI from psycopg2 to psycopg (v3) — a package this
+        project does not install. The app then died at import time with
+        ``ModuleNotFoundError: No module named 'psycopg'`` before serving a
+        single request. Spelling the installed driver out explicitly lets
+        ``postgresql://``, ``postgres://`` and ``postgresql+psycopg://`` URLs
+        work against the psycopg2-binary dependency declared in pyproject.toml.
+        """
+        for prefix in ("postgresql+psycopg://", "postgresql://", "postgres://"):
+            if v.startswith(prefix):
+                return "postgresql+psycopg2://" + v[len(prefix):]
+        return v
+
     # --- Security ---
     jwt_secret: str = "CHANGE_ME_dev_only_secret"  # set a strong secret in .env
     jwt_algorithm: str = "HS256"
