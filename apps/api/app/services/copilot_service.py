@@ -1172,6 +1172,100 @@ def _run_proposal(
     return reply.text, reply.payload
 
 
+def _run_batch(
+    db: Session,
+    school_id: uuid.UUID,
+    proposals: list[copilot_actions.Proposal],
+    *,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict]:
+    """Run every command of a confirmed batch, in order, and report each one.
+
+    Each item keeps its own SAVEPOINT (see ``execute_proposal``), so a failure
+    in the third admission leaves the first two standing and says so.
+    """
+    texts: list[str] = []
+    results: list[dict | None] = []
+    for proposal in proposals:
+        reply = copilot_actions.execute_proposal(
+            db, school_id, proposal,
+            actor_id=actor_id, permission_codes=permission_codes,
+            is_superadmin=is_superadmin,
+        )
+        texts.append(reply.text)
+        results.append((reply.payload or {}).get("action"))
+    failed = any((item or {}).get("status") != "done" for item in results)
+    head = (
+        f"Ran {len(proposals)} commands — not all of them went through:"
+        if failed
+        else f"Ran {len(proposals)} commands:"
+    )
+    ran = " ".join(f"({i}) {text}" for i, text in enumerate(texts, 1))
+    status = "failed" if failed else "done"
+    return (
+        f"{head} {ran}",
+        copilot_actions.batch_payload(proposals, status, results=results),
+    )
+
+
+def _resume_batch(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    context: dict,
+    raw: dict,
+    question: str,
+    actor_id: uuid.UUID,
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict] | None:
+    """Carry a multi-command proposal forward: fill each item's gaps, then run."""
+    proposals = copilot_actions.batch_from_context(raw)
+    if not proposals:
+        context.pop("pending_action", None)
+        return None
+
+    if copilot_actions.is_cancellation(question):
+        context.pop("pending_action", None)
+        return (
+            "Cancelled — nothing was changed.",
+            copilot_actions.batch_payload(proposals, "cancelled"),
+        )
+
+    waiting = next((item for item in proposals if item.missing), None)
+    if waiting is not None:
+        if copilot_actions.apply_reply(db, school_id, waiting, question):
+            context["pending_action"] = copilot_actions.batch_to_context(proposals)
+            return (
+                copilot_actions.render_batch(proposals),
+                copilot_actions.batch_payload(proposals, "pending"),
+            )
+        # Not a field value. A whole new command replaces the batch; anything
+        # else keeps asking rather than silently dropping the work.
+        if copilot_actions.detect_action(
+            db, school_id, question=question, context=context
+        ) is None:
+            return (
+                copilot_actions.render_batch(proposals),
+                copilot_actions.batch_payload(proposals, "pending"),
+            )
+        context.pop("pending_action", None)
+        return None
+
+    if copilot_actions.is_affirmation(question):
+        context.pop("pending_action", None)
+        return _run_batch(
+            db, school_id, proposals,
+            actor_id=actor_id, permission_codes=permission_codes,
+            is_superadmin=is_superadmin,
+        )
+
+    context.pop("pending_action", None)
+    return None
+
+
 def _resume_pending(
     db: Session,
     school_id: uuid.UUID,
@@ -1191,6 +1285,12 @@ def _resume_pending(
     raw = context.get("pending_action")
     if not raw:
         return None
+    if copilot_actions.is_batch(raw):
+        return _resume_batch(
+            db, school_id,
+            context=context, raw=raw, question=question, actor_id=actor_id,
+            permission_codes=permission_codes, is_superadmin=is_superadmin,
+        )
     proposal = copilot_actions.Proposal.from_context(raw)
 
     if copilot_actions.is_cancellation(question):
@@ -1257,6 +1357,11 @@ def _start_command(
         return None
     if isinstance(parsed, copilot_actions.DirectReply):
         return parsed.text, parsed.payload
+    if isinstance(parsed, list):
+        return _start_batch(
+            context=context, proposals=parsed,
+            permission_codes=permission_codes, is_superadmin=is_superadmin,
+        )
 
     proposal = parsed
     missing = copilot_actions.missing_permissions(
@@ -1272,6 +1377,39 @@ def _start_command(
     return (
         copilot_actions.render_proposal(proposal),
         copilot_actions.proposal_payload(proposal, "pending"),
+    )
+
+
+def _start_batch(
+    *,
+    context: dict,
+    proposals: list[copilot_actions.Proposal],
+    permission_codes: set[str],
+    is_superadmin: bool,
+) -> tuple[str, dict]:
+    """Propose several commands from one message, refusing the ones off-limits."""
+    blocked = [
+        (i, proposal, copilot_actions.missing_permissions(
+            proposal, permission_codes, is_superadmin=is_superadmin
+        ))
+        for i, proposal in enumerate(proposals, 1)
+    ]
+    blocked = [row for row in blocked if row[2]]
+    if blocked:
+        parts = [
+            f"I can't run all {len(proposals)} of those — that needs permissions "
+            "your account doesn't hold:",
+        ]
+        for i, proposal, missing in blocked:
+            wanted = ", ".join(f"'{code}'" for code in missing)
+            parts.append(f"  • item {i} ({proposal.title.lower()}) needs {wanted}")
+        parts.append("Nothing was changed. Send just the ones you can run.")
+        return "\n".join(parts), copilot_actions.batch_payload(proposals, "denied")
+
+    context["pending_action"] = copilot_actions.batch_to_context(proposals)
+    return (
+        copilot_actions.render_batch(proposals),
+        copilot_actions.batch_payload(proposals, "pending"),
     )
 
 

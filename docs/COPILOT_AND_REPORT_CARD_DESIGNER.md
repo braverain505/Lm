@@ -1,6 +1,6 @@
 # School Copilot + Report Card Designer — Handoff / Status
 
-**Last updated:** 2026-09-24
+**Last updated:** 2026-09-28
 **Status:** Both features are implemented and verified green (API tests, web tests, web typecheck, production build). The work is committed (`a45f6f4`, greeting fix in `6dc7b7e`). The copilot now also runs **admin commands** (section 3b), and its chat window has been reworked (section 3c). For the dated, running log of copilot work see [`COPILOT_PROGRESS.md`](./COPILOT_PROGRESS.md). This document is written so another model (or a human) can pick it up with no prior context.
 
 ---
@@ -29,8 +29,9 @@ cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest -
 #      (see COPILOT_PROGRESS.md).
 
 # Copilot tests specifically — the Q&A engine, the command layer, the report card
-#   test_copilot_actions.py is now 49 tests (30 chat commands)
+#   test_copilot_actions.py is now 59 tests (30 chat commands, single or batched)
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_copilot_actions.py tests/test_report_card_templates.py -q
+#   (test_copilot 20, test_copilot_actions 59)
 
 # Web typecheck — clean
 cd apps/web && npx tsc --noEmit
@@ -95,7 +96,7 @@ The previously documented `SIGBUS` Next.js build crash is no longer reproducible
 
 ## 3b. Admin commands — the copilot can now *change* records
 
-**Status: implemented and green (49 tests in `apps/api/tests/test_copilot_actions.py`).**
+**Status: implemented and green (59 tests in `apps/api/tests/test_copilot_actions.py`).**
 
 Before this, /copilot could only read: "add Genesis John to Nursery 1" got "I don't have that information", and the follow-up "give me the names" got nothing because `class_snapshot` returns counts only. Both now work.
 
@@ -107,6 +108,22 @@ The layer covers **30 commands** across the six domains a school runs on — stu
 3. **Permissions are re-checked per action, server-side.** `/copilot/ask` is gated only on `ai.copilot`; each command additionally names the permission it needs and the caller's real `permission_codes` are consulted (a principal may chat and still be refused `students.create`). The same check runs at propose time (honest refusal up front) and again at execution.
 
 A confirmed run is journalled to `audit_logs` (`entity_type` = the record family, `details` = "… via the school copilot chat command"). Execution runs inside a **SAVEPOINT** so a two-step action that fails halfway (create the student → enrol them) unwinds its own rows while the conversation turn still commits with an honest reply. `execute_proposal` never raises for an expected failure.
+
+### Several commands in one message
+
+One message may carry several commands — "add Amina John in Nursery 1 and
+Hauwa Manuel in nursery 2", "move A to JSS 2 and create subject Further
+Mathematics". `_detect_batch` splits it on `and` / `then` / `also` / `,` / `;`
+and parses **each clause as a command of its own** (`_parse_clause`): a clause
+may name its own verb or inherit the message's leading one, and the clauses need
+not be the same kind. If any clause fails to parse the message falls back to the
+single parse, so a clause is never silently dropped; the single parse wins only
+when it is a complete command that swallowed no conjunction (which keeps a value
+list such as `create role Bursar with permissions fees.view and fees.collect` a
+single `create_role`). A batch is stored as `{"batch": [...]}` on
+`context['pending_action']`, its missing fields are asked for one item at a
+time, and `confirm` runs every item **in order, each in its own SAVEPOINT** —
+one failure is reported against its item and does not unwind the others.
 
 ### What it can do
 
@@ -153,7 +170,7 @@ which is also what `command_help()` renders in chat — the two can never drift.
 Results commands run across every subject offered in that class for the term (the live/current term unless one is named). Admission numbers (`STU-<year>-NNN`) and staff numbers (`STF-<year>-NNN`) are **generated**, never guessed; a subject's code is derived from its name and de-duplicated. A gender is **never** invented — it is asked for. A staff login's temporary password is shown **once**, in the confirmation reply, and never stored in clear. A `Decimal` amount is coerced to a float before it reaches the audit log (`_json_safe`).
 
 ### Parsing notes (do not "simplify" these)
-- Arm/class names resolve by **exact normalised match first** (`_norm`, so `"JSS 1 A"` ≡ `"jss1a"`), then prefix/containment. This is deliberate: the old `_name_in` stem matcher drops numeric tokens (`"Nursery 1"` reduced to just `["nursery"]`), which would resolve "Nursery 10" to "Nursery 1". For the free-question roster the longest stored name found in the text wins.
+- Arm/class names resolve by **exact normalised match first** (`_norm`, so `"JSS 1 A"` ≡ `"jss1a"`), then prefix, then containment (`find_arms_by_phrase`). This is deliberate: the old `_name_in` stem matcher drops numeric tokens (`"Nursery 1"` reduced to just `["nursery"]`), which would resolve "Nursery 10" to "Nursery 1". For the free-question roster the longest stored name found in the text wins. A **read** takes the best match (`resolve_arm_by_phrase`), but a **write** goes through `_unique_arm` and resolves only when the phrase names exactly one class — a "JSS 1" with both a "JSS 1 A" and a "JSS 1 B" on file asks which instead of picking one, and `_arm_note` names the class it could not find (or lists the several it fits) rather than saying only "still needed: arm".
 - Detectors are ordered most-specific-first in `_DETECTORS`, and every one of them requires its own keyword (`session` / `term` / `class|arm` / `subject` / `teacher|staff` / a `to|in` clause), so "add X to Y" can never be read as "add staff".
 - **A polite preamble is stripped once, in `detect_action`, before any detector runs** (`_POLITE` / `_strip_polite`): `please…`, `can/could/would/will you…`, `I want (you) to…`, `I'd like (you) to…`, `I'd love to…`, `I would like you to…`, `kindly…`, `help me…`, `go ahead and…`, `let's…`. Without it, "I want you to add Genesis John to Nursery 2" matched no detector and fell through to the LLM, which answered "I can't do that" — the same failure a *bare* "add Genesis John to Nursery 2" never hits. Note the contracted forms collapse the space (`I'd`, not `I 'd`), which is why the alternation carries both shapes.
 - The read side gained one intent: **`class_roster`** (`_h_class_roster` in `copilot_service.py`), registered *before* `class_snapshot` so "list the students in JSS 1A" names them while "how many students are in JSS 1A" still falls through to the count. It follows the conversation's pinned `arm_id`, which is what makes the bare "give me the names" work.

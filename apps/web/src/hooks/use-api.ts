@@ -1986,13 +1986,32 @@ export function useDeleteConversation() {
       if (!schoolId) throw new Error("No active school");
       return api.deleteCopilotConversation(schoolId, conversationId);
     },
-    onSuccess: (_result, conversationId) => {
-      // Drop the thread from the rail and evict its cached detail, so reopening
-      // it can never render a deleted conversation from stale cache.
-      queryClient.invalidateQueries({ queryKey: ["copilot-conversations", schoolId] });
+    // Drop the row from the rail on the click itself. Waiting for the refetch
+    // left the deleted chat sitting there until the tab was reloaded.
+    onMutate: async (conversationId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["copilot-conversations", schoolId] });
+      const previous = queryClient.getQueryData<CopilotConversation[]>([
+        "copilot-conversations",
+        schoolId,
+      ]);
+      queryClient.setQueryData<CopilotConversation[]>(
+        ["copilot-conversations", schoolId],
+        (old) => (old ?? []).filter((c) => c.id !== conversationId),
+      );
       queryClient.removeQueries({
         queryKey: ["copilot-conversation", schoolId, conversationId],
       });
+      return { previous };
+    },
+    onError: (_error, _conversationId, context) => {
+      // The delete failed (no permission, network) — put the row back so the
+      // rail matches the server instead of quietly lying about it.
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(["copilot-conversations", schoolId], context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["copilot-conversations", schoolId] });
     },
   });
 }

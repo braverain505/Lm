@@ -130,6 +130,15 @@ _POLITE = (
     r"(?:please\s+|kindly\s+|can you\s+|could you\s+|would you\s+|will you\s+|"
     # "I'd like" contracts to no space after the I, hence the two shapes.
     r"i(?:'d like|'d love| want| need| would like)(?:\s+you)?\s+to\s+|"
+    # "I wanted to say you should…", "I was saying that you can…": a whole
+    # sentence of intent can sit in front of the verb. The trailing words are
+    # *speech* verbs only (say/tell/mention/ask) — never a command verb, or the
+    # preamble would swallow the "add" it is supposed to introduce.
+    r"i\s+(?:just\s+|really\s+)?(?:want|wanted|need|needed|meant|intend|intended|"
+    r"was saying|wanted to say|am saying)\s+"
+    r"(?:to\s+)?(?:say|tell you|mention|ask you|note)?\s*(?:that\s+)?"
+    r"(?:you\s+(?:should|can|could|must|may|might|need to|have to)\s+)?|"
+    r"you\s+(?:should|can|could|must|may|might|need to|have to)\s+|"
     r"help me\s+|go ahead and\s+|let'?s\s+)*"
 )
 
@@ -300,33 +309,161 @@ def _ordered_arms(db: Session, school_id: uuid.UUID) -> list[ClassArm]:
     )
 
 
-def resolve_arm_by_phrase(
+def find_arms_by_phrase(
     db: Session, school_id: uuid.UUID, phrase: str
-) -> ClassArm | None:
-    """Resolve a typed class name to exactly one arm.
+) -> list[ClassArm]:
+    """Every arm a typed class name could mean, best tier first.
 
     Exact normalised equality wins ("Nursery 1" only matches "Nursery 1", never
-    "Nursery 10"); a prefix/containment pass is the fallback so "JSS1A" still
-    finds "JSS 1 A", but it never narrows to a wrong exact match first.
+    "Nursery 10"); a prefix pass is the fallback so "JSS1A" still finds
+    "JSS 1 A", then a containment pass. All the matches of the winning tier are
+    returned: a *question* only needs the most likely class, but a *write* must
+    be able to tell "this names two classes" from "this names one".
     """
     key = _norm(phrase)
     if not key:
-        return None
+        return []
     arms = _ordered_arms(db, school_id)
-    for arm in arms:
-        if _norm(arm.name) == key or _norm(arm.full_name) == key:
-            return arm
-    for arm in arms:
-        nk = _norm(arm.full_name)
-        if not nk:
-            continue
-        if nk.startswith(key) or key.startswith(nk):
-            return arm
-    for arm in arms:
-        nk = _norm(arm.full_name)
-        if nk and (key in nk or nk in key):
-            return arm
-    return None
+    for tier in ("exact", "prefix", "contains"):
+        matches: list[ClassArm] = []
+        for arm in arms:
+            nk = _norm(arm.full_name)
+            if tier == "exact":
+                hit = _norm(arm.name) == key or nk == key
+            elif tier == "prefix":
+                if not nk:
+                    hit = False
+                elif nk.startswith(key):
+                    hit = True
+                elif key.startswith(nk):
+                    # "JSS1A class" is the arm plus a filler word. A longer tail
+                    # means the fragment is a sentence, not a class name
+                    # ("Nursery 1 and Hauwa Manuel in nursery 2"), and must not
+                    # resolve to whatever class it happens to start with.
+                    hit = key[len(nk):] in _ARM_TAIL_WORDS
+                else:
+                    hit = False
+            else:
+                hit = bool(nk) and (key in nk or nk in key)
+            if hit:
+                matches.append(arm)
+        if matches:
+            return matches
+    return []
+
+
+def resolve_arm_by_phrase(
+    db: Session, school_id: uuid.UUID, phrase: str
+) -> ClassArm | None:
+    """The single best arm for a typed class name, or ``None``.
+
+    This is the read-side resolver: for a question the most likely class is
+    exactly what is wanted. Writes use :func:`_unique_arm` instead, which
+    refuses an ambiguous phrase rather than guessing at it.
+    """
+    matches = find_arms_by_phrase(db, school_id, phrase)
+    return matches[0] if matches else None
+
+
+# Words that describe "a class" rather than naming one: "add him to a class"
+# must be read as a missing class, not as a class literally called "a class".
+_ARM_FILLER = {"", "class", "aclass", "theclass", "arm", "section", "newclass"}
+# "JSS1A class" is the stored name "JSS 1 A" plus one of these; anything else
+# after the name means the phrase was a sentence, not a class name.
+_ARM_TAIL_WORDS = {"class", "classes", "arm", "arms", "section", "sections", "stream", "group"}
+_CONNECTIVE_RE = re.compile(r"\b(?:and|then|also)\b", re.IGNORECASE)
+
+
+def _arm_phrase(value: str) -> str:
+    """Tidy the class fragment a command named (" in the  Nursery 1 . " ->
+    "Nursery 1"), returning "" when it names no class in particular."""
+    phrase = _clause(value).strip(" ,.")
+    while True:
+        stripped = re.sub(r"^(?:a|an|the|new|some)\s+", "", phrase, flags=re.IGNORECASE)
+        if stripped == phrase:
+            break
+        phrase = stripped
+    if _norm(phrase) in _ARM_FILLER:
+        return ""
+    return phrase
+
+
+def _unique_arm(
+    db: Session, school_id: uuid.UUID, phrase: str
+) -> tuple[ClassArm | None, list[ClassArm]]:
+    """Resolve a class for a *write*: only when the phrase names exactly one.
+
+    Returns ``(arm, matches)``. ``arm`` is ``None`` both when nothing matched
+    and when several classes matched — the caller turns ``matches`` into the
+    "which one did you mean?" note instead of silently picking the first.
+    """
+    key = _norm(phrase)
+    if key and _CONNECTIVE_RE.search(_clause(phrase)):
+        # "…in Nursery 1 and Hauwa Manuel in nursery 2" is a sentence, not a
+        # class name, so only an exact stored name may match it — the loose
+        # passes would happily hand back "Nursery 1" and drop the second pupil.
+        arms = _ordered_arms(db, school_id)
+        exact = [
+            arm for arm in arms
+            if _norm(arm.name) == key or _norm(arm.full_name) == key
+        ]
+        return (exact[0], exact) if len(exact) == 1 else (None, exact)
+    matches = find_arms_by_phrase(db, school_id, phrase)
+    if len(matches) == 1:
+        return matches[0], matches
+    return None, matches
+
+
+def _swallowed_conjunction(proposal: Proposal) -> bool:
+    """True when a parsed field still carries the " and " that ended a clause.
+
+    It is how a one-command reading of a two-command message gives itself away:
+    "add Amina John in Nursery 1 and Hauwa Manuel in nursery 2" parses as one
+    admission whose class phrase is the entire tail of the sentence.
+    """
+    return any(
+        isinstance(value, str) and _CONNECTIVE_RE.search(value)
+        for value in proposal.params.values()
+    )
+
+
+def _list_names(names: list[str]) -> str:
+    """"A, B and C" — readable in a chat sentence."""
+    if len(names) <= 1:
+        return names[0] if names else ""
+    return f"{', '.join(names[:-1])} and {names[-1]}"
+
+
+def _arm_note(
+    db: Session, school_id: uuid.UUID, phrase: str, matches: list[ClassArm]
+) -> str | None:
+    """Why a named class could not be pinned down — spelled out for the user.
+
+    "Still needed: arm" is the honest answer when the user did not name a class,
+    but a confusing one when they named a class this school does not have. The
+    note says which case it is and what the real options are.
+    """
+    # Exactly one match means the class *was* resolved — there is nothing to
+    # explain. Only a phrase that fits several classes, or none, is worth a note.
+    if not _norm(phrase) or len(matches) == 1:
+        return None
+    if matches:
+        listed = ", ".join(arm.full_name for arm in matches[:6])
+        return (
+            f'"{phrase}" fits more than one class ({listed}) — say exactly which, '
+            f'e.g. "{matches[0].full_name}"'
+        )
+    known = [arm.full_name for arm in _ordered_arms(db, school_id)][:10]
+    if not known:
+        return (
+            f'this school has no classes yet — create one first with '
+            f'"create class {phrase}"'
+        )
+    return (
+        f'I have no class called "{phrase}"; the classes on file are '
+        f'{_list_names(known)}. Say which one, or create it with '
+        f'"create class {phrase}"'
+    )
 
 
 def find_arm_in_text(
@@ -637,7 +774,15 @@ def _next_serial(existing: list[str], prefix: str) -> str:
     return f"{prefix}{n:03d}"
 
 
-def _next_admission_no(db: Session, school_id: uuid.UUID) -> str:
+def _next_admission_no(
+    db: Session, school_id: uuid.UUID, *, claimed: list[str] | None = None
+) -> str:
+    """The next free admission number.
+
+    ``claimed`` carries numbers already planned earlier in the same message: two
+    admissions typed together are parsed before either is written, so without it
+    both would be offered the same number and the second insert would fail.
+    """
     year = datetime.now(timezone.utc).year
     prefix = f"STU-{year}-"
     existing = list(
@@ -645,16 +790,33 @@ def _next_admission_no(db: Session, school_id: uuid.UUID) -> str:
             select(Student.admission_no).where(Student.school_id == school_id)
         )
     )
-    return _next_serial(existing, prefix)
+    return _next_serial(existing + list(claimed or []), prefix)
 
 
-def _next_staff_no(db: Session, school_id: uuid.UUID) -> str:
+def _next_staff_no(
+    db: Session, school_id: uuid.UUID, *, claimed: list[str] | None = None
+) -> str:
     year = datetime.now(timezone.utc).year
     prefix = f"STF-{year}-"
     existing = list(
         db.scalars(select(Staff.staff_no).where(Staff.school_id == school_id))
     )
-    return _next_serial(existing, prefix)
+    return _next_serial(existing + list(claimed or []), prefix)
+
+
+def _reserve_serial(context: dict, key: str, allocate) -> str:
+    """Allocate a generated number and reserve it for the rest of this message.
+
+    ``allocate`` takes the numbers claimed so far. Only a batch installs one of
+    these lists (see :func:`_detect_batch`), so a one-off command just gets a
+    throwaway list and never writes parser state onto the conversation.
+    """
+    claimed = context.get(key)
+    if not isinstance(claimed, list):
+        claimed = []
+    number = allocate(claimed)
+    claimed.append(number)
+    return number
 
 
 def _subject_code(db: Session, school_id: uuid.UUID, name: str) -> str:
@@ -962,7 +1124,13 @@ def _detect_create_subject(
 
 
 def _detect_add_staff(
-    db: Session, school_id: uuid.UUID, *, question: str, tokens: set[str], **__
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    context: dict | None = None,
+    **__,
 ) -> Proposal | None:
     if not _has(tokens, "teacher", "staff", "librarian", "accountant", "cleaner"):
         return None
@@ -983,7 +1151,11 @@ def _detect_add_staff(
     )
     name = _clause(rest).strip(" ,.")
     missing = [] if name else ["full_name"]
-    staff_no = _next_staff_no(db, school_id)
+    staff_no = _reserve_serial(
+        context or {},
+        "_claimed_staff_nos",
+        lambda claimed: _next_staff_no(db, school_id, claimed=claimed),
+    )
     return Proposal(
         code="add_staff",
         title="Add a staff member",
@@ -1032,10 +1204,13 @@ def _detect_admit_student(
         return None
 
     raw_name = match.group("name")
-    arm_phrase = match.group("arm")
+    arm_phrase = _arm_phrase(match.group("arm"))
     gender, raw_name = _extract_gender(tokens, raw_name)
     name = _clean_phrase(raw_name, drop={"student", "pupil", "child", "new"})
-    arm = resolve_arm_by_phrase(db, school_id, arm_phrase)
+    # A write resolves the class only when the phrase names exactly one: "JSS 1"
+    # with a JSS 1 A and a JSS 1 B on file must ask which, not pick the first.
+    arm, arm_matches = _unique_arm(db, school_id, arm_phrase)
+    class_note = _arm_note(db, school_id, arm_phrase, arm_matches)
 
     # An "enrol/enroll/register X in Y" for someone already on the roll is an
     # *enrolment*, not a second admission: the same person must not be created
@@ -1072,12 +1247,17 @@ def _detect_admit_student(
                 detail=detail_enroll,
                 params=params_enroll,
                 missing=missing_enroll,
+                notes=[class_note] if class_note else [],
             )
 
     words = [w for w in name.split() if w]
     first_name = " ".join(words[:-1]) if len(words) > 1 else (words[0] if words else "")
     last_name = words[-1] if len(words) > 1 else ""
-    admission_no = _next_admission_no(db, school_id)
+    admission_no = _reserve_serial(
+        context or {},
+        "_claimed_admission_nos",
+        lambda claimed: _next_admission_no(db, school_id, claimed=claimed),
+    )
 
     missing: list[str] = []
     if not first_name:
@@ -1090,6 +1270,8 @@ def _detect_admit_student(
         missing.append("arm")
 
     notes: list[str] = []
+    if class_note:
+        notes.append(class_note)
     if name:
         same = people_service.list_students(db, school_id, q=name)
         exact = [s for s in same if _norm(s.full_name) == _norm(name)]
@@ -1150,7 +1332,7 @@ def _detect_change_class(
     if not match:
         return None
     name_phrase = _clause(match.group("name"))
-    arm_phrase = _clause(match.group("arm"))
+    arm_phrase = _arm_phrase(match.group("arm"))
     # "Aisha Bello's class", "the student Aisha Bello" and friends all name the
     # pupil, not a class: strip the scaffolding before resolving.
     name_phrase = re.sub(r"\b(?:student|pupil|the)\b", " ", name_phrase, flags=re.IGNORECASE)
@@ -1161,7 +1343,8 @@ def _detect_change_class(
         r"\b(?:class|arm|section)\b\s*$", " ", name_phrase, flags=re.IGNORECASE
     )
     name_phrase = _clause(name_phrase).strip(" ,.")
-    arm = resolve_arm_by_phrase(db, school_id, arm_phrase)
+    arm, arm_matches = _unique_arm(db, school_id, arm_phrase)
+    class_note = _arm_note(db, school_id, arm_phrase, arm_matches)
     student = _resolve_student_by_phrase(db, school_id, name_phrase)
 
     if student is None:
@@ -1207,6 +1390,7 @@ def _detect_change_class(
         detail=detail,
         params=params,
         missing=missing,
+        notes=[class_note] if class_note else [],
     )
 
 
@@ -2086,19 +2270,34 @@ _DETECTORS = (
 )
 
 
-def detect_action(
+# Joins that separate two commands in one message: "add A to Nursery 1 and B to
+# Nursery 2". Only conjunctions/punctuation — never a bare word — so a sentence
+# that is not really a list is still read whole.
+_BATCH_SPLIT_RE = re.compile(r"\s*(?:,|;|\band\b|\bthen\b|\balso\b)\s*", re.IGNORECASE)
+_BATCH_HEAD_RE = re.compile(r"^\s*" + _POLITE + r"(?P<verb>[a-z]+)\b\s*", re.IGNORECASE)
+# Verbs a command can open with. The message's leading verb carries across the
+# conjunction ("add A to X and B to Y" means "add" twice), and a clause that
+# names a verb of its own is read as that verb — so one message may mix kinds
+# ("move A to X and create class Y").
+_BATCH_VERBS = {
+    "add", "admit", "enrol", "enroll", "register", "create", "make",
+    "move", "transfer", "shift", "promote", "remove", "delete", "rename",
+    "update", "mark", "assign", "record", "activate", "close",
+    # The results pipeline: "submit results for X and publish results for Y".
+    "publish", "release", "approve", "verify", "submit", "compile",
+}
+
+
+def _parse_single(
     db: Session,
     school_id: uuid.UUID,
     *,
     question: str,
-    context: dict,
+    tokens: set[str] | None = None,
+    context: dict | None = None,
 ) -> Proposal | DirectReply | None:
-    """Parse a chat message into an admin command, or ``None`` for a question."""
-    # Strip the polite preamble once, here, so every detector sees the same
-    # bare command shape ("create subject X", not "I want you to create
-    # subject X"). The name-scraping detectors then don't have to know about it.
-    question = _strip_polite(question)
-    tokens = _tokens(question)
+    """Run the detector chain over one command sentence."""
+    tokens = _tokens(question) if tokens is None else tokens
     for detector in _DETECTORS:
         out = detector(
             db, school_id, question=question, tokens=tokens, context=context or {}
@@ -2106,6 +2305,105 @@ def detect_action(
         if out is not None:
             return out
     return None
+
+
+def _parse_clause(
+    db: Session, school_id: uuid.UUID, *, part: str, verb: str, context: dict
+) -> Proposal | DirectReply | None:
+    """Parse one clause of a multi-command message.
+
+    A clause may name a command verb of its own, and is then parsed as that
+    command ("… and create subject Z"); otherwise the message's leading verb
+    carries across the conjunction ("add A to X and B to Y").
+    """
+    lead = part.split(maxsplit=1)[0].lower() if part else ""
+    if lead not in _BATCH_VERBS and verb:
+        return _parse_single(db, school_id, question=f"{verb} {part}", context=context)
+    parsed = _parse_single(db, school_id, question=part, context=context)
+    if isinstance(parsed, Proposal):
+        return parsed
+    return _parse_single(db, school_id, question=f"{verb} {part}", context=context)
+
+
+def _detect_batch(
+    db: Session, school_id: uuid.UUID, *, question: str, context: dict
+) -> list[Proposal] | None:
+    """Two or more commands in one message, or ``None`` for a single command.
+
+    "add Amina John in Nursery 1 and Hauwa Manuel in nursery 2" is two
+    admissions — not one admission into a class literally called "Nursery 1 and
+    Hauwa Manuel in nursery 2". Every clause has to parse into a command *of its
+    own* before the message is read as a list; anything else falls back to the
+    single parse, so a clause is never silently dropped. The clauses need not be
+    the same kind of command — "add a pupil and create a subject" is two.
+    """
+    head = _BATCH_HEAD_RE.match(question)
+    if head is None:
+        return None
+    verb = head.group("verb").lower()
+    if verb not in _BATCH_VERBS:
+        return None
+    parts = [
+        part.strip(" ,.;")
+        for part in _BATCH_SPLIT_RE.split(question[head.end():])
+        if part.strip(" ,.;")
+    ]
+    if len(parts) < 2:
+        return None
+    # Every clause is parsed before anything is written, so the generated
+    # numbers each one reserves are tracked here — two admissions typed together
+    # must not both be planned as the same admission number.
+    parser_context = {
+        **context,
+        "_claimed_admission_nos": [],
+        "_claimed_staff_nos": [],
+    }
+    proposals: list[Proposal] = []
+    for part in parts:
+        parsed = _parse_clause(
+            db, school_id, part=part, verb=verb, context=parser_context
+        )
+        if not isinstance(parsed, Proposal):
+            return None
+        proposals.append(parsed)
+    return proposals
+
+
+def detect_action(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    context: dict,
+) -> list[Proposal] | Proposal | DirectReply | None:
+    """Parse a chat message into an admin command, or ``None`` for a question.
+
+    A list comes back when the message carries several commands at once (see
+    :func:`_detect_batch`); the caller proposes them together and runs them in
+    order once the user confirms.
+    """
+    # Strip the polite preamble once, here, so every detector sees the same
+    # bare command shape ("create subject X", not "I want you to create
+    # subject X"). The name-scraping detectors then don't have to know about it.
+    question = _strip_polite(question)
+    context = context or {}
+    single = _parse_single(
+        db, school_id, question=question, tokens=_tokens(question), context=context
+    )
+    batch = _detect_batch(db, school_id, question=question, context=context)
+    if batch is not None:
+        # A message that splits cleanly into several commands wins over reading
+        # it as one — unless the one reading is a *complete, uncontaminated*
+        # command in its own right, which is what a real list of values joined
+        # by "and" looks like ("create role Bursar with permissions a and b").
+        clean = (
+            isinstance(single, Proposal)
+            and not single.missing
+            and not _swallowed_conjunction(single)
+        )
+        if not clean:
+            return batch
+    return single
 
 
 # ---------------------------------------------------------------------------
@@ -2142,6 +2440,104 @@ def proposal_payload(proposal: Proposal, status: str) -> dict:
             "params": proposal.params,
             "missing": proposal.missing,
             "permissions": list(proposal.permissions),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Batches — several commands given in one message
+#
+# The pending action slot holds one proposal, so a message that carries three
+# admissions has to be run as a queue: the fields each one still needs are
+# collected one item at a time (the same "still needed" prompt), and "confirm"
+# then runs every item in order, each in its own SAVEPOINT so one failure does
+# not unwind the others.
+# ---------------------------------------------------------------------------
+def batch_to_context(proposals: list[Proposal]) -> dict:
+    return {"batch": [proposal.to_context() for proposal in proposals]}
+
+
+def is_batch(raw: dict | None) -> bool:
+    return bool(raw) and isinstance((raw or {}).get("batch"), list)
+
+
+def batch_from_context(raw: dict) -> list[Proposal]:
+    return [Proposal.from_context(item) for item in (raw.get("batch") or [])]
+
+
+def _batch_needs(proposal: Proposal) -> str:
+    return "; ".join(_FIELD_PROMPTS.get(m, m) for m in proposal.missing)
+
+
+def render_batch(proposals: list[Proposal]) -> str:
+    """The confirmation prompt for a whole message's worth of commands."""
+    count = len(proposals)
+    lines = [
+        f"That message holds {count} commands — nothing runs until you confirm:",
+    ]
+    for i, proposal in enumerate(proposals, 1):
+        needs = f" (still needs {_batch_needs(proposal)})" if proposal.missing else ""
+        lines.append(f"{i}. {proposal.detail}{needs}")
+        lines.extend(f"   Note: {note}." for note in proposal.notes)
+    first_missing = next(
+        (i for i, proposal in enumerate(proposals, 1) if proposal.missing), None
+    )
+    if first_missing is not None:
+        lines.append(
+            f"Start with item {first_missing}: I need "
+            f"{_batch_needs(proposals[first_missing - 1])}."
+        )
+        lines.append('Reply with that, or say "cancel" to drop all of them.')
+    else:
+        lines.append(f'Reply "confirm" to run all {count}, or "cancel" to drop them.')
+    return "\n".join(lines)
+
+
+def batch_payload(
+    proposals: list[Proposal],
+    status: str,
+    *,
+    results: list[dict | None] | None = None,
+) -> dict:
+    """One action card for the whole batch: an item per command."""
+    items = []
+    for i, proposal in enumerate(proposals, 1):
+        item: dict = {
+            "n": i,
+            "code": proposal.code,
+            "title": proposal.title,
+            "detail": proposal.detail,
+            "missing": list(proposal.missing),
+        }
+        if results is not None and i - 1 < len(results) and results[i - 1]:
+            item.update(results[i - 1])
+            item["n"] = i
+        items.append(item)
+    count = len(proposals)
+    if status == "cancelled":
+        detail = f"Nothing was changed — all {count} commands were dropped."
+    elif status == "denied":
+        detail = f"Nothing was changed — none of the {count} commands ran."
+    elif status == "done":
+        detail = f"All {count} commands ran."
+    elif status == "failed":
+        detail = f"{count} commands ran — at least one did not go through."
+    else:
+        waiting = sum(1 for proposal in proposals if proposal.missing)
+        detail = (
+            f"{waiting} of {count} still need a detail before anything runs."
+            if waiting
+            else f"{count} commands are waiting for your \"confirm\"."
+        )
+    return {
+        "intent": "batch",
+        "action": {
+            "code": "batch",
+            "title": f"{count} commands at once",
+            "status": status,
+            "detail": detail,
+            "missing": [],
+            "items": items,
         },
     }
 
@@ -3158,7 +3554,10 @@ def apply_reply(
                 proposal.missing.remove(field_name)
                 consumed = True
         elif field_name == "arm":
-            arm = resolve_arm_by_phrase(db, school_id, text)
+            # A reply is a write too: "JSS 1" when the school has a JSS 1 A and
+            # a JSS 1 B stays unresolved, and the prompt (with its note listing
+            # both) is asked again rather than one of them being guessed at.
+            arm, _matches = _unique_arm(db, school_id, _arm_phrase(text))
             if arm is not None:
                 proposal.params["arm_id"] = str(arm.id)
                 proposal.params["arm_name"] = arm.full_name
@@ -3457,6 +3856,11 @@ def command_help() -> str:
     ]
     for item in COMMAND_EXAMPLES:
         lines.append(f"  • {item['example']}")
+    lines.append(
+        "Give me several at once, of the same kind or mixed, and I'll propose "
+        "them together and run them in order — e.g. \"add Amina John to "
+        "Nursery 1 and create subject Further Mathematics\"."
+    )
     lines.append(
         "Commands are checked against your permissions, and every one I run is "
         "written to the audit log."

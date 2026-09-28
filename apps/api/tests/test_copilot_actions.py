@@ -936,3 +936,302 @@ def test_principal_cannot_mark_attendance(client, db):
     assert _ask(client, sid, "how many students are enrolled?")["message"]["intent"] == (
         "school_overview"
     )
+
+
+# ===========================================================================
+# Several commands in one message, and classes the copilot must not guess at
+# ===========================================================================
+
+
+def test_two_admissions_in_one_message_are_proposed_together(client, db):
+    """The reported message: "Add Amina John in Nursery 1 and Hauwa Manuel in
+    nursery 2". It is two admissions — it used to be read as one admission into
+    a class called "Nursery 1 and Hauwa Manuel in nursery 2", or fall through
+    to the LLM, which answered "I don't have any information about adding
+    students"."""
+    sid, w = _world(client, db, with_nursery=True)
+    nursery_2 = _add_arm(client, sid, w["session_id"], "Nursery 2")
+    before = len(_students(db, sid))
+
+    first = _ask(
+        client, sid, "Add Amina John in Nursery 1 and Hauwa Manuel in nursery 2"
+    )
+    msg = first["message"]
+    assert msg["answer_payload"]["source"] == "command"
+    action = msg["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert action["status"] == "pending"
+    assert len(action["items"]) == 2
+    assert "Amina John" in action["items"][0]["detail"]
+    assert "Hauwa Manuel" in action["items"][1]["detail"]
+    # Both classes resolved exactly, so neither is reported as ambiguous.
+    assert "fits more than one class" not in msg["content"]
+    # Nothing is written before the confirmation, batch or not.
+    assert len(_students(db, sid)) == before
+    conv = first["conversation"]["id"]
+
+    # One missing field at a time: the batch walks its own items in order.
+    msg = _ask(client, sid, "male", conversation_id=conv)["message"]
+    items = msg["answer_payload"]["action"]["items"]
+    assert items[0]["missing"] == []
+    assert items[1]["missing"] == ["gender"]
+    assert "item 2" in msg["content"]
+
+    msg = _ask(client, sid, "female", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["items"][1]["missing"] == []
+    assert "confirm" in msg["content"]
+
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+    assert "(1)" in msg["content"] and "(2)" in msg["content"]
+
+    amina = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Amina"
+        )
+    )
+    hawa = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Hauwa"
+        )
+    )
+    assert amina is not None and hawa is not None
+    assert amina.gender == "male" and hawa.gender == "female"
+    assert amina.last_name == "John" and hawa.last_name == "Manuel"
+    assert _current_arm_of(db, sid, amina) == w["nursery_arm_id"]
+    assert _current_arm_of(db, sid, hawa) == nursery_2
+    assert len(_students(db, sid)) == before + 2
+
+
+def test_a_batch_does_not_silently_drop_a_target(client, db):
+    """Every clause of the message stays visible, even the one that cannot be
+    resolved yet."""
+    sid, _w = _world(client, db, with_nursery=True)
+    msg = _ask(
+        client, sid, "add Amina John in Nursery 1 and Hauwa Manuel in Nursery 9"
+    )["message"]
+    action = msg["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert len(action["items"]) == 2
+    assert "arm" in action["items"][1]["missing"]
+    assert "Nursery 9" in msg["content"]
+
+
+def test_a_value_list_is_not_mistaken_for_a_second_command(client, db):
+    """"create role Transport Lead with permissions fees.view and fees.collect" is
+    one command whose value list happens to be joined by "and" — not two
+    commands."""
+    sid, _w = _world(client, db)
+    msg = _confirm(
+        client, sid,
+        "create role Transport Lead with permissions fees.view and fees.collect",
+    )
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+    # Read as one command, not as a batch of two.
+    assert msg["answer_payload"]["action"]["code"] == "create_role"
+    role = db.scalar(
+        select(Role).where(
+            Role.school_id == uuid.UUID(sid), Role.name == "Transport Lead"
+        )
+    )
+    assert role is not None
+
+
+def test_an_intent_preamble_before_the_verb_is_understood(client, db):
+    """"I wanted to say you should add …" is still a command."""
+    sid, _w = _world(client, db, with_nursery=True)
+    msg = _ask(
+        client, sid, "I wanted to say you should add Genesis John to Nursery 1"
+    )["message"]
+    assert msg["answer_payload"]["source"] == "command"
+    assert msg["intent"] == "admit_student"
+    assert "Nursery 1" in msg["content"]
+
+
+def test_a_bare_level_resolves_when_only_one_class_matches(client, db):
+    """"Add Amina Manuel in JSS 1" — the school's only JSS 1 is "JSS 1 A"."""
+    sid, _w = _world(client, db)
+    msg = _ask(client, sid, "Add Amina Manuel in JSS 1")["message"]
+    action = msg["answer_payload"]["action"]
+    assert action["status"] == "pending"
+    assert action["missing"] == ["gender"]
+    assert action["params"]["arm_name"] == "JSS 1 A"
+    # A resolved class must not be described as ambiguous.
+    assert "fits more than one class" not in msg["content"]
+
+
+def test_an_ambiguous_level_asks_which_class_instead_of_guessing(client, db):
+    """With a JSS 1 A and a JSS 1 B on file, "JSS 1" asks — it does not admit
+    the pupil into whichever class happens to sort first."""
+    sid, w = _world(client, db)
+    jss_1b = _add_arm(client, sid, w["session_id"], "JSS 1 B")
+    first = _ask(client, sid, "add Ada Inyang to JSS 1")
+    action = first["message"]["answer_payload"]["action"]
+    assert "arm" in action["missing"]
+    assert "JSS 1 A" in first["message"]["content"]
+    assert "JSS 1 B" in first["message"]["content"]
+
+    conv = first["conversation"]["id"]
+    msg = _ask(client, sid, "JSS 1 B", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["params"]["arm_name"] == "JSS 1 B"
+    _ask(client, sid, "female", conversation_id=conv)
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Ada"
+        )
+    )
+    assert _current_arm_of(db, sid, student) == jss_1b
+
+
+def test_an_unknown_class_is_named_and_the_real_classes_listed(client, db):
+    """"Still needed: arm" was a misleading way to say "I don't have a class
+    called that". Name the class that was not found and list the real ones."""
+    sid, _w = _world(client, db, with_nursery=True)
+    msg = _ask(client, sid, "Add Amina Manuel in Nursery 9")["message"]
+    action = msg["answer_payload"]["action"]
+    assert "arm" in action["missing"]
+    assert "Nursery 9" in msg["content"]
+    assert "Nursery 1" in msg["content"]
+    assert "JSS 1 A" in msg["content"]
+
+
+def test_a_mixed_message_runs_commands_of_different_kinds(client, db):
+    """A message may carry commands of different kinds: an admission and a
+    subject. Both are proposed together, then run one after the other."""
+    sid, w = _world(client, db, with_nursery=True)
+    before = len(_students(db, sid))
+
+    first = _ask(
+        client, sid,
+        "add Amina John to Nursery 1 and create subject Further Mathematics",
+    )
+    msg = first["message"]
+    assert msg["answer_payload"]["source"] == "command"
+    action = msg["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert action["status"] == "pending"
+    assert [item["code"] for item in action["items"]] == [
+        "admit_student",
+        "create_subject",
+    ]
+    # Neither half ran before the confirmation.
+    assert len(_students(db, sid)) == before
+    assert db.scalar(
+        select(Subject).where(
+            Subject.school_id == uuid.UUID(sid),
+            Subject.name == "Further Mathematics",
+        )
+    ) is None
+    conv = first["conversation"]["id"]
+
+    # The admission is the item missing a field, so it is asked for first.
+    msg = _ask(client, sid, "female", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["items"][0]["missing"] == []
+
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Amina"
+        )
+    )
+    assert student is not None and student.gender == "female"
+    assert _current_arm_of(db, sid, student) == w["nursery_arm_id"]
+    subject = db.scalar(
+        select(Subject).where(
+            Subject.school_id == uuid.UUID(sid),
+            Subject.name == "Further Mathematics",
+        )
+    )
+    assert subject is not None
+
+
+def test_a_mixed_message_can_span_students_and_staff(client, db):
+    """"add Amina John to Nursery 1 and add teacher Grace Ade" — the carried
+    verb means a pupil in one clause and a staff member in the next, and both
+    writes still land."""
+    sid, _w = _world(client, db, with_nursery=True)
+    before = len(_students(db, sid))
+
+    first = _ask(
+        client, sid, "add Amina John to Nursery 1 and add teacher Grace Ade"
+    )
+    action = first["message"]["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert [item["code"] for item in action["items"]] == [
+        "admit_student",
+        "add_staff",
+    ]
+    assert len(_students(db, sid)) == before
+
+    conv = first["conversation"]["id"]
+    _ask(client, sid, "female", conversation_id=conv)
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+
+    assert db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Amina"
+        )
+    ) is not None
+    assert db.scalar(
+        select(Staff).where(
+            Staff.school_id == uuid.UUID(sid), Staff.full_name == "Grace Ade"
+        )
+    ) is not None
+
+
+def test_three_commands_of_three_kinds_in_one_prompt(client, db):
+    """One prompt, three different tasks: admit a pupil, create a subject and
+    add a teacher. All three are proposed, then run in order."""
+    sid, w = _world(client, db, with_nursery=True)
+    before = len(_students(db, sid))
+
+    prompt = (
+        "add Amina John to Nursery 1 and create subject Further Mathematics "
+        "and add teacher Grace Ade"
+    )
+    first = _ask(client, sid, prompt)
+    action = first["message"]["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert len(action["items"]) == 3
+    assert [item["code"] for item in action["items"]] == [
+        "admit_student",
+        "create_subject",
+        "add_staff",
+    ]
+    # Nothing is written until the confirmation.
+    assert len(_students(db, sid)) == before
+
+    conv = first["conversation"]["id"]
+    msg = _ask(client, sid, "male", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["items"][0]["missing"] == []
+
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+    assert "(1)" in msg["content"]
+    assert "(2)" in msg["content"]
+    assert "(3)" in msg["content"]
+
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Amina"
+        )
+    )
+    assert student is not None and student.gender == "male"
+    assert _current_arm_of(db, sid, student) == w["nursery_arm_id"]
+    assert db.scalar(
+        select(Subject).where(
+            Subject.school_id == uuid.UUID(sid),
+            Subject.name == "Further Mathematics",
+        )
+    ) is not None
+    staff = db.scalar(
+        select(Staff).where(
+            Staff.school_id == uuid.UUID(sid), Staff.full_name == "Grace Ade"
+        )
+    )
+    assert staff is not None and staff.staff_no.startswith("STF-")

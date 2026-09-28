@@ -70,6 +70,11 @@ function ActionCard({ action }: { action: Record<string, unknown> }) {
     for (const [key, value] of Object.entries(totals)) entries.push([key, String(value)]);
   }
   const missing = Array.isArray(action.missing) ? (action.missing as unknown[]) : [];
+  // A message that carried several commands ("add A to X and B to Y") comes
+  // back as one card with an item per command.
+  const items = Array.isArray(action.items)
+    ? (action.items as Record<string, unknown>[])
+    : [];
 
   return (
     <div
@@ -85,6 +90,43 @@ function ActionCard({ action }: { action: Record<string, unknown> }) {
       {action.error ? <p className="mt-1 text-sm">{String(action.error)}</p> : null}
       {missing.length > 0 ? (
         <p className="mt-1 text-xs">Still needed: {missing.map(String).join(", ")}</p>
+      ) : null}
+      {items.length > 0 ? (
+        <ol className="mt-1 space-y-1">
+          {items.map((item, i) => {
+            const itemMissing = Array.isArray(item.missing)
+              ? (item.missing as unknown[])
+              : [];
+            return (
+              <li key={i} className="text-sm">
+                <span className="mr-1 text-muted-foreground">
+                  {Number(item.n ?? i + 1)}.
+                </span>
+                {String(item.detail ?? item.title ?? "")}
+                {itemMissing.length > 0 ? (
+                  <span className="text-xs text-muted-foreground">
+                    {" "}(still needs {itemMissing.map(String).join(", ")})
+                  </span>
+                ) : null}
+                {item.error ? (
+                  <span className="text-xs text-destructive">
+                    {" "}— {String(item.error)}
+                  </span>
+                ) : null}
+                {typeof item.result === "object" && item.result ? (
+                  <span className="text-xs text-muted-foreground">
+                    {" "}
+                    {Object.entries(item.result as Record<string, unknown>)
+                      .filter(([, value]) => typeof value === "string" || typeof value === "number")
+                      .slice(0, 3)
+                      .map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`)
+                      .join(" · ")}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
       ) : null}
       {entries.length > 0 ? (
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
