@@ -21,11 +21,15 @@ Both are per-school (tenant-scoped). This replaced a browser-localStorage "pick 
 Run from the repo root `clearis/`:
 
 ```bash
-# Backend tests — the whole suite passes (273 tests)
+# Backend tests — the whole suite (323 tests)
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest -q -p no:warnings
-#   -> the full API suite passes
+#   -> the full API suite passes (273 at the time of the original run)
+#      On a slow-disk machine one full run can exceed a 10-minute budget; the
+#      copilot command layer was verified as a two-file batch instead
+#      (see COPILOT_PROGRESS.md).
 
 # Copilot tests specifically — the Q&A engine, the command layer, the report card
+#   test_copilot_actions.py is now 49 tests (30 chat commands)
 cd apps/api && DEBUG=true COOKIE_SECURE=false ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_copilot_actions.py tests/test_report_card_templates.py -q
 
 # Web typecheck — clean
@@ -91,9 +95,11 @@ The previously documented `SIGBUS` Next.js build crash is no longer reproducible
 
 ## 3b. Admin commands — the copilot can now *change* records
 
-**Status: implemented and green (20 tests in `apps/api/tests/test_copilot_actions.py`).**
+**Status: implemented and green (49 tests in `apps/api/tests/test_copilot_actions.py`).**
 
 Before this, /copilot could only read: "add Genesis John to Nursery 1" got "I don't have that information", and the follow-up "give me the names" got nothing because `class_snapshot` returns counts only. Both now work.
+
+The layer covers **30 commands** across the six domains a school runs on — students & admissions, staff & logins, academic structure, attendance, results, users/roles/school setup, and finance. See the catalog below and the dated log in [`COPILOT_PROGRESS.md`](./COPILOT_PROGRESS.md).
 
 ### The three rules (this is the design)
 1. **The model never executes anything.** Commands are parsed by rules in `copilot_actions.py`, never offered to the LLM as a tool. A command turn never calls the provider — `answer_payload["source"]` is `"command"`, and a test asserts the LLM is not invoked.
@@ -103,20 +109,48 @@ Before this, /copilot could only read: "add Genesis John to Nursery 1" got "I do
 A confirmed run is journalled to `audit_logs` (`entity_type` = the record family, `details` = "… via the school copilot chat command"). Execution runs inside a **SAVEPOINT** so a two-step action that fails halfway (create the student → enrol them) unwinds its own rows while the conversation turn still commits with an honest reply. `execute_proposal` never raises for an expected failure.
 
 ### What it can do
+
+Every example here is drawn from `COMMAND_EXAMPLES` in `copilot_actions.py`,
+which is also what `command_help()` renders in chat — the two can never drift.
+
 | Command (example) | Code | Needs |
 |---|---|---|
+| **Students & admissions** | | |
 | `add Genesis John to Nursery 1` | `admit_student` | `students.create` + `students.enroll` |
+| `enrol Aisha Bello in Nursery 1` | `enroll_student` | `students.enroll` |
 | `move Genesis John to Nursery 2` | `change_class` | `students.enroll` |
+| `rename Aisha Bello to Aisha Okafor` | `update_student` | `students.edit` |
+| `remove student Tolu Coker` | `remove_student` | `students.delete` |
+| `promote JSS 1 A to JSS 2 A` | `promote_class` | `students.enroll` |
+| `add guardian Mary Bello for Aisha Bello` | `add_guardian` | `students.edit` |
+| **Staff & logins** | | |
 | `add teacher Grace Ade` | `add_staff` | `staff.create` |
+| `create a login for Grace Ade as teacher` | `create_staff_account` | `users.manage` |
+| **Academic structure** | | |
 | `create subject Further Mathematics` | `create_subject` | `academics.manage` |
 | `create class Nursery 3` | `create_class_arm` | `academics.manage` |
 | `create session 2027/2028` | `create_session` | `academics.manage` |
 | `create second term in 2025/2026` | `create_term` | `academics.manage` |
+| `activate session 2026/2027` | `activate_session` | `academics.manage` |
+| `activate first term` / `close first term` | `activate_term` / `close_term` | `academics.manage` |
+| `add Mathematics to JSS 1 A` | `add_offering` | `academics.manage` |
+| `assign Grace Ade to Mathematics in JSS 1 A` | `assign_teacher` | `academics.manage` |
+| **Attendance** | | |
+| `mark JSS 1 A present today` | `mark_attendance` | `attendance.mark` |
+| **Results** | | |
 | `submit / verify / approve results for JSS 1 A` | `*_results` | the matching results permission |
 | `publish results for JSS 1 A` | `publish_results` | `results.publish` |
 | `compile results for JSS 1 A` | `compile_results` | `results.verify` + `approve` + `publish` |
+| **Users, roles & school setup** | | |
+| `create role Bursar with permissions fees.view, fees.collect` | `create_role` | `roles.manage` |
+| `rename the school to Brightfield Academy` | `update_school` | `school.manage` |
+| `add campus Ikeja` | `add_campus` | `campus.manage` |
+| **Finance** | | |
+| `create a fee structure called School Fees of 50000` | `create_fee_structure` | `fees.create` |
+| `raise an invoice for Aisha Bello for School Fees` | `create_invoice` | `fees.create` |
+| `record a payment of 50000 from Aisha Bello` | `record_payment` | `fees.pay` |
 
-Results commands run across every subject offered in that class for the term (the live/current term unless one is named). Admission numbers (`STU-<year>-NNN`) and staff numbers (`STF-<year>-NNN`) are **generated**, never guessed; a subject's code is derived from its name and de-duplicated. A gender is **never** invented — it is asked for.
+Results commands run across every subject offered in that class for the term (the live/current term unless one is named). Admission numbers (`STU-<year>-NNN`) and staff numbers (`STF-<year>-NNN`) are **generated**, never guessed; a subject's code is derived from its name and de-duplicated. A gender is **never** invented — it is asked for. A staff login's temporary password is shown **once**, in the confirmation reply, and never stored in clear. A `Decimal` amount is coerced to a float before it reaches the audit log (`_json_safe`).
 
 ### Parsing notes (do not "simplify" these)
 - Arm/class names resolve by **exact normalised match first** (`_norm`, so `"JSS 1 A"` ≡ `"jss1a"`), then prefix/containment. This is deliberate: the old `_name_in` stem matcher drops numeric tokens (`"Nursery 1"` reduced to just `["nursery"]`), which would resolve "Nursery 10" to "Nursery 1". For the free-question roster the longest stored name found in the text wins.
@@ -217,7 +251,7 @@ apps/api/app/services/copilot_actions.py
 apps/api/tests/test_copilot_actions.py
 ```
 
-**Modified:** `apps/api/app/{config,main}.py`, `models/__init__.py`, `routers/portal.py`, `schemas/portal.py`, `seed.py`, `services/copilot_service.py`, `services/email_service.py`, `tests/test_copilot.py`, `tests/test_{platform,superadmin}.py`; `apps/web/src/app/(app)/{reports,settings}/page.tsx`, `app/{check-result,login}/page.tsx`, `app/report-card.css`, `components/{nav-config,report-card-document,report-template-picker}.ts(x)`, `hooks/use-api.ts`, `lib/{portal-session,report-templates}.ts`, `apps/web/package.json`; `packages/shared/src/{client,contracts}.ts`; `docs/PRODUCTION_SECURITY.md`, `package-lock.json`.
+**Modified:** `apps/api/app/{config,main}.py`, `models/__init__.py`, `routers/portal.py`, `schemas/portal.py`, `seed.py`, `services/copilot_service.py`, `services/email_service.py`, `tests/test_copilot.py`, `tests/test_{platform,superadmin}.py`; `apps/web/src/app/(app)/{reports,settings}/page.tsx`, `app/{check-result,login}/page.tsx`, `app/report-card.css`, `components/{nav-config,report-card-document,report-template-picker}.ts(x)`, `hooks/use-api.ts`, `lib/{portal-session,report-templates}.ts`, `apps/web/package.json`; `packages/shared/src/{client,contracts}.ts`; `docs/PRODUCTION_SECURITY.md`, `docs/COPILOT_PROGRESS.md`, `docs/COPILOT_AND_REPORT_CARD_DESIGNER.md`, `package-lock.json`.
 
 > Note: the `copilot_service.py` diff is large (+352 lines) — that is the LLM layer + grounding brief + the expanded intent catalog. `email_service.py`/`config.py` changes are unrelated SMTP/Resend transport hardening; `report-card.css` + `report-card-document.tsx` are the widget renderer rewrite.
 
@@ -235,5 +269,6 @@ The features are functionally complete and green. Remaining items are polish and
    - The palette said "Drag onto the card, or click to add" but had no click handler. `PaletteItem` now adds on click, with a `droppedRef` guard so the click a completed drop emits is not counted as a second add.
    Still **not** covered: live drag-and-drop (jsdom can't measure layout) and the reports/settings/portal pages. Those remain manual or e2e work.
 5. **Follow-up idea (not started):** surface the copilot contextually *from* a dashboard widget (management/teacher dashboards already reference copilot) so it appears "in the context of the school" without navigating to `/copilot`.
+6. **Widen command coverage.** The chat drives 30 commands across students, staff, academics, attendance, results, roles/school setup and finance. Still unexposed: payroll, accounting, inventory, library, lesson plans, question banks, bulk imports/uploads, the report-card designer, per-subject score entry, academic-structure edits/deletes, staff lifecycle edits, role/user edits, and the rest of finance. See the "Not yet on the command path" list in [`COPILOT_PROGRESS.md`](./COPILOT_PROGRESS.md).
 
 If you change the widget catalog, remember the two-halves rule: update `WIDGET_TYPES` (Python) **and** `WIDGET_CATALOG` (TS) **and** `ReportCardDocument`'s switch, or a design will be rejected/rendered wrong.

@@ -79,6 +79,149 @@ app; the command layer is API-side and the chat window is web-side.
 
 ---
 
+## 2026-09-28 — The copilot runs the whole admin desk, not just admissions
+
+### Reported problem
+
+> **User:** move a student to another class
+> **Copilot:** I don't have information about that…
+
+`_detect_change_class` in `copilot_actions.py` required the pupil's name to sit
+*immediately* before `to`/`into`:
+
+```
+(?:move|transfer|change)\s+(?P<name>.+?)\s+(?:to|into)\s+(?P<arm>.+?)\s*$
+```
+
+Any natural wording missed it, so the turn was never seen as a command: it fell
+through to the LLM, which correctly said it cannot write. That is why a *bare*
+"move Genesis John to Nursery 2" worked while the reported phrasing did not.
+
+```
+OK   move Genesis John to Nursery 2
+FAIL move Genesis John from Nursery 1 to Nursery 2   <- a "from" clause
+FAIL move Genesis John's class to Nursery 2          <- possessive
+FAIL change the student Genesis John into Nursery 2  <- "the student"
+```
+
+### Fix
+
+The regex now tolerates an optional `from …` clause, a leading `the`, and the
+verbs `shift` / `promote` / `demote`; the scaffolding (`the`, `student`, `'s
+class`) is stripped from the name phrase before it is resolved. A student who is
+**not found** — or **ambiguous** — is answered inside the command layer ("I
+couldn't find a student called …", or the list of matches), so a failed move can
+never come back as the LLM's "I don't have that information".
+
+| Change | Detail |
+|---|---|
+| `_detect_change_class` regex | optional `from …`; `(?:the\s+)?`; verbs `shift/promote/demote` |
+| Name cleaning | strips `student`/`pupil`/`the` and `'s class`/`'s arm`/`'s section` |
+| Not-found / ambiguous | honest `DirectReply` (candidates listed), never the LLM |
+
+### Coverage: the whole admin desk
+
+Enumerating the ~138 write endpoints in the API showed the command layer covered
+admissions and a little academics only. Executors mirroring the admin endpoints
+were added so the chat can now drive **30 commands** across the six domains the
+school actually runs on. Every one still follows the three rules above — the
+LLM is never on the command path, nothing writes without a `confirm`, and the
+caller's real permissions are re-checked at propose time *and* at execution.
+
+| Domain | Example you can type | Code | Needs |
+|---|---|---|---|
+| **Students & admissions** | `add Genesis John to Nursery 1` | `admit_student` | `students.create` + `students.enroll` |
+| | `enrol Aisha Bello in Nursery 1` | `enroll_student` | `students.enroll` |
+| | `move Genesis John to Nursery 2` | `change_class` | `students.enroll` |
+| | `rename Aisha Bello to Aisha Okafor` | `update_student` | `students.edit` |
+| | `remove student Tolu Coker` | `remove_student` | `students.delete` |
+| | `promote JSS 1 A to JSS 2 A` | `promote_class` | `students.enroll` |
+| | `add guardian Mary Bello for Aisha Bello` | `add_guardian` | `students.edit` |
+| **Staff & logins** | `add teacher Grace Ade` | `add_staff` | `staff.create` |
+| | `create a login for Grace Ade as teacher` | `create_staff_account` | `users.manage` |
+| **Academic structure** | `create subject Further Mathematics` | `create_subject` | `academics.manage` |
+| | `create class Nursery 3` | `create_class_arm` | `academics.manage` |
+| | `create session 2027/2028` | `create_session` | `academics.manage` |
+| | `create second term in 2025/2026` | `create_term` | `academics.manage` |
+| | `activate session 2026/2027` | `activate_session` | `academics.manage` |
+| | `activate first term` / `close first term` | `activate_term` / `close_term` | `academics.manage` |
+| | `add Mathematics to JSS 1 A` | `add_offering` | `academics.manage` |
+| | `assign Grace Ade to Mathematics in JSS 1 A` | `assign_teacher` | `academics.manage` |
+| **Attendance** | `mark JSS 1 A present today` | `mark_attendance` | `attendance.mark` |
+| **Results** | `submit / verify / approve / publish / compile results for JSS 1 A` | `*_results` | the matching results permission |
+| **Users, roles & school setup** | `create role Bursar with permissions fees.view, fees.collect` | `create_role` | `roles.manage` |
+| | `rename the school to Brightfield Academy` | `update_school` | `school.manage` |
+| | `add campus Ikeja` | `add_campus` | `campus.manage` |
+| **Finance** | `create a fee structure called School Fees of 50000` | `create_fee_structure` | `fees.create` |
+| | `raise an invoice for Aisha Bello for School Fees` | `create_invoice` | `fees.create` |
+| | `record a payment of 50000 from Aisha Bello` | `record_payment` | `fees.pay` |
+
+`command_help()` — served in chat when a user asks "help" / "what can you do" —
+renders these examples straight from `COMMAND_EXAMPLES`, so the help text can
+never drift from the code. `create_staff_account` shows its one-time temporary
+password **once**, in the confirmation reply; it is never stored in clear.
+
+### Bugs found and fixed while adding the commands
+
+| # | Bug | Fix |
+|---|---|---|
+| 1 | A role command that *named* `results.*` permissions (`create role X with permissions results.verify`) was caught by the results detector and read as a results run. | `_detect_results_action` bails out when the sentence names `role`/`permission`/`login`/`account`/`campus`; `create_role` no longer fires on its own permission list. |
+| 2 | `create role Bursar with permissions …` kept the word `with` in the parsed role name. | `with` added to the stripped stop-word regex. |
+| 3 | A confirmed finance command 500'd a chat turn: a `Decimal` amount reached the `audit_logs` JSONB insert (`Object of type Decimal is not JSON serializable`). | New `_json_safe()` (Decimal → float, UUID → str, recursive) applied in `_audit()`; the fee-structure executor also emits `float(amount)`. |
+| 4 | `test_add_a_campus` read the wrong row — registration seeds a "Main Campus", so an unfiltered `select(...)` picked that instead of the new campus. | Test asserts on `Campus.name == "Ikeja"`. |
+
+### Tests
+
+23 new cases in `apps/api/tests/test_copilot_actions.py` (49 in the file):
+
+- the reported move bug (`test_move_student_with_from_clause_works`,
+  `test_move_student_possessive_class_phrasing`,
+  `test_move_unknown_student_never_reaches_the_llm`);
+- students (`enrol` without duplicating, `remove` soft-deletes, rename, gender
+  change, promote a class, add a guardian);
+- academics (activate a session, activate + close a term, add a subject to a
+  class, assign a teacher);
+- attendance (mark a whole class present, mark one pupil absent);
+- roles/users/school setup (create a role with permissions, create a staff login
+  and show the password once, rename the school, add a campus);
+- finance (structure → invoice → payment end-to-end, an honest refusal when the
+  pupil has no invoice, and permission denials for finance and attendance).
+
+### Verification
+
+```
+cd apps/api && DATABASE_URL=... DEBUG=true COOKIE_SECURE=false \
+  ../../.venv/bin/python -m pytest tests/test_copilot.py tests/test_copilot_actions.py -q -p no:warnings
+# 69 passed (test_copilot 20 + test_copilot_actions 49), exit 0
+```
+
+The wider API suite is 323 tests; on this machine Postgres checkpoints are slow
+enough that a single full-suite run exceeds the command budget, so it was
+verified in the two-file batch above plus the earlier baseline.
+
+### Not yet on the command path
+
+Honest gaps, by design rather than oversight — the biggest remaining admin
+surfaces are:
+
+- **Whole modules** never exposed to chat: payroll, accounting, inventory,
+  library, lesson plans, question banks, bulk CSV imports, file uploads, and the
+  report-card designer (`report_card_templates`).
+- **Results:** per-subject score entry (`results.enter`) and comments/remarks —
+  the chat drives the submit→publish *pipeline* only.
+- **Edits/deletes** of academic structure (edit/delete a subject, delete an arm,
+  session or term, remove a teacher assignment, generate the timetable).
+- **Staff lifecycle** beyond creation: edit, deactivate/reactivate, reset a
+  staff password.
+- **Users & roles** beyond creation: edit a role's permissions, deactivate a
+  login, superadmin actions (impersonation, plan changes, platform settings).
+- **School setup** beyond name + campus: logo, contact details, school-wide
+  settings.
+- **Finance** beyond the three: edit a fee structure, toggle its status, email a
+  receipt, refunds, expenses.
+
+---
+
 ## Still open
 
 1. **Redeploy** the API + web so the running instance carries this change.
@@ -92,3 +235,5 @@ app; the command layer is API-side and the chat window is web-side.
    students" mid-admission re-asks for the gender instead of listing the class.
 4. **Optional follow-ups** for the chat: rename a chat, search the rail, and a
    "delete all chats" action.
+5. **Widen command coverage** — see "Not yet on the command path" above;
+   payroll/accounting/inventory/library are the largest untouched surfaces.

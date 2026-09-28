@@ -24,16 +24,27 @@ from sqlalchemy import select
 from app.models import (
     AcademicSession,
     AuditLog,
+    Campus,
     CopilotMessage,
+    Guardian,
     Result,
+    Role,
+    School,
     Staff,
     Student,
     StudentEnrollment,
     Subject,
     Term,
+    User,
 )
+from app.models.attendance import StudentAttendance
 from app.models.enums import ResultStatus
-from .conftest import active_school_id, enable_premium, register_school
+from .conftest import (
+    active_school_id,
+    enable_premium,
+    grant_permission,
+    register_school,
+)
 from .test_portal import _act, _add_components, _add_limited_user, _configure, _enter_all
 
 COPILOT = "/api/copilot"
@@ -59,6 +70,55 @@ def _add_arm(client, sid, session_id, name):
     )
     assert r.status_code == 201, r.text
     return r.json()["id"]
+
+
+def _add_session(client, sid, name, *, is_current=False):
+    r = client.post(
+        "/api/academics/sessions",
+        json={"name": name, "is_current": is_current},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def _add_subject(client, sid, name, code):
+    r = client.post(
+        "/api/academics/subjects",
+        json={"name": name, "code": code},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def _add_staff(client, sid, staff_no, full_name, membership_type="teaching"):
+    r = client.post(
+        "/api/staff",
+        json={"staff_no": staff_no, "full_name": full_name,
+              "membership_type": membership_type},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()["id"]
+
+
+def _student_by_admission(db, sid, admission_no):
+    return db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.admission_no == admission_no
+        )
+    )
+
+
+def _current_arm_of(db, sid, student):
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(
+            StudentEnrollment.student_id == student.id,
+            StudentEnrollment.is_current.is_(True),
+        )
+    )
+    return str(enrollment.class_arm_id)
 
 
 def _students(db, sid):
@@ -556,3 +616,323 @@ def test_delete_unknown_conversation_is_a_404(client, db):
         f"{COPILOT}/conversations/{uuid.uuid4()}", headers={"X-School-Id": sid}
     )
     assert r.status_code == 404
+
+
+# ===========================================================================
+# The wider administrative catalogue
+# ===========================================================================
+
+
+def _confirm(client, sid, first_message, *followups):
+    """Send a command, supply any follow-up fields, confirm, and return the
+    final assistant message."""
+    conv = _ask(client, sid, first_message)["conversation"]["id"]
+    last = None
+    for value in followups:
+        last = _ask(client, sid, value, conversation_id=conv)["message"]
+    last = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    return last
+
+
+# --- Students: the reported bug, plus the rest of the roster writes -----------
+
+
+def test_move_student_with_from_clause_works(client, db):
+    """The reported failure: "move a student to another class" must be read as
+    a command. The from-clause phrasing is the one that silently fell through."""
+    sid, w = _world(client, db, with_nursery=True)
+    result = _ask(client, sid, "move Aisha Bello from JSS 1 A to Nursery 1")
+    assert result["message"]["intent"] == "change_class"
+    assert result["message"]["answer_payload"]["source"] == "command"
+    msg = _ask(
+        client, sid, "confirm", conversation_id=result["conversation"]["id"]
+    )["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    student = _student_by_admission(db, sid, "STU-001")
+    assert _current_arm_of(db, sid, student) == w["nursery_arm_id"]
+
+
+def test_move_student_possessive_class_phrasing(client, db):
+    sid, w = _world(client, db, with_nursery=True)
+    result = _ask(client, sid, "change Aisha Bello's class to Nursery 1")
+    assert result["message"]["intent"] == "change_class"
+    msg = _ask(
+        client, sid, "confirm", conversation_id=result["conversation"]["id"]
+    )["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    student = _student_by_admission(db, sid, "STU-001")
+    assert _current_arm_of(db, sid, student) == w["nursery_arm_id"]
+
+
+def test_move_unknown_student_never_reaches_the_llm(client, db, monkeypatch):
+    """An unrecognized pupil is an honest, deterministic reply — not the model."""
+    sid, _w = _world(client, db)
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "groq_api_key", "test-key", raising=False)
+
+    def _boom(*, system, user, temperature=0.3, max_tokens=2400):
+        raise AssertionError("a command-shaped turn must not call the LLM")
+
+    monkeypatch.setattr("app.services.copilot_service.complete_text", _boom)
+    msg = _ask(client, sid, "move Nobody Atall to JSS 1 A")["message"]
+    assert msg["answer_payload"]["source"] == "command"
+    assert msg["answer_payload"].get("not_found") is True
+
+
+def test_enrol_existing_student_does_not_create_a_duplicate(client, db):
+    sid, w = _world(client, db, with_nursery=True)
+    before = len(_students(db, sid))
+    msg = _confirm(client, sid, "enrol Aisha Bello in Nursery 1")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    assert len(_students(db, sid)) == before  # no second Aisha was created
+    student = _student_by_admission(db, sid, "STU-001")
+    assert _current_arm_of(db, sid, student) == w["nursery_arm_id"]
+
+
+def test_remove_student_soft_deletes(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "remove student Tolu Coker")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    student = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Tolu"
+        )
+    )
+    assert student.is_deleted is True
+
+
+def test_rename_student(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "rename Aisha Bello to Aisha Okafor")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    student = _student_by_admission(db, sid, "STU-001")
+    assert student.first_name == "Aisha"
+    assert student.last_name == "Okafor"
+
+
+def test_change_student_gender(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "change Aisha Bello's gender to male")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    student = _student_by_admission(db, sid, "STU-001")
+    assert student.gender == "male"
+
+
+def test_promote_a_class_into_the_next_session(client, db):
+    sid, w = _world(client, db)
+    next_session = _add_session(client, sid, "2026/2027")
+    target_arm = _add_arm(client, sid, next_session, "JSS 2 A")
+
+    msg = _confirm(client, sid, "promote JSS 1 A to JSS 2 A")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    assert msg["answer_payload"]["action"]["result"]["promoted"] == 3
+
+    current = db.scalars(
+        select(StudentEnrollment).where(
+            StudentEnrollment.school_id == uuid.UUID(sid),
+            StudentEnrollment.is_current.is_(True),
+        )
+    ).all()
+    assert {str(e.class_arm_id) for e in current} == {target_arm}
+
+
+def test_add_guardian_for_a_student(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "add guardian Mary Bello for Aisha Bello")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    guardian = db.scalar(
+        select(Guardian).where(
+            Guardian.school_id == uuid.UUID(sid), Guardian.full_name == "Mary Bello"
+        )
+    )
+    assert guardian is not None
+
+
+# --- Academic structure -------------------------------------------------------
+
+
+def test_activate_and_close_a_term(client, db):
+    sid, w = _world(client, db)
+    r = client.post(
+        "/api/academics/terms",
+        json={"session_id": w["session_id"], "term_no": 2, "name": "Second Term"},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    second = r.json()["id"]
+
+    msg = _confirm(client, sid, "activate second term")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    assert db.get(Term, uuid.UUID(second)).status == "open"
+
+    msg = _confirm(client, sid, "close second term")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    db.expire_all()
+    assert db.get(Term, uuid.UUID(second)).status == "closed"
+
+
+def test_activate_a_session(client, db):
+    sid, _w = _world(client, db)
+    next_session = _add_session(client, sid, "2027/2028")
+    msg = _confirm(client, sid, "activate session 2027/2028")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    db.expire_all()
+    assert db.get(AcademicSession, uuid.UUID(next_session)).is_current is True
+
+
+def test_add_subject_to_a_class(client, db):
+    sid, w = _world(client, db)
+    subject_id = _add_subject(client, sid, "English Language", "ENG")
+    msg = _confirm(client, sid, "add English Language to JSS 1 A")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    offerings = client.get(
+        f"/api/academics/arms/{w['arm_id']}/offerings", headers={"X-School-Id": sid}
+    ).json()
+    assert subject_id in {o["subject_id"] for o in offerings}
+
+
+def test_assign_a_teacher_to_subject_and_class(client, db):
+    sid, w = _world(client, db)
+    _add_staff(client, sid, "STF-001", "Grace Ade")
+    msg = _confirm(client, sid, "assign Grace Ade to Mathematics in JSS 1 A")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    assignments = client.get(
+        f"/api/academics/arms/{w['arm_id']}/assignments", headers={"X-School-Id": sid}
+    ).json()
+    assert len(assignments) == 1
+
+
+# --- Attendance ---------------------------------------------------------------
+
+
+def test_mark_a_whole_class_present(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "mark JSS 1 A present today")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    rows = db.scalars(
+        select(StudentAttendance).where(StudentAttendance.school_id == uuid.UUID(sid))
+    ).all()
+    assert len(rows) == 3
+    assert {r.status for r in rows} == {"present"}
+
+
+def test_mark_one_student_absent(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "mark Aisha Bello absent today")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    rows = db.scalars(
+        select(StudentAttendance).where(StudentAttendance.school_id == uuid.UUID(sid))
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].status == "absent"
+
+
+# --- Users, roles & school setup ---------------------------------------------
+
+
+def test_create_a_role_with_permissions(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(
+        client, sid,
+        "create role Exam Assistant with permissions results.view, results.verify",
+    )
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    role = db.scalar(
+        select(Role).where(
+            Role.school_id == uuid.UUID(sid), Role.name == "Exam Assistant"
+        )
+    )
+    assert role is not None
+    assert role.code == "exam_assistant"
+
+
+def test_create_a_staff_login_and_show_the_password_once(client, db):
+    sid, _w = _world(client, db)
+    _add_staff(client, sid, "STF-001", "Grace Ade")
+    # The email is not on the staff record, so the copilot asks for it first.
+    conv = _ask(client, sid, "create a login for Grace Ade as teacher")["conversation"]["id"]
+    msg = _ask(client, sid, "grace.ade@school.example", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "pending"
+    assert msg["answer_payload"]["action"]["missing"] == []
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    assert "Temporary password" in msg["content"]
+    assert db.scalar(
+        select(User).where(User.email == "grace.ade@school.example")
+    ) is not None
+
+
+def test_rename_the_school(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "rename the school to Brightfield Academy")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    db.expire_all()
+    assert db.get(School, uuid.UUID(sid)).name == "Brightfield Academy"
+
+
+def test_add_a_campus(client, db):
+    sid, _w = _world(client, db)
+    msg = _confirm(client, sid, "add campus Ikeja")
+    assert msg["answer_payload"]["action"]["status"] == "done"
+    # A school is seeded with a "Main Campus" at registration, so assert on the
+    # campus the command named rather than on whichever row comes back first.
+    campus = db.scalar(
+        select(Campus).where(
+            Campus.school_id == uuid.UUID(sid), Campus.name == "Ikeja"
+        )
+    )
+    assert campus is not None
+
+
+# --- Finance ------------------------------------------------------------------
+
+
+def test_fee_structure_invoice_and_payment_through_chat(client, db):
+    sid, _w = _world(client, db)
+    grant_permission(db, sid, "fees.create")
+    grant_permission(db, sid, "fees.pay")
+
+    msg = _confirm(client, sid, "create a fee structure called School Fees of 50000")
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+
+    msg = _confirm(client, sid, "raise an invoice for Aisha Bello for School Fees")
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+
+    msg = _confirm(client, sid, "record a payment of 50000 from Aisha Bello")
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+    assert msg["answer_payload"]["action"]["result"]["invoice_status"] == "paid"
+
+
+def test_payment_without_an_invoice_is_an_honest_refusal(client, db):
+    sid, _w = _world(client, db)
+    grant_permission(db, sid, "fees.pay")
+    msg = _ask(client, sid, "record a payment of 50000 from Aisha Bello")["message"]
+    assert msg["answer_payload"].get("no_invoice") is True
+    assert "couldn't find an unpaid invoice" in msg["content"]
+
+
+def test_finance_is_denied_to_a_school_admin_without_the_permission(client, db):
+    """The founding admin template withholds finance codes by design."""
+    sid, _w = _world(client, db)
+    msg = _ask(client, sid, "create a fee structure called School Fees of 50000")["message"]
+    assert msg["answer_payload"]["action"]["status"] == "denied"
+    assert "fees.create" in msg["answer_payload"]["action"]["permissions"]
+
+
+# --- Per-action permission checks still hold for the new commands -------------
+
+
+def test_principal_cannot_mark_attendance(client, db):
+    sid, _w = _world(client, db)
+    user = _add_limited_user(db, sid, "principal")
+    client.post(
+        "/api/auth/login", json={"email": user.email, "password": "Str0ng!Pass"}
+    )
+    msg = _ask(client, sid, "mark JSS 1 A present today")["message"]
+    assert msg["answer_payload"]["action"]["status"] == "denied"
+    assert "attendance.mark" in msg["answer_payload"]["action"]["permissions"]
+    # ...but the same principal can still read.
+    assert _ask(client, sid, "how many students are enrolled?")["message"]["intent"] == (
+        "school_overview"
+    )
