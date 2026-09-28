@@ -139,31 +139,37 @@ export function WidgetCard({
  * Tinted tile palette. Each tone tints the surface and the icon chip with a
  * semantic token, so the colour follows the theme automatically — the values
  * behind these tokens brighten under `.dark` and the tints stay visible.
+ *
+ * Weighted heavier than a hairline tint on purpose: at a 1px border and a 7%
+ * wash the tiles read as plain white cards and the tone was invisible across
+ * the row. A 2px border, a 12% surface and a 30% icon chip give each KPI a
+ * colour you can actually tell apart at a glance, while still using tokens
+ * (never raw hex) so dark mode keeps working.
  */
 const KPI_TONES = {
   blue: {
-    card: "border-primary/20 bg-primary/[0.07] hover:border-primary/40",
-    chip: "bg-primary/20 text-primary",
+    card: "border-2 border-primary/35 bg-primary/[0.12] hover:border-primary/55",
+    chip: "bg-primary/30 text-primary",
   },
   violet: {
-    card: "border-accent/20 bg-accent/[0.07] hover:border-accent/40",
-    chip: "bg-accent/20 text-accent",
+    card: "border-2 border-accent/35 bg-accent/[0.12] hover:border-accent/55",
+    chip: "bg-accent/30 text-accent",
   },
   emerald: {
-    card: "border-success/20 bg-success/[0.07] hover:border-success/40",
-    chip: "bg-success/20 text-success",
+    card: "border-2 border-success/35 bg-success/[0.12] hover:border-success/55",
+    chip: "bg-success/30 text-success",
   },
   amber: {
-    card: "border-warning/25 bg-warning/[0.09] hover:border-warning/45",
-    chip: "bg-warning/25 text-warning",
+    card: "border-2 border-warning/40 bg-warning/[0.14] hover:border-warning/60",
+    chip: "bg-warning/35 text-warning",
   },
   rose: {
-    card: "border-chart-4/20 bg-chart-4/[0.07] hover:border-chart-4/40",
-    chip: "bg-chart-4/20 text-chart-4",
+    card: "border-2 border-chart-4/35 bg-chart-4/[0.12] hover:border-chart-4/55",
+    chip: "bg-chart-4/30 text-chart-4",
   },
   cyan: {
-    card: "border-chart-6/20 bg-chart-6/[0.07] hover:border-chart-6/40",
-    chip: "bg-chart-6/20 text-chart-6",
+    card: "border-2 border-chart-6/35 bg-chart-6/[0.12] hover:border-chart-6/55",
+    chip: "bg-chart-6/30 text-chart-6",
   },
 } as const;
 
@@ -196,8 +202,11 @@ export function KpiCard({
     <Link
       href={href}
       className={cn(
-        "group block rounded-xl border px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:shadow-card hover:-translate-y-[1px]",
-        theme ? theme.card : "border-border/40 bg-card hover:border-border/60",
+        // No border-width here: the tone supplies border-2 and the untinted
+        // fallback supplies border. Setting both would leave the width up to
+        // Tailwind's emission order rather than to this component.
+        "group block rounded-xl px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:shadow-card hover:-translate-y-[1px]",
+        theme ? theme.card : "border border-border/40 bg-card hover:border-border/60",
       )}
     >
       <div className="flex items-start justify-between gap-3">
