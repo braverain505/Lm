@@ -330,6 +330,69 @@ slow enough that one combined run can exceed the command budget.
 
 ---
 
+## 2026-09-28 — Reported again: "it does the first command and ignores the second"
+
+### Reported problem
+
+> **User:** Add James Madison in Nursery 2 and Michael Klint in JSS 1
+> **Copilot:** Admit James Madison to Nursery 2 with a generated admission number
+> (STU-2026-003). Before I can run it I still need their gender — reply "male"
+or "female"…
+
+Michael Klint was never mentioned. This is the same message shape as the batch
+work above, so the report was **traced rather than re-fixed** — the current code
+already runs both commands.
+
+### What was actually wrong
+
+The reply shown is `render_proposal`, the **single**-command prompt. A batch
+prints "That message holds 2 commands — nothing runs until you confirm:" and
+numbers each item, which is not what the report shows. `detect_action` on that
+exact sentence returns a two-item batch (verified below), so the instance that
+answered the report was running a build from **before** the batch commit
+`8870bd6`. On such a build the single parse is the only reading, and it folds the
+second command into the class phrase:
+
+```
+arm_name='Nursery 2 and Michael Klint in JSS 1'   <- the second command, swallowed
+```
+
+…so Michael is invisible and the turn asks for James's gender instead. The fix is
+a redeploy, not a code change.
+
+### Change
+
+No production code changed. The reported sentence is now pinned by a regression
+test so that neither a stale build nor a later regex change can reintroduce it:
+`test_the_reported_two_commands_in_one_message_both_run` — both clauses planned
+in their own classes, two *distinct* admission numbers reserved in the same
+message, the gender collected per item, and after `confirm` both pupils enrolled
+(Nursery 2 / JSS 1 A).
+
+### Verification
+
+```
+cd apps/api && DATABASE_URL=... DEBUG=true COOKIE_SECURE=false \
+  ../../.venv/bin/python -m pytest tests/test_copilot_actions.py -q -p no:warnings
+# 60 passed (was 59)
+```
+
+Both readings of the reported sentence, current code:
+
+| Reading | Result |
+|---|---|
+| single parse | one admission, arm `"Nursery 2 and Michael Klint in JSS 1"`, missing `gender, arm` |
+| batch parse | **2** admissions — James → Nursery 2 (`STU-2026-001`), Michael → JSS 1 A (`STU-2026-002`) |
+| the chat turn | `code=batch`, 2 items, "Start with item 1: I need their gender" |
+
+### Action required
+
+**Redeploy the API + web.** The API produces the reply and the web renders the
+numbered batch card; until both carry `8870bd6`, multi-command messages keep
+behaving exactly as reported.
+
+---
+
 ## Still open
 
 1. **Redeploy** the API + web so the running instance carries this change.

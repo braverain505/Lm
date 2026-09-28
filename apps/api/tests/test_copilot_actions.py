@@ -17,6 +17,7 @@ Pinned behavior:
 The read side is covered too: the roster intent answers "who is in this class"
 with real names, and follows the conversation's pinned class.
 """
+import re
 import uuid
 
 from sqlalchemy import select
@@ -1000,6 +1001,69 @@ def test_two_admissions_in_one_message_are_proposed_together(client, db):
     assert amina.last_name == "John" and hawa.last_name == "Manuel"
     assert _current_arm_of(db, sid, amina) == w["nursery_arm_id"]
     assert _current_arm_of(db, sid, hawa) == nursery_2
+    assert len(_students(db, sid)) == before + 2
+
+
+def test_the_reported_two_commands_in_one_message_both_run(client, db):
+    """The reported message: "Add James Madison in Nursery 2 and Michael Klint
+    in JSS 1".
+
+    The instance the report came from ran an older build whose *only* reading of
+    that sentence was the single parse, which swallowed the second command into
+    the class phrase ("Nursery 2 and Michael Klint in JSS 1") and asked for the
+    first pupil's gender — Michael was never seen. Both clauses must be planned
+    here, in their own classes, and run together."""
+    sid, w = _world(client, db, with_nursery=True)
+    # The shared world ships "JSS 1 A"; add the reporting school's Nursery 2.
+    nursery_2 = _add_arm(client, sid, w["session_id"], "Nursery 2")
+    before = len(_students(db, sid))
+
+    first = _ask(
+        client, sid, "Add James Madison in Nursery 2 and Michael Klint in JSS 1"
+    )
+    msg = first["message"]
+    action = msg["answer_payload"]["action"]
+    assert action["code"] == "batch"
+    assert len(action["items"]) == 2
+    assert "James Madison" in action["items"][0]["detail"]
+    assert "Nursery 2" in action["items"][0]["detail"]
+    assert "Michael Klint" in action["items"][1]["detail"]
+    # A bare "JSS 1" resolves to the one class that fits it, and the second
+    # command is named rather than folded into the first pupil's class.
+    assert "JSS 1" in action["items"][1]["detail"]
+    assert "no class called" not in msg["content"]
+    # Two admissions typed together must not be planned as the same number, and
+    # neither clause may be folded into the other's class.
+    numbers = []
+    for item in action["items"]:
+        match = re.search(r"STU-[0-9]+-[0-9]+", item["detail"])
+        assert match is not None, item
+        numbers.append(match.group(0))
+    assert len(set(numbers)) == 2, numbers
+    assert len(_students(db, sid)) == before
+    conv = first["conversation"]["id"]
+
+    msg = _ask(client, sid, "male", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["items"][1]["missing"] == ["gender"]
+    msg = _ask(client, sid, "female", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["items"][1]["missing"] == []
+
+    msg = _ask(client, sid, "confirm", conversation_id=conv)["message"]
+    assert msg["answer_payload"]["action"]["status"] == "done", msg["content"]
+
+    james = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "James"
+        )
+    )
+    michael = db.scalar(
+        select(Student).where(
+            Student.school_id == uuid.UUID(sid), Student.first_name == "Michael"
+        )
+    )
+    assert james is not None and michael is not None
+    assert _current_arm_of(db, sid, james) == nursery_2
+    assert _current_arm_of(db, sid, michael) == w["arm_id"]
     assert len(_students(db, sid)) == before + 2
 
 
