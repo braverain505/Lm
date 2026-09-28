@@ -1,6 +1,7 @@
 "use client";
 
-import { Bot, MessageSquare, Plus, Send, Sparkles, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Send, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import type { CopilotMessage } from "@clearis/shared";
@@ -24,6 +25,26 @@ function fmtTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// The copilot's avatar is the Clearis mark, not a robot glyph.
+function CopilotAvatar({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full",
+        className,
+      )}
+    >
+      <Image
+        src="/clearis.png"
+        alt="Clearis"
+        width={96}
+        height={96}
+        className="h-full w-full object-cover"
+      />
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -370,16 +391,7 @@ export default function CopilotPage() {
   // Header
   const header = (
     <div className="flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">School copilot</h1>
-        <p className="text-sm text-muted-foreground">
-          Ask questions about this school and get answers grounded in its own
-          records — no invented numbers. You can also give it commands (like
-          &ldquo;add Genesis John to Nursery 1&rdquo;): it shows you exactly what
-          will change and waits for you to reply &ldquo;confirm&rdquo;. Every
-          turn is metered under ai.copilot.
-        </p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">School copilot</h1>
     </div>
   );
 
@@ -390,7 +402,7 @@ export default function CopilotPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex gap-3">
-              <Bot className="h-5 w-5 text-muted-foreground" />
+              <CopilotAvatar className="h-8 w-8" />
               <div>
                 <p className="font-medium">Copilot is off for this account</p>
                 <p className="text-sm text-muted-foreground">
@@ -490,16 +502,14 @@ export default function CopilotPage() {
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Chat header */}
           <header className="flex items-center gap-3 border-b px-3 py-3 sm:px-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
-              <Bot className="h-5 w-5" />
-            </div>
+            <CopilotAvatar className="h-10 w-10" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
                 {activeConv?.title ?? "School copilot"}
               </p>
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Grounded in your school&apos;s own records
+                Online
               </p>
             </div>
 
@@ -613,9 +623,7 @@ export default function CopilotPage() {
                   }}
                 />
                 <div className="flex items-end gap-2">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
-                    <Bot className="h-3.5 w-3.5" />
-                  </div>
+                  <CopilotAvatar className="h-7 w-7" />
                   <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm border bg-background px-3 py-2 text-sm text-muted-foreground">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                     Thinking…
@@ -657,12 +665,6 @@ export default function CopilotPage() {
                 <Send className="h-4 w-4" />
               </Button>
             </form>
-            <p className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Sparkles className="h-3 w-3" />
-              AI copilot · clearis-copilot-v1 · deterministic and data-grounded ·
-              commands are permission-checked, confirmed before they run, and
-              audited
-            </p>
           </div>
         </div>
       </div>
@@ -673,17 +675,8 @@ export default function CopilotPage() {
 function Intro({ intents, onPick }: { intents: string[]; onPick: (q: string) => void }) {
   return (
     <div className="mx-auto max-w-xl py-6 text-center">
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-        <Bot className="h-6 w-6" />
-      </div>
+      <CopilotAvatar className="mx-auto h-12 w-12" />
       <p className="mt-3 font-medium">Ask anything about this school</p>
-      <p className="text-sm text-muted-foreground">
-        Counts, class lists, subjects, score-entry progress, published results,
-        top performers and term averages — answered from your school&apos;s own
-        records. You can also ask it to do things: admit a student, add a
-        teacher, create a subject or class, or run results through to
-        published.
-      </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         {intents.map((q) => (
           <button
@@ -715,9 +708,7 @@ function MessageBubble({ message }: { message: CopilotMessage }) {
   }
   return (
     <div className="flex items-end gap-2">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
-        <Bot className="h-3.5 w-3.5" />
-      </div>
+      <CopilotAvatar className="h-7 w-7" />
       <div className="max-w-[92%]">
         <div className="rounded-2xl rounded-bl-sm border bg-background px-3.5 py-2.5 shadow-sm">
           <p className="whitespace-pre-wrap text-sm">{message.content}</p>
