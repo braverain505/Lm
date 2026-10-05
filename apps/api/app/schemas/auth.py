@@ -9,8 +9,10 @@ class RegisterSchoolRequest(BaseModel):
     school_type: str = Field(default="primary", max_length=24)
     established_year: int | None = Field(default=None, ge=1800, le=2100)
     website: str | None = Field(default=None, max_length=200)
-    school_email: EmailStr | None = None
-    phone: str | None = Field(default=None, max_length=40)
+    # Both are compulsory at signup: they are the school's contact details on
+    # file, so a workspace can never be created without a way to reach it.
+    school_email: EmailStr
+    phone: str = Field(min_length=7, max_length=40)
     address: str | None = Field(default=None, max_length=500)
     state: str | None = Field(default=None, max_length=120)
     country: str = Field(default="NG", min_length=2, max_length=2)

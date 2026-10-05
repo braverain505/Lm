@@ -118,6 +118,7 @@ def client(db) -> TestClient:
 def register_school(
     client: TestClient, name: str = "Test Academy", email: str = "admin@test.edu",
     password: str = "Str0ng!Pass", school_type: str = "secondary",
+    school_email: str = "office@test.edu", phone: str = "08012345678",
 ) -> dict:
     """Register a school + founding admin through the API. Returns auth data
     (user, access token, memberships). Cookies are stored on the client."""
@@ -126,6 +127,8 @@ def register_school(
         json={
             "school_name": name,
             "school_type": school_type,
+            "school_email": school_email,
+            "phone": phone,
             "admin_email": email,
             "admin_full_name": "School Admin",
             "password": password,

@@ -31,10 +31,12 @@ const schema = z
     website: z.string().optional(),
     school_email: z
       .string()
-      .email("Enter a valid school email")
-      .optional()
-      .or(z.literal("")),
-    phone: z.string().optional(),
+      .min(1, "School email is required")
+      .email("Enter a valid school email"),
+    phone: z
+      .string()
+      .min(7, "Enter a valid phone number")
+      .max(40, "Phone number is too long"),
     address: z.string().optional(),
     state: z.string().optional(),
     admin_full_name: z.string().min(2, "Your full name is required"),
@@ -124,8 +126,8 @@ export default function RegisterPage() {
           ? Number(data.established_year)
           : undefined,
         website: data.website || undefined,
-        school_email: data.school_email || undefined,
-        phone: data.phone || undefined,
+        school_email: data.school_email,
+        phone: data.phone,
         address: data.address || undefined,
         state: data.state || undefined,
         admin_email: data.admin_email,
@@ -475,7 +477,11 @@ export default function RegisterPage() {
                       </Field>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <Field label="School email" error={errors.school_email?.message}>
+                      <Field
+                        label="School email"
+                        required
+                        error={errors.school_email?.message}
+                      >
                         <Input
                           type="email"
                           placeholder="office@school.edu"
@@ -483,7 +489,7 @@ export default function RegisterPage() {
                           className="h-11 text-[14px]"
                         />
                       </Field>
-                      <Field label="Phone">
+                      <Field label="Phone" required error={errors.phone?.message}>
                         <Input
                           placeholder="+234 800 000 0000"
                           {...register("phone")}

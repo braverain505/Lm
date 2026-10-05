@@ -96,7 +96,7 @@ def register_school(
         school_type=payload.school_type,
         established_year=payload.established_year,
         website=payload.website,
-        school_email=str(payload.school_email) if payload.school_email else None,
+        school_email=str(payload.school_email),
         phone=payload.phone,
         address=payload.address,
         state=payload.state,

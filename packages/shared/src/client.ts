@@ -399,8 +399,8 @@ export async function registerSchool(body: {
   school_type: string;
   established_year?: number;
   website?: string;
-  school_email?: string;
-  phone?: string;
+  school_email: string;
+  phone: string;
   address?: string;
   state?: string;
   country?: string;

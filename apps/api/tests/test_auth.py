@@ -27,6 +27,8 @@ def test_duplicate_email_rejected(client):
         json={
             "school_name": "Other School",
             "school_type": "primary",
+            "school_email": "office@other.edu",
+            "phone": "08087654321",
             "admin_email": "dup@test.edu",
             "admin_full_name": "Someone Else",
             "password": "Str0ng!Pass",
@@ -34,6 +36,28 @@ def test_duplicate_email_rejected(client):
     )
     assert r.status_code == 422
     assert r.json()["error"]["code"] == "ERR_VALIDATION"
+
+
+def test_registration_requires_phone_and_school_email(client):
+    """A workspace cannot be created without the school's contact details."""
+    base = {
+        "school_name": "No Contact School",
+        "school_type": "primary",
+        "admin_email": "nocontact@test.edu",
+        "admin_full_name": "School Admin",
+        "password": "Str0ng!Pass",
+    }
+    missing_email = client.post(
+        "/api/auth/register-school",
+        json={**base, "phone": "08012345678"},
+    )
+    missing_phone = client.post(
+        "/api/auth/register-school",
+        json={**base, "school_email": "office@test.edu"},
+    )
+    for r in (missing_email, missing_phone):
+        assert r.status_code == 422, r.text
+        assert r.json()["error"]["code"] == "ERR_VALIDATION"
 
 
 def test_login_wrong_password(client):
