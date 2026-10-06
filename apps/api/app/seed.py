@@ -54,6 +54,7 @@ from .models import (
     Term,
     User,
 )
+from .models.enums import SessionStatus, TermStatus
 from .schemas.fees import FeeStructureIn
 from .services.academics_service import (
     add_offering,
@@ -203,7 +204,13 @@ def seed_demo_school(db: Session) -> None:
     term1 = create_term(db, school.id, session_id=session.id, term_no=1, name="First Term")
     create_term(db, school.id, session_id=session.id, term_no=2, name="Second Term")
     create_term(db, school.id, session_id=session.id, term_no=3, name="Third Term")
+    # The demo ships with its session and first term already activated, because
+    # "current" and "open" must always agree: a term that is flagged current but
+    # still planned leaves the admin screen with no Close button and silently
+    # fails every teacher's score save.
+    session.status = SessionStatus.OPEN.value
     term1.is_current = True
+    term1.status = TermStatus.OPEN.value
     db.flush()
 
     # --- Subjects + classes ----------------------------------------------------

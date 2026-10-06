@@ -52,6 +52,8 @@ function ScoreContextPicker() {
 
   const selectedTerm = terms.find((t) => t.id === termId);
   const isTermClosed = selectedTerm?.status === "closed";
+  const isTermActive = selectedTerm?.status === "open";
+  const termNotActivated = !!selectedTerm && !isTermClosed && !isTermActive;
 
   return (
     <div className="space-y-6">
@@ -61,10 +63,21 @@ function ScoreContextPicker() {
       </div>
 
       {isTermClosed && (
-        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/20 px-4 py-3 text-[13px] text-warning">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
             The <strong>{selectedTerm?.name}</strong> term is closed. Score entry is disabled — results are read-only.
+          </span>
+        </div>
+      )}
+
+      {termNotActivated && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/20 px-4 py-3 text-[13px] text-warning">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>
+            The <strong>{selectedTerm?.name}</strong> term has not been activated.
+            An admin must activate its session and term in Settings before scores
+            can be saved.
           </span>
         </div>
       )}
@@ -86,7 +99,12 @@ function ScoreContextPicker() {
                 <option value="">Choose term…</option>
                 {terms.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name}{t.status === "closed" ? " (closed)" : ""}
+                    {t.name}
+                    {t.status === "closed"
+                      ? " (closed)"
+                      : t.status === "open"
+                        ? ""
+                        : " (not activated)"}
                   </option>
                 ))}
               </select>
@@ -190,6 +208,11 @@ function ScoreGrid() {
 
   const activeTerm = terms.find((t) => t.id === termId);
   const isTermClosed = activeTerm?.status === "closed";
+  // A term accepts marks only after an admin activates it (and its session).
+  // Until then the API refuses every save, so the grid must not look writable
+  // and then fail on Save.
+  const termNotActivated = !!activeTerm && activeTerm.status === "planned";
+  const termLocked = isTermClosed || termNotActivated;
 
   // Local draft edits: enrollmentId -> componentId -> string value.
   const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
@@ -199,7 +222,7 @@ function ScoreGrid() {
 
   const setCell = (enrollmentId: string, componentId: string, value: string) => {
     if (!canEnter) return; // Read-only for anyone without score-entry rights
-    if (isTermClosed) return; // Block edits on closed terms
+    if (termLocked) return; // Block edits on closed / not-yet-activated terms
     // Score threshold: validate the value doesn't exceed max_score
     const component = components.find((c) => c.id === componentId);
     if (component && value !== "") {
@@ -264,7 +287,13 @@ function ScoreGrid() {
   const save = useMutation({
     mutationFn: async () => {
       if (!schoolId || !armId || !subjectId || !termId) throw new Error("Missing grid params");
-      if (isTermClosed) throw new Error("This term is closed — scores cannot be saved");
+      if (termLocked) {
+        throw new Error(
+          isTermClosed
+            ? "This term is closed — scores cannot be saved"
+            : "This term has not been activated — an admin must activate it in Settings before scores can be saved",
+        );
+      }
       const entries = (card?.students ?? []).map((row) => ({
         student_enrollment_id: row.enrollment_id,
         scores: components
@@ -285,15 +314,21 @@ function ScoreGrid() {
       void queryClient.invalidateQueries({ queryKey: ["readiness"] });
       toast("Scores saved successfully");
     },
-    onError: () => {
-      toast("Failed to save scores", "error");
+    onError: (err: Error) => {
+      toast(err.message || "Failed to save scores", "error");
     },
   });
 
   const submit = useMutation({
     mutationFn: async () => {
       if (!schoolId || !armId || !subjectId || !termId) throw new Error("Missing params");
-      if (isTermClosed) throw new Error("This term is closed — scores cannot be submitted");
+      if (termLocked) {
+        throw new Error(
+          isTermClosed
+            ? "This term is closed — scores cannot be submitted"
+            : "This term has not been activated — an admin must activate it in Settings before scores can be submitted",
+        );
+      }
       return api.schoolFetch(schoolId, "/results/submit", {
         method: "POST",
         body: JSON.stringify({ arm_id: armId, subject_id: subjectId, term_id: termId }),
@@ -304,8 +339,8 @@ function ScoreGrid() {
       void queryClient.invalidateQueries({ queryKey: ["readiness"] });
       toast("Results submitted for review");
     },
-    onError: () => {
-      toast("Failed to submit results", "error");
+    onError: (err: Error) => {
+      toast(err.message || "Failed to submit results", "error");
     },
   });
 
@@ -359,7 +394,7 @@ function ScoreGrid() {
     <div className="space-y-6">
       {/* Read-only notice for leadership viewing, not entering, a grid */}
       {!canEnter && (
-        <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 px-4 py-3 text-[13px] text-muted-foreground">
+        <div className="flex items-center gap-3 rounded-xl border border-border/80 bg-muted/60 px-4 py-3 text-[13px] text-muted-foreground">
           <Eye className="h-4 w-4 shrink-0" />
           <span>
             You have view-only access to score grids. Entering marks is the class
@@ -370,7 +405,7 @@ function ScoreGrid() {
 
       {/* Closed term warning */}
       {isTermClosed && (
-        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/20 px-4 py-3 text-[13px] text-warning">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
             The <strong>{activeTerm?.name}</strong> term is closed. This grid is read-only — score changes are disabled.
@@ -378,24 +413,42 @@ function ScoreGrid() {
         </div>
       )}
 
+      {termNotActivated && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/20 px-4 py-3 text-[13px] text-warning">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>
+            The <strong>{activeTerm?.name}</strong> term has not been activated.
+            This grid is read-only until an admin activates its session and term
+            in Settings.
+          </span>
+        </div>
+      )}
+
       {/* Quick-switch selectors */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/60 bg-muted/30 p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/80 bg-muted/55 p-3">
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Term</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Term</label>
           <select
-            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            className="h-8 rounded-lg border border-border/80 bg-background px-2 text-[12px]"
             value={termId ?? ""}
             onChange={(e) => switchTerm(e.target.value)}
           >
             {terms.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+              <option key={t.id} value={t.id}>
+                {t.name}
+                {t.status === "closed"
+                  ? " (closed)"
+                  : t.status === "open"
+                    ? ""
+                    : " (not activated)"}
+              </option>
             ))}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Class</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Class</label>
           <select
-            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            className="h-8 rounded-lg border border-border/80 bg-background px-2 text-[12px]"
             value={armId ?? ""}
             onChange={(e) => switchArm(e.target.value)}
           >
@@ -405,9 +458,9 @@ function ScoreGrid() {
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Subject</label>
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Subject</label>
           <select
-            className="h-8 rounded-lg border border-border/60 bg-background px-2 text-[12px]"
+            className="h-8 rounded-lg border border-border/80 bg-background px-2 text-[12px]"
             value={subjectId ?? ""}
             onChange={(e) => switchSubject(e.target.value)}
           >
@@ -431,14 +484,14 @@ function ScoreGrid() {
               <Button
                 variant="outline"
                 onClick={() => submit.mutate()}
-                disabled={submit.isPending || isTermClosed}
+                disabled={submit.isPending || termLocked}
                 isLoading={submit.isPending}
               >
                 {submit.isPending ? "Submitting…" : "Submit verified"}
               </Button>
               <Button
                 onClick={() => save.mutate()}
-                disabled={dirtyCount === 0 || save.isPending || isTermClosed}
+                disabled={dirtyCount === 0 || save.isPending || termLocked}
                 isLoading={save.isPending}
               >
                 Save {dirtyCount > 0 ? `(${dirtyCount})` : ""}
@@ -451,15 +504,15 @@ function ScoreGrid() {
       <Card className="overflow-hidden">
         <div className="overflow-x-auto scrollbar-thin">
           <table className="w-full text-sm">
-            <thead className="bg-muted/50">
+            <thead className="bg-muted/70">
               <tr>
-                <th className="sticky left-0 bg-muted/50 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <th className="sticky left-0 bg-muted/70 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Student
                 </th>
                 {card.components.map((c) => (
                   <th key={c.id} className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
                     {componentLabel(c.name)}
-                    <span className="block font-normal text-[10px] text-muted-foreground/70">
+                    <span className="block font-normal text-[10px] text-muted-foreground/90">
                       /{c.max_score} · {c.weight}%
                     </span>
                   </th>
@@ -481,11 +534,11 @@ function ScoreGrid() {
                         type="number"
                         min={0}
                         max={c.max_score}
-                        className={`h-8 w-20 text-center ${isTermClosed || !canEnter ? "opacity-60 cursor-not-allowed" : ""}`}
+                        className={`h-8 w-20 text-center ${termLocked || !canEnter ? "opacity-60 cursor-not-allowed" : ""}`}
                         value={cellValue(row.enrollment_id, c.id)}
                         onChange={(e) => setCell(row.enrollment_id, c.id, e.target.value)}
-                        disabled={isTermClosed || !canEnter}
-                        readOnly={isTermClosed || !canEnter}
+                        disabled={termLocked || !canEnter}
+                        readOnly={termLocked || !canEnter}
                       />
                     </td>
                   ))}

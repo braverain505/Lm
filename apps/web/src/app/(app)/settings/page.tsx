@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-import { api, type ReportTheme } from "@clearis/shared";
+import { api, type ReportTheme, type Term } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export default function SettingsPage() {
   const { data: school, isLoading } = useSchoolMe();
   const { data: overview } = useOverview();
   const { data: sessions = [], isLoading: loadingSessions } = useSessions();
-  const { term } = useSessionTerm();
+  const { session: activeSession, setTerm, setSession } = useSessionTerm();
   const closeTerm = useCloseTerm();
 
   const [logoUploading, setLogoUploading] = useState(false);
@@ -194,6 +194,7 @@ export default function SettingsPage() {
       invalidate();
       toast("Session activated");
     },
+    onError: (err: Error) => toast(err.message || "Failed to activate session", "error"),
   });
 
   // --- Term creation ---
@@ -221,15 +222,36 @@ export default function SettingsPage() {
     },
   });
 
+  // Switching terms is the admin's action. A term only accepts results work
+  // when its session is open too, so opening the session is folded into the
+  // same click — otherwise the admin activates a term that still refuses every
+  // score save. The whole app is then pointed at the term they chose.
   const activateTerm = useMutation({
-    mutationFn: async (termId: string) => {
+    mutationFn: async (term: Term) => {
       if (!schoolId) throw new Error("No active school");
-      return api.activateTerm(schoolId, termId);
+      const parentSession =
+        sessions.find((s) => s.id === term.academic_session_id) ?? null;
+      const openedSession = !!parentSession && parentSession.status !== "open";
+      if (openedSession) await api.activateSession(schoolId, parentSession!.id);
+      await api.activateTerm(schoolId, term.id);
+      return { term, parentSession, openedSession };
     },
-    onSuccess: () => {
+    onSuccess: ({ term: activated, parentSession, openedSession }) => {
+      // Point the app (header, score grids, everything) at the chosen term.
+      if (parentSession && parentSession.id !== activeSession?.id) {
+        setSelectedSessionId(parentSession.id);
+        setSession(parentSession);
+      } else {
+        setTerm(activated);
+      }
       invalidate();
-      toast("Term activated");
+      toast(
+        openedSession
+          ? `${activated.name} is now the active term (its session was opened too)`
+          : `${activated.name} is now the active term`,
+      );
     },
+    onError: (err: Error) => toast(err.message || "Failed to activate term", "error"),
   });
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
@@ -261,7 +283,7 @@ export default function SettingsPage() {
         <Card className="premium-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[15px]">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
                 <Building2 className="h-4 w-4 text-primary" />
               </span>
               School profile
@@ -273,8 +295,8 @@ export default function SettingsPage() {
               <Skeleton className="h-40 w-full" />
             ) : (
               <>
-                <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-4">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20 text-primary">
                     <Building2 className="h-5 w-5" />
                   </span>
                   <div>
@@ -284,17 +306,17 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-muted/20 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-4">
                   {school?.logo_url ? (
                     <img src={school.logo_url} alt="School logo" className="h-12 w-12 rounded-xl border object-contain bg-white" />
                   ) : (
-                    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-border bg-background text-muted-foreground/40">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-dashed border-border bg-background text-muted-foreground/65">
                       <ImagePlus className="h-5 w-5" />
                     </span>
                   )}
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium">School logo</p>
-                    <p className="text-[11px] text-muted-foreground/70">
+                    <p className="text-[11px] text-muted-foreground/90">
                       Shown on report cards and sidebar. JPEG, PNG or WebP up to 5 MB.
                     </p>
                     <input
@@ -302,10 +324,10 @@ export default function SettingsPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={onPickLogo}
-                      className="mt-1 block w-full max-w-56 text-[11px] text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-primary/10 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
+                      className="mt-1 block w-full max-w-56 text-[11px] text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-primary/20 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/35"
                     />
                     {logoUploading && (
-                      <p className="mt-1 text-[11px] text-muted-foreground/60">Uploading logo…</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground/85">Uploading logo…</p>
                     )}
                   </div>
                 </div>
@@ -317,8 +339,8 @@ export default function SettingsPage() {
                     { icon: ShieldCheck, label: "Currency", value: school?.currency },
                   ].map(({ icon: Icon, label, value }) => (
                     <div key={label} className="flex items-center gap-3">
-                      <Icon className="h-4 w-4 text-muted-foreground/50" />
-                      <dt className="w-36 text-muted-foreground/70">{label}</dt>
+                      <Icon className="h-4 w-4 text-muted-foreground/75" />
+                      <dt className="w-36 text-muted-foreground/90">{label}</dt>
                       <dd className="font-medium">{value ?? "—"}</dd>
                     </div>
                   ))}
@@ -363,16 +385,16 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between rounded-xl border border-border/40 px-3 py-2.5 text-[13px]">
-                <span className="text-muted-foreground/70">School</span>
+              <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5 text-[13px]">
+                <span className="text-muted-foreground/90">School</span>
                 <span className="font-medium">{activeSchool?.school_name}</span>
               </div>
-              <div className="flex items-center justify-between rounded-xl border border-border/40 px-3 py-2.5 text-[13px]">
-                <span className="text-muted-foreground/70">Role</span>
+              <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5 text-[13px]">
+                <span className="text-muted-foreground/90">Role</span>
                 <Badge variant="default" className="capitalize">{activeSchool?.role?.name ?? "Member"}</Badge>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-[11.5px] text-muted-foreground/70">
+            <div className="flex items-center gap-3 text-[11.5px] text-muted-foreground/90">
               <Mail className="h-3.5 w-3.5" /> {user?.email}
               <Phone className="h-3.5 w-3.5" /> {school?.phone ?? "—"}
             </div>
@@ -385,7 +407,7 @@ export default function SettingsPage() {
         <Card className="premium-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-[15px]">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
                 <CalendarRange className="h-4 w-4 text-primary" />
               </span>
               Academic sessions &amp; terms
@@ -398,36 +420,44 @@ export default function SettingsPage() {
             <div className="space-y-5">
               {/* Sessions list + create */}
               <div className="space-y-3">
-                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground/60">Sessions</h3>
+                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground/85">Sessions</h3>
                 {loadingSessions ? (
                   <Skeleton className="h-20 w-full" />
                 ) : sessions.length === 0 ? (
-                  <p className="text-[13px] text-muted-foreground/70">No sessions yet — create your first.</p>
+                  <p className="text-[13px] text-muted-foreground/90">No sessions yet — create your first.</p>
                 ) : (
-                  <ul className="divide-y divide-border/40">
+                  <ul className="divide-y divide-border/60">
                     {sessions.map((s) => (
                       <li key={s.id} className="flex items-center justify-between py-3 text-[13px]">
                         <div>
                           <p className="font-medium">{s.name}</p>
-                          <p className="text-[11px] text-muted-foreground/60">
+                          <p className="text-[11px] text-muted-foreground/85">
                             {s.start_date ?? "—"} → {s.end_date ?? "—"}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {s.is_current ? (
+                          {/* "Current" means the session has actually been
+                              activated (open), not merely created as the current
+                              one — otherwise the badge claims a session is ready
+                              while every score save in its terms still fails. */}
+                          {s.is_current && s.status === "open" ? (
                             <Badge variant="success">Current</Badge>
                           ) : (
-                            <>
-                              <Badge variant="outline">{s.status}</Badge>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                disabled={activateSession.isPending}
-                                onClick={() => activateSession.mutate(s.id)}
-                              >
-                                <Power className="h-3 w-3" /> Activate
-                              </Button>
-                            </>
+                            <Badge variant="outline">{s.status}</Badge>
+                          )}
+                          {/* Activation is what flips a session to `open`; result
+                              work is blocked until it does. A session created as
+                              the current one still starts `planned`, so the button
+                              must key off status, not off `is_current`. */}
+                          {s.status !== "open" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={activateSession.isPending}
+                              onClick={() => activateSession.mutate(s.id)}
+                            >
+                              <Power className="h-3 w-3" /> Activate
+                            </Button>
                           )}
                         </div>
                       </li>
@@ -455,11 +485,11 @@ export default function SettingsPage() {
 
               {/* Terms list + create */}
               <div className="space-y-3">
-                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground/60">Terms</h3>
+                <h3 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground/85">Terms</h3>
                 <div className="space-y-1.5">
-                  <Label className="text-[11px] text-muted-foreground/60">Session</Label>
+                  <Label className="text-[11px] text-muted-foreground/85">Session</Label>
                   <select
-                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all md:w-72"
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all md:w-72"
                     value={selectedSessionId}
                     onChange={(e) => setSelectedSessionId(e.target.value)}
                   >
@@ -471,25 +501,34 @@ export default function SettingsPage() {
                 {termsLoading ? (
                   <Skeleton className="h-20 w-full" />
                 ) : settingsTerms.length === 0 ? (
-                  <p className="text-[13px] text-muted-foreground/70">No terms in this session.</p>
+                  <p className="text-[13px] text-muted-foreground/90">No terms in this session.</p>
                 ) : (
                   <div className="space-y-2">
                     {settingsTerms.map((t) => {
-                      const isActive = term?.id === t.id;
-                      const isClosed = t.status === "closed";
+                      // A term is active exactly when it is open — the only state
+                      // the API accepts results work in. Deriving the label from
+                      // status (instead of from whichever term this browser is
+                      // viewing) is what stops the first term being shown as
+                      // "active" while its badge reads "planned".
                       const isOpen = t.status === "open";
+                      const isActive = isOpen;
+                      const isClosed = t.status === "closed";
+                      const parentSession = sessions.find(
+                        (s) => s.id === t.academic_session_id,
+                      );
+                      const sessionOpen = parentSession?.status === "open";
                       return (
                         <div
                           key={t.id}
-                          className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/20 px-4 py-3"
+                          className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 px-4 py-3"
                         >
                           <div className="flex items-center gap-3">
                             <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                               isClosed
                                 ? "bg-muted text-muted-foreground"
                                 : isOpen
-                                  ? "bg-success/10 text-success"
-                                  : "bg-primary/10 text-primary"
+                                  ? "bg-success/25 text-success"
+                                  : "bg-primary/20 text-primary"
                             }`}>
                               {isClosed ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                             </div>
@@ -498,22 +537,46 @@ export default function SettingsPage() {
                                 {t.name}
                                 {isActive && <span className="ml-2 text-primary">(active)</span>}
                               </p>
-                              <p className="text-[11px] text-muted-foreground/60">
+                              <p className="text-[11px] text-muted-foreground/85">
                                 {t.start_date ?? "—"} → {t.end_date ?? "—"}
                               </p>
+                              {!isClosed && !sessionOpen && (
+                                <p className="text-[11px] text-warning">
+                                  Session not activated — scores can&apos;t be saved yet.
+                                </p>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant={isClosed ? "muted" : isOpen ? "success" : "outline"}>
-                              {t.status}
+                            <Badge variant={isClosed ? "muted" : isActive ? "success" : "outline"}>
+                              {isClosed ? "closed" : isActive ? "active" : "planned"}
                             </Badge>
-                            {isOpen && !isClosed && (
+                            {/* Choose the current/active term: a planned term can
+                                be made the active one. Activating also opens the
+                                term's session so the teacher's save path is
+                                unblocked in the same click. */}
+                            {!isClosed && !isOpen && (
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="gap-1 text-warning hover:text-warning hover:border-warning/30"
+                                className="gap-1"
+                                onClick={() => activateTerm.mutate(t)}
+                                disabled={activateTerm.isPending || closeTerm.isPending}
+                              >
+                                <Power className="h-3.5 w-3.5" />
+                                Set as active
+                              </Button>
+                            )}
+                            {/* Close is reachable for every term that is not
+                                already closed, so the active term can always be
+                                ended (and a term created by mistake retired). */}
+                            {!isClosed && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1 text-warning hover:text-warning hover:border-warning/50"
                                 onClick={() => handleCloseTerm(t.id, t.name)}
-                                disabled={closeTerm.isPending}
+                                disabled={closeTerm.isPending || activateTerm.isPending}
                               >
                                 <Lock className="h-3.5 w-3.5" />
                                 Close term
@@ -564,7 +627,7 @@ export default function SettingsPage() {
       <Card className="premium-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[15px]">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
               <KeyRound className="h-4 w-4 text-primary" />
             </span>
             Sign-in credentials

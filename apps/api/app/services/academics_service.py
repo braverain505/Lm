@@ -121,17 +121,48 @@ def activate_session(db: Session, school_id: uuid.UUID, session_id: uuid.UUID) -
 
 def activate_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
     """Admin activates a term inside its (activated) session: marks it open +
-    current, retiring any other current term in the same session."""
+    current, retiring any other current term in the same session.
+
+    Only one term per session is ever ``open``: the one being activated. Any
+    other open term is stepped back to ``planned`` (closed terms stay closed),
+    so "the current term" and "the open term" can never drift apart and the
+    admin screen always has an unambiguous active term to close.
+    """
     term = get_term(db, school_id, term_id)
     get_session(db, school_id, term.academic_session_id)  # validate ownership
-    db.query(Term).filter(
+    if term.status == TermStatus.CLOSED.value:
+        raise ValidationError(
+            f"The {term.name} term is closed and cannot be reactivated"
+        )
+    siblings = db.query(Term).filter(
         Term.academic_session_id == term.academic_session_id,
-        Term.is_current.is_(True),
-    ).update({Term.is_current: False})
+        Term.id != term.id,
+    )
+    siblings.filter(Term.is_current.is_(True)).update({Term.is_current: False})
+    siblings.filter(Term.status == TermStatus.OPEN.value).update(
+        {Term.status: TermStatus.PLANNED.value}
+    )
     term.is_current = True
     term.status = TermStatus.OPEN.value
     db.flush()
     return term
+
+
+def reconcile_stale_current_terms(db: Session) -> int:
+    """Clear the ``is_current`` flag on any term that is not ``open``.
+
+    A term is the current one only when an admin has activated it, so
+    ``is_current`` and ``status == 'open'`` must agree. Older databases left the
+    first term flagged current while still ``planned``; that makes the header
+    call a term active while every results write for it is refused, and leaves
+    the admin screen with no active term to close. Returns the number of rows
+    corrected. Idempotent, and never opens or closes a term.
+    """
+    return (
+        db.query(Term)
+        .filter(Term.is_current.is_(True), Term.status != TermStatus.OPEN.value)
+        .update({Term.is_current: False})
+    )
 
 
 def close_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:

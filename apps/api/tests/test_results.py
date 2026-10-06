@@ -9,7 +9,7 @@ in one pass.
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Result, ResultEvent
+from app.models import Result, ResultEvent, Term
 from app.seed import seed_grade_scale
 from .conftest import active_school_id, grant_permission, register_school
 
@@ -889,3 +889,119 @@ def test_results_blocked_until_session_and_term_activated(client, db):
     r = client.post(f"{BASE}/submit", json=probe, headers={"X-School-Id": sid})
     assert r.status_code != 422
     assert "error" not in r.json() or "activated" not in r.json()["error"]["message"].lower()
+
+
+def test_admin_flow_choose_active_term_then_close_it(client, db):
+    """The admin's term flow: create a term, choose which one is the current/
+    active term, then close it — all from the admin side.
+
+    Only the chosen term is ever active (open + current). The term it replaces
+    steps back to planned rather than being left open, so the admin screen can
+    never show two active terms, and the active term is always closable.
+    """
+    import uuid
+
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)  # session + First Term, both activated
+
+    r = client.post(
+        f"{ACAD}/terms",
+        json={"session_id": w["session_id"], "term_no": 2, "name": "Second Term"},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    second = r.json()["id"]
+    # A freshly created term is never active — the admin picks it deliberately.
+    assert r.json()["status"] == "planned"
+    assert r.json()["is_current"] is False
+
+    # Choose the second term as the school's current, active term.
+    r = client.post(f"{ACAD}/terms/{second}/activate", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+
+    db.expire_all()
+    terms = {
+        str(t.id): t
+        for t in db.scalars(
+            select(Term).where(
+                Term.academic_session_id == uuid.UUID(w["session_id"])
+            )
+        )
+    }
+    assert terms[second].status == "open"
+    assert terms[second].is_current is True
+    # The previously active First Term stepped back, never left open.
+    assert terms[w["term_id"]].status == "planned"
+    assert terms[w["term_id"]].is_current is False
+
+    # The teacher can now save scores against the newly active term. This is the
+    # save that used to fail while the term sat at `planned`.
+    comps = _add_components(client, sid, second)
+    entries = [
+        {
+            "student_enrollment_id": w["enrollment_ids"][0],
+            "scores": [{"assessment_component_id": comps["CA1"], "score": 55}],
+        }
+    ]
+    card = {
+        "arm_id": w["arm_id"],
+        "subject_id": w["subject_id"],
+        "term_id": second,
+        "entries": entries,
+    }
+    r = client.put(f"{BASE}/scorecard", json=card, headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+
+    # Close the active term: it ends and stops being current.
+    r = client.post(f"{ACAD}/terms/{second}/close", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    db.expire_all()
+    closed = db.get(Term, uuid.UUID(second))
+    assert closed.status == "closed"
+    assert closed.is_current is False
+
+    # A closed term refuses further results work.
+    r = client.put(f"{BASE}/scorecard", json=card, headers={"X-School-Id": sid})
+    assert r.status_code == 422
+
+
+def test_reconcile_clears_current_flag_on_a_planned_term(client, db):
+    """An older database can leave a term flagged current while still planned.
+
+    That stale flag makes the header call an unusable term active and leaves the
+    admin screen with no active term to close, so startup reconciliation clears
+    it — without opening or closing the term.
+    """
+    import uuid
+
+    from app.services.academics_service import reconcile_stale_current_terms
+
+    register_school(client)
+    sid = active_school_id(client)
+    r = client.post(
+        f"{ACAD}/sessions",
+        json={"name": "2025/2026", "is_current": True},
+        headers={"X-School-Id": sid},
+    )
+    session_id = r.json()["id"]
+    r = client.post(
+        f"{ACAD}/terms",
+        json={"session_id": session_id, "term_no": 1, "name": "First Term"},
+        headers={"X-School-Id": sid},
+    )
+    term_id = r.json()["id"]
+
+    # Simulate the legacy state: flagged current, never activated.
+    term = db.get(Term, uuid.UUID(term_id))
+    term.is_current = True
+    term.status = "planned"
+    db.flush()
+
+    assert reconcile_stale_current_terms(db) == 1
+    db.expire_all()
+    term = db.get(Term, uuid.UUID(term_id))
+    assert term.is_current is False
+    assert term.status == "planned"  # left intact — only the flag changed
+    # Idempotent: nothing left to correct.
+    assert reconcile_stale_current_terms(db) == 0

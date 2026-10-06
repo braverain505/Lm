@@ -58,7 +58,12 @@ export function SessionTermProvider({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    setTermId(terms.find((t) => t.is_current)?.id ?? terms[0]?.id ?? null);
+    setTermId(
+      terms.find((t) => t.is_current)?.id ??
+        terms.find((t) => t.status === "open")?.id ??
+        terms[0]?.id ??
+        null,
+    );
   }, [schoolId, session?.id, terms.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const term = useMemo(() => terms.find((t) => t.id === termId) ?? null, [terms, termId]);

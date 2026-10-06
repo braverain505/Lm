@@ -20,6 +20,7 @@ from .core.errors import register_exception_handlers
 from .core.database import SessionLocal
 from .core.rate_limit import limiter
 from .core.schema_sync import sync_schema
+from .services.academics_service import reconcile_stale_current_terms
 from .services.tenancy_service import sync_all_school_role_templates
 from .routers import (
     academics,
@@ -92,6 +93,22 @@ async def lifespan(app: FastAPI):
             db.close()
     except Exception:  # never take the API down over role reconciliation
         logger.exception("Role template reconciliation failed")
+
+    # A term is the current one only once an admin has activated it, so
+    # `is_current` and `status == 'open'` must agree. Older databases left the
+    # first term flagged current while still `planned`, which shows a term as
+    # active in the header while every results write for it is refused.
+    try:
+        db = SessionLocal()
+        try:
+            fixed = reconcile_stale_current_terms(db)
+            if fixed:
+                db.commit()
+                logger.info("Cleared a stale current flag on %d term(s)", fixed)
+        finally:
+            db.close()
+    except Exception:  # never take the API down over term reconciliation
+        logger.exception("Term activation reconciliation failed")
 
     # Reconcile display names written before the Clearis rename. The seeded
     # platform admin's full_name is only written when its row is created, so an
