@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { KeyRound, Mail, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, KeyRound, Mail, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 
@@ -572,32 +572,31 @@ function TeacherRow(props: TeacherRowProps) {
   const showAssign = assignFor === staffId;
   const showRole = roleFor === staffId;
 
+  // Roles + responsibilities are tucked behind a toggle so a long list of
+  // class/subject chips can't widen the name column and push the row's actions
+  // off to the right. These come from the staff list payload, not the separate
+  // assign form fetch below.
+  const [showDetails, setShowDetails] = useState(false);
+  const staffAssignments = staff.assignments ?? [];
+
   return (
     <>
       <tr className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
         <td className="py-3 font-mono text-[11px] text-muted-foreground">{staff.staff_no}</td>
         <td className="py-3 font-medium">
-          <div>
-            {staff.full_name}
-            {staff.homeroom_arm_name && (
-              <span className="ml-2 align-middle">
-                <Badge variant="outline">Homeroom · {staff.homeroom_arm_name}</Badge>
-              </span>
-            )}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {(staff.assignments ?? []).length === 0 ? (
-              <span className="text-[11px] font-normal text-muted-foreground/80">No subjects assigned</span>
-            ) : (
-              (staff.assignments ?? []).map((a) => (
-                <span
-                  key={a.assignment_id}
-                  className="inline-flex items-center rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10.5px] font-normal text-muted-foreground"
-                >
-                  {a.subject_name} · {a.arm_name}
-                </span>
-              ))
-            )}
+          <div className="flex items-center gap-2">
+            <span>{staff.full_name}</span>
+            <button
+              type="button"
+              onClick={() => setShowDetails((v) => !v)}
+              aria-expanded={showDetails}
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-border/60 px-1.5 py-0.5 text-[10.5px] font-normal text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ChevronDown
+                className={`h-3 w-3 transition-transform${showDetails ? " rotate-180" : ""}`}
+              />
+              Roles &amp; responsibilities
+            </button>
           </div>
         </td>
         <td className="py-3 capitalize text-muted-foreground">{staff.membership_type.replace("_", " ")}</td>
@@ -649,6 +648,50 @@ function TeacherRow(props: TeacherRowProps) {
           </div>
         </td>
       </tr>
+
+      {showDetails && (
+        <tr>
+          <td colSpan={6} className="border-b border-border/50 bg-muted/40 px-5 py-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">
+                  Roles
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {staff.homeroom_arm_name && (
+                    <Badge variant="outline">Homeroom · {staff.homeroom_arm_name}</Badge>
+                  )}
+                  {staff.has_account && staff.account_role_name && (
+                    <Badge variant="default">{staff.account_role_name}</Badge>
+                  )}
+                  {!staff.homeroom_arm_name && !(staff.has_account && staff.account_role_name) && (
+                    <span className="text-[12px] text-muted-foreground/90">No role assigned</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">
+                  Responsibilities
+                </p>
+                {staffAssignments.length === 0 ? (
+                  <span className="text-[12px] text-muted-foreground/90">No subjects assigned</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {staffAssignments.map((a) => (
+                      <span
+                        key={a.assignment_id}
+                        className="inline-flex items-center rounded-md border border-border/60 bg-background/70 px-2 py-0.5 text-[11px] text-muted-foreground"
+                      >
+                        {a.subject_name} · {a.arm_name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
 
       {accountFor !== staffId && editFor === staffId && (
         <tr>
