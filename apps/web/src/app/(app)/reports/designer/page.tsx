@@ -163,7 +163,7 @@ function DesignerWorkspace() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Report card designer</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground/60">
+          <p className="max-w-2xl text-sm text-muted-foreground/85">
             Build your school&apos;s report card from blocks. Drag to reorder, click a block to
             change its settings, and preview the A4 card before you save. Every card — printed,
             on screen and on the parent portal — then uses the design marked{" "}
@@ -205,11 +205,11 @@ function DesignerWorkspace() {
             <CardContent className="p-3">
               <p className="px-1 pb-2 text-[12.5px] font-semibold">
                 Your designs{" "}
-                <span className="font-normal text-muted-foreground/60">({templates.length})</span>
+                <span className="font-normal text-muted-foreground/85">({templates.length})</span>
               </p>
 
               {templates.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border/70 px-3 py-6 text-center text-[12px] text-muted-foreground/60">
+                <p className="rounded-lg border border-dashed border-border/85 px-3 py-6 text-center text-[12px] text-muted-foreground/85">
                   No designs yet. Save this one and it becomes your report card.
                 </p>
               ) : (
@@ -220,7 +220,7 @@ function DesignerWorkspace() {
                       className={cn(
                         "group flex items-center gap-1.5 rounded-lg border px-2.5 py-2 transition-colors",
                         t.id === activeId
-                          ? "border-primary/50 bg-primary/[0.04]"
+                          ? "border-primary/65 bg-primary/[0.04]"
                           : "border-transparent hover:bg-accent",
                       )}
                     >
@@ -239,7 +239,7 @@ function DesignerWorkspace() {
                             </Badge>
                           )}
                         </span>
-                        <span className="block text-[10.5px] text-muted-foreground/50">
+                        <span className="block text-[10.5px] text-muted-foreground/75">
                           {t.layout.widgets.length} block
                           {t.layout.widgets.length === 1 ? "" : "s"} · {t.layout.theme}
                         </span>
@@ -256,7 +256,7 @@ function DesignerWorkspace() {
                             onError: () => toast("Could not copy the design", "error"),
                           })
                         }
-                        className="rounded p-1 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+                        className="rounded p-1 text-muted-foreground/75 opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </button>
@@ -287,7 +287,7 @@ function DesignerWorkspace() {
                             onError: () => toast("Could not delete the design", "error"),
                           });
                         }}
-                        className="rounded p-1 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                        className="rounded p-1 text-muted-foreground/75 opacity-0 transition-opacity hover:bg-destructive/25 hover:text-destructive group-hover:opacity-100"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -296,7 +296,7 @@ function DesignerWorkspace() {
                 </div>
               )}
 
-              <p className="mt-3 rounded-lg bg-muted/50 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground/70">
+              <p className="mt-3 rounded-lg bg-muted/70 px-2.5 py-2 text-[11px] leading-snug text-muted-foreground/90">
                 Designs are shared across the school: the exam office, class teachers and the
                 parent result portal all render the design marked <strong>in use</strong>.
               </p>

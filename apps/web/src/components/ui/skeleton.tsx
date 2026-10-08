@@ -6,7 +6,7 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-lg bg-muted/40",
+        "relative overflow-hidden rounded-lg bg-muted/60",
         className,
       )}
       aria-hidden
@@ -49,11 +49,11 @@ export function DashboardChartSkeleton() {
 export function DashboardListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="border-b border-border/20 px-5 py-4">
+      <div className="border-b border-border/40 px-5 py-4">
         <Skeleton className="h-4 w-28 rounded-md" />
         <Skeleton className="mt-1.5 h-3 w-40 rounded-md" />
       </div>
-      <div className="divide-y divide-border/15">
+      <div className="divide-y divide-border/30">
         {Array.from({ length: rows }).map((_, i) => (
           <div key={i} className="flex items-center gap-3 px-5 py-3.5">
             <Skeleton className="h-2 w-2 shrink-0 rounded-full" />

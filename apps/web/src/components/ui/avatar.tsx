@@ -3,11 +3,11 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const AVATAR_TONES = [
-  "bg-primary/10 text-primary",
-  "bg-success/10 text-success",
-  "bg-warning/10 text-warning",
-  "bg-info/10 text-info",
-  "bg-destructive/10 text-destructive",
+  "bg-primary/20 text-primary",
+  "bg-success/25 text-success",
+  "bg-warning/25 text-warning",
+  "bg-info/25 text-info",
+  "bg-destructive/25 text-destructive",
   "bg-violet-500/10 text-violet-600 dark:text-violet-300",
   "bg-teal-500/10 text-teal-600 dark:text-teal-300",
   "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300",

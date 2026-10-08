@@ -98,12 +98,12 @@ export function TeacherDashboard() {
         <h1 className="text-[28px] font-bold tracking-tight text-foreground">
           {greeting}, {user?.full_name?.split(" ")[0] ?? "there"} 👋
         </h1>
-        <p className="mt-1.5 text-[14px] text-muted-foreground/60">
+        <p className="mt-1.5 text-[14px] text-muted-foreground/85">
           Here&apos;s what&apos;s happening across your classes today.
         </p>
         {term && (
-          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/75" />
             {term.name}
           </p>
         )}
@@ -120,11 +120,11 @@ export function TeacherDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">My Subjects</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">My Subjects</p>
               <p className="mt-2 text-[26px] font-bold tracking-tight text-foreground">
                 {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : assignments.length}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/45">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground/70">{byArm.length} class{byArm.length === 1 ? "" : "es"}</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-100">
               <BookOpen className="h-5 w-5 text-blue-600" strokeWidth={1.75} />
@@ -141,18 +141,18 @@ export function TeacherDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Scores Entered</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">Scores Entered</p>
               <p className="mt-2 text-[26px] font-bold tracking-tight text-foreground">
                 {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : `${totals.entered}/${totals.students}`}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/45">{progressPct}% complete</p>
+              <p className="mt-1 text-[11px] text-muted-foreground/70">{progressPct}% complete</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 ring-1 ring-violet-100">
               <ClipboardCheck className="h-5 w-5 text-violet-600" strokeWidth={1.75} />
             </div>
           </div>
           <div className="mt-3">
-            <Progress value={progressPct} size="sm" className="h-1.5" indicatorClassName={progressPct >= 100 ? "bg-emerald-500" : progressPct > 0 ? "bg-violet-500" : "bg-muted-foreground/15"} />
+            <Progress value={progressPct} size="sm" className="h-1.5" indicatorClassName={progressPct >= 100 ? "bg-emerald-500" : progressPct > 0 ? "bg-violet-500" : "bg-muted-foreground/35"} />
           </div>
         </motion.div>
 
@@ -165,11 +165,11 @@ export function TeacherDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Pending</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">Pending</p>
               <p className="mt-2 text-[26px] font-bold tracking-tight text-foreground">
                 {busy ? <Skeleton className="inline-block h-7 w-16 rounded-md" /> : totals.pending}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/45">
+              <p className="mt-1 text-[11px] text-muted-foreground/70">
                 {totals.submitted > 0 ? `${totals.submitted} submitted` : "Ready to enter"}
               </p>
             </div>
@@ -189,7 +189,7 @@ export function TeacherDashboard() {
           className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
         >
           <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Actions</h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground/50">Frequently used tools</p>
+          <p className="mt-0.5 text-[12px] text-muted-foreground/75">Frequently used tools</p>
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {toolShortcuts.map((shortcut, idx) => {
               const Icon = shortcut.icon;
@@ -202,12 +202,12 @@ export function TeacherDashboard() {
                 >
                   <Link
                     href={shortcut.href}
-                    className="group flex flex-col items-center gap-2.5 rounded-xl p-3 transition-all duration-200 hover:bg-muted/30"
+                    className="group flex flex-col items-center gap-2.5 rounded-xl p-3 transition-all duration-200 hover:bg-muted/55"
                   >
                     <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110", shortcut.bg)}>
                       <Icon className={cn("h-5 w-5", shortcut.color)} strokeWidth={1.75} />
                     </div>
-                    <span className="text-[11px] font-medium text-foreground/70 text-center leading-tight">{shortcut.label}</span>
+                    <span className="text-[11px] font-medium text-foreground/85 text-center leading-tight">{shortcut.label}</span>
                   </Link>
                 </motion.div>
               );
@@ -226,9 +226,9 @@ export function TeacherDashboard() {
             transition={{ duration: 0.4, delay: 0.26, ease }}
             className="rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
           >
-            <div className="border-b border-border/20 px-5 py-4">
+            <div className="border-b border-border/40 px-5 py-4">
               <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Your Responsibilities</h3>
-              <p className="mt-0.5 text-[12px] text-muted-foreground/50">Score entry progress by subject</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/75">Score entry progress by subject</p>
             </div>
             {busy ? (
               <div className="p-5 space-y-3">
@@ -238,14 +238,14 @@ export function TeacherDashboard() {
               </div>
             ) : myRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-5 py-12 text-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
-                  <GraduationCap className="h-5 w-5 text-muted-foreground/25" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/55">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground/45" />
                 </div>
-                <p className="mt-3 text-[13px] font-medium text-foreground/50">No classes assigned yet</p>
-                <p className="mt-1 text-[11px] text-muted-foreground/40">Your assigned classes will appear here.</p>
+                <p className="mt-3 text-[13px] font-medium text-foreground/70">No classes assigned yet</p>
+                <p className="mt-1 text-[11px] text-muted-foreground/65">Your assigned classes will appear here.</p>
               </div>
             ) : (
-              <div className="divide-y divide-border/15">
+              <div className="divide-y divide-border/30">
                 {myRows.map((r) => {
                   const pct = r.student_count ? Math.round((r.entered / r.student_count) * 100) : 0;
                   const done = r.pending === 0 && r.student_count > 0;
@@ -255,23 +255,23 @@ export function TeacherDashboard() {
                       ? { label: "Ready", variant: "info" as const, dot: "bg-blue-500" }
                       : r.entered > 0
                         ? { label: "In progress", variant: "warning" as const, dot: "bg-amber-500" }
-                        : { label: "Not started", variant: "muted" as const, dot: "bg-muted-foreground/20" };
+                        : { label: "Not started", variant: "muted" as const, dot: "bg-muted-foreground/40" };
                   return (
                     <Link
                       key={`${r.arm_id}-${r.subject_id}`}
                       href={`/results/score?arm_id=${r.arm_id}&subject_id=${r.subject_id}&term_id=${term?.id ?? ""}`}
-                      className="group flex items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/15"
+                      className="group flex items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/35"
                     >
                       <div className={cn("h-2 w-2 shrink-0 rounded-full", status.dot)} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-[13px] font-medium text-foreground/80 truncate">{r.subject_name}</p>
-                          <span className="text-[11px] text-muted-foreground/35">·</span>
-                          <p className="text-[11px] text-muted-foreground/45 truncate">{r.arm_name}</p>
+                          <p className="text-[13px] font-medium text-foreground/90 truncate">{r.subject_name}</p>
+                          <span className="text-[11px] text-muted-foreground/60">·</span>
+                          <p className="text-[11px] text-muted-foreground/70 truncate">{r.arm_name}</p>
                         </div>
                         <div className="mt-1.5 flex items-center gap-3">
-                          <Progress value={pct} size="sm" className="h-1 flex-1" indicatorClassName={done ? "bg-emerald-500" : pct > 0 ? "bg-blue-500" : "bg-muted-foreground/15"} />
-                          <span className="text-[10px] font-medium text-muted-foreground/45 shrink-0">{pct}%</span>
+                          <Progress value={pct} size="sm" className="h-1 flex-1" indicatorClassName={done ? "bg-emerald-500" : pct > 0 ? "bg-blue-500" : "bg-muted-foreground/35"} />
+                          <span className="text-[10px] font-medium text-muted-foreground/70 shrink-0">{pct}%</span>
                         </div>
                       </div>
                       <Badge variant={status.variant} className="shrink-0 text-[10px]">{status.label}</Badge>
@@ -292,20 +292,20 @@ export function TeacherDashboard() {
             transition={{ duration: 0.4, delay: 0.3, ease }}
             className="rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
           >
-            <div className="border-b border-border/20 px-5 py-4">
+            <div className="border-b border-border/40 px-5 py-4">
               <h3 className="text-[14px] font-semibold tracking-tight text-foreground">My Classes</h3>
             </div>
             {byArm.length === 0 ? (
-              <p className="px-5 py-5 text-[12px] text-muted-foreground/45">No classes assigned yet.</p>
+              <p className="px-5 py-5 text-[12px] text-muted-foreground/70">No classes assigned yet.</p>
             ) : (
-              <div className="divide-y divide-border/15">
+              <div className="divide-y divide-border/30">
                 {byArm.map((arm) => (
-                  <div key={arm.arm_name} className="flex items-center justify-between px-5 py-3 transition-colors duration-150 hover:bg-muted/15">
+                  <div key={arm.arm_name} className="flex items-center justify-between px-5 py-3 transition-colors duration-150 hover:bg-muted/35">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-medium text-foreground/80">{arm.arm_name}</p>
-                      <p className="truncate text-[10px] text-muted-foreground/40">{arm.subjects.join(" · ")}</p>
+                      <p className="text-[13px] font-medium text-foreground/90">{arm.arm_name}</p>
+                      <p className="truncate text-[10px] text-muted-foreground/65">{arm.subjects.join(" · ")}</p>
                     </div>
-                    <span className="flex h-6 min-w-6 items-center justify-center rounded-lg bg-muted/30 px-1.5 text-[10px] font-semibold text-muted-foreground/50">
+                    <span className="flex h-6 min-w-6 items-center justify-center rounded-lg bg-muted/55 px-1.5 text-[10px] font-semibold text-muted-foreground/75">
                       {arm.subjects.length}
                     </span>
                   </div>
@@ -322,7 +322,7 @@ export function TeacherDashboard() {
               transition={{ duration: 0.4, delay: 0.34, ease }}
               className="rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
             >
-              <div className="border-b border-border/20 px-5 py-4">
+              <div className="border-b border-border/40 px-5 py-4">
                 <div className="flex items-center gap-2">
                   <h3 className="text-[14px] font-semibold tracking-tight text-foreground">AI Tools</h3>
                   <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500 to-primary px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
@@ -330,26 +330,26 @@ export function TeacherDashboard() {
                   </span>
                 </div>
               </div>
-              <div className="divide-y divide-border/15">
-                <Link href="/lesson-plans" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/15">
+              <div className="divide-y divide-border/30">
+                <Link href="/lesson-plans" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/35">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 transition-colors duration-200 group-hover:bg-amber-100">
                     <NotebookPen className="h-4 w-4 text-amber-500" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium text-foreground/80">Generate a lesson plan</p>
-                    <p className="text-[10px] text-muted-foreground/40">AI drafts objectives & procedure</p>
+                    <p className="text-[12px] font-medium text-foreground/90">Generate a lesson plan</p>
+                    <p className="text-[10px] text-muted-foreground/65">AI drafts objectives & procedure</p>
                   </div>
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-colors duration-200 group-hover:text-primary/60" />
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/75" />
                 </Link>
-                <Link href="/question-banks" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/15">
+                <Link href="/question-banks" className="group flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/35">
                   <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50 transition-colors duration-200 group-hover:bg-violet-100">
                     <Sparkles className="h-4 w-4 text-violet-600" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium text-foreground/80">Create questions</p>
-                    <p className="text-[10px] text-muted-foreground/40">Strand questions with answers</p>
+                    <p className="text-[12px] font-medium text-foreground/90">Create questions</p>
+                    <p className="text-[10px] text-muted-foreground/65">Strand questions with answers</p>
                   </div>
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-colors duration-200 group-hover:text-primary/60" />
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/75" />
                 </Link>
               </div>
             </motion.div>
@@ -368,19 +368,19 @@ export function TeacherDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Score Entry Progress</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Your subjects this term</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Your subjects this term</p>
           </div>
           {busy ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="space-y-1.5">
-                  <div className="h-3 w-24 rounded bg-muted/30" />
-                  <div className="h-2 w-full rounded-full bg-muted/20" />
+                  <div className="h-3 w-24 rounded bg-muted/55" />
+                  <div className="h-2 w-full rounded-full bg-muted/40" />
                 </div>
               ))}
             </div>
           ) : myRows.length === 0 ? (
-            <div className="flex h-[180px] items-center justify-center text-[12px] text-muted-foreground/40">
+            <div className="flex h-[180px] items-center justify-center text-[12px] text-muted-foreground/65">
               No subjects assigned yet
             </div>
           ) : (
@@ -404,16 +404,16 @@ export function TeacherDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Weekly Attendance</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Your classes this week</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Your classes this week</p>
           </div>
           <div className="mb-3 flex items-center gap-4 text-[10px]">
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Present
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> Late
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" /> Absent
             </span>
           </div>

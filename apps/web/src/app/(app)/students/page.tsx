@@ -272,7 +272,7 @@ export default function StudentsPage() {
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
                   <UserPlus className="h-4 w-4 text-primary" />
                 </span>
                 New student
@@ -296,7 +296,7 @@ export default function StudentsPage() {
                     {form.photo_url ? (
                       <img src={photoSrc(form.photo_url)} alt="Student preview" className="h-14 w-14 rounded-full border object-cover" />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/40 text-muted-foreground/40">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/60 text-muted-foreground/65">
                         <UserPlus className="h-5 w-5" />
                       </div>
                     )}
@@ -305,10 +305,10 @@ export default function StudentsPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={onPickPhoto}
-                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
+                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/20 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/35"
                     />
                   </div>
-                  {photoUploading && <p className="text-[11px] text-muted-foreground/60">Uploading photo…</p>}
+                  {photoUploading && <p className="text-[11px] text-muted-foreground/85">Uploading photo…</p>}
                 </div>
                 <div className="space-y-1.5">
                   <Label>First name</Label>
@@ -320,7 +320,7 @@ export default function StudentsPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Gender</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
                   </select>
@@ -362,7 +362,7 @@ export default function StudentsPage() {
                   <div className="space-y-1.5">
                     <Label>From session</Label>
                     <select
-                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                       value={promoteFrom}
                       onChange={(e) => onPromoteFromChange(e.target.value)}
                       required
@@ -376,7 +376,7 @@ export default function StudentsPage() {
                   <div className="space-y-1.5">
                     <Label>To session</Label>
                     <select
-                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                       value={promoteTo}
                       onChange={(e) => {
                         setPromoteTo(e.target.value);
@@ -394,16 +394,16 @@ export default function StudentsPage() {
                 </div>
 
                 {promoteFrom && promoteTo && fromArms.length > 0 && (
-                  <div className="space-y-2 rounded-xl border border-border/40 bg-muted/20 p-4">
-                    <p className="text-[11px] font-semibold text-muted-foreground/70">
+                  <div className="space-y-2 rounded-xl border border-border/60 bg-muted/40 p-4">
+                    <p className="text-[11px] font-semibold text-muted-foreground/90">
                       Class mappings (from {sessions.find((s) => s.id === promoteFrom)?.name})
                     </p>
                     {fromArms.map((arm) => (
                       <div key={arm.id} className="flex flex-wrap items-center gap-2 text-[13px]">
                         <span className="min-w-40 font-medium">{arm.full_name}</span>
-                        <span className="text-muted-foreground/50">→</span>
+                        <span className="text-muted-foreground/75">→</span>
                         <select
-                          className="flex h-8 w-52 rounded-lg border border-border/80 bg-background/50 px-2 text-[13px]"
+                          className="flex h-8 w-52 rounded-lg border border-border/90 bg-background/70 px-2 text-[13px]"
                           value={armMappings[arm.id] ?? ""}
                           onChange={(e) =>
                             setArmMappings((m) => ({ ...m, [arm.id]: e.target.value }))
@@ -416,7 +416,7 @@ export default function StudentsPage() {
                         </select>
                       </div>
                     ))}
-                    <p className="pt-1 text-[11px] text-muted-foreground/60">
+                    <p className="pt-1 text-[11px] text-muted-foreground/85">
                       Classes without a target are skipped.
                     </p>
                   </div>
@@ -444,7 +444,7 @@ export default function StudentsPage() {
       )}
 
       {promoteResult && (
-        <div className="rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-[13px] text-success">
+        <div className="rounded-xl border border-success/35 bg-success/20 px-4 py-3 text-[13px] text-success">
           {promoteResult}
         </div>
       )}
@@ -460,7 +460,7 @@ export default function StudentsPage() {
               <form onSubmit={onEnroll} className="flex flex-wrap items-end gap-3">
                 <div className="min-w-56 space-y-1.5">
                   <Label>Class arm ({sessions.find((s) => s.id === currentSessionId)?.name ?? "current session"})</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={enrollArm} onChange={(e) => setEnrollArm(e.target.value)} required>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" value={enrollArm} onChange={(e) => setEnrollArm(e.target.value)} required>
                     <option value="">Choose arm…</option>
                     {arms.map((a) => (
                       <option key={a.id} value={a.id}>{a.full_name}</option>
@@ -483,7 +483,7 @@ export default function StudentsPage() {
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
                   <UserPlus className="h-4 w-4 text-primary" />
                 </span>
                 Edit student — {data.find((s) => s.id === editFor)?.full_name}
@@ -510,7 +510,7 @@ export default function StudentsPage() {
                 <div className="space-y-1.5">
                   <Label>Gender</Label>
                   <select
-                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                     value={editForm.gender}
                     onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
                   >
@@ -535,7 +535,7 @@ export default function StudentsPage() {
                         className="h-14 w-14 rounded-full border object-cover"
                       />
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/40 text-muted-foreground/40">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-border bg-muted/60 text-muted-foreground/65">
                         <UserPlus className="h-5 w-5" />
                       </div>
                     )}
@@ -544,10 +544,10 @@ export default function StudentsPage() {
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={onPickEditPhoto}
-                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/20"
+                      className="block w-full text-[12px] text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary/20 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/35"
                     />
                   </div>
-                  {editPhotoUploading && <p className="text-[11px] text-muted-foreground/60">Uploading photo…</p>}
+                  {editPhotoUploading && <p className="text-[11px] text-muted-foreground/85">Uploading photo…</p>}
                 </div>
                 <div className="flex items-end gap-2">
                   <Button onClick={saveEdit} disabled={updateStudent.isPending} isLoading={updateStudent.isPending}>
@@ -565,7 +565,7 @@ export default function StudentsPage() {
       <Card className="premium-card">
         <CardContent className="p-5">
           <div className="relative mb-4">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/50" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/75" />
             <Input
               placeholder="Search students by name or admission number…"
               className="pl-9"
@@ -576,7 +576,7 @@ export default function StudentsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                   <th className="pb-2.5 font-semibold">Admission</th>
                   <th className="pb-2.5 font-semibold">Name</th>
                   <th className="pb-2.5 font-semibold">Gender</th>
@@ -592,10 +592,10 @@ export default function StudentsPage() {
                   <tr>
                     <td colSpan={6} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
-                          <UserPlus className="h-5 w-5 text-muted-foreground/40" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/75">
+                          <UserPlus className="h-5 w-5 text-muted-foreground/65" />
                         </div>
-                        <p className="text-[13px] font-medium text-muted-foreground/70">
+                        <p className="text-[13px] font-medium text-muted-foreground/90">
                           {data.length > 0
                             ? "No matches found."
                             : canCreate
@@ -609,7 +609,7 @@ export default function StudentsPage() {
                   filtered.map((s) => {
                     const hasComment = commentMap[s.id];
                     return (
-                      <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <tr key={s.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                         <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
                         <td className="py-3 font-medium">{s.full_name}</td>
                         <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
@@ -622,7 +622,7 @@ export default function StudentsPage() {
                           ) : hasComment === false ? (
                             <Badge variant="warning" className="text-[10px]">Pending</Badge>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground/40">—</span>
+                            <span className="text-[11px] text-muted-foreground/65">—</span>
                           )}
                         </td>
                         <td className="py-3">
@@ -638,7 +638,7 @@ export default function StudentsPage() {
                               </Button>
                             )}
                             {!canEdit && !canEnroll && (
-                              <span className="text-[11px] text-muted-foreground/40">
+                              <span className="text-[11px] text-muted-foreground/65">
                                 View only
                               </span>
                             )}

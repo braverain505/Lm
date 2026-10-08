@@ -67,9 +67,9 @@ export default function ReportsPage() {
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground/70">Period</Label>
+            <Label className="text-[11px] text-muted-foreground/90">Period</Label>
             <select
-              className="flex h-9 min-w-[190px] rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+              className="flex h-9 min-w-[190px] rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
               value={termId}
               onChange={(e) => setTermId(e.target.value)}
             >
@@ -112,13 +112,13 @@ export default function ReportsPage() {
                       <TrendingUp className="h-3.5 w-3.5" /> Income
                     </div>
                     <div className="space-y-1.5 text-[13px]">
-                      <div className="flex justify-between border-b border-border/30 py-1.5">
+                      <div className="flex justify-between border-b border-border/50 py-1.5">
                         <span className="text-muted-foreground">Fees collected</span>
                         <span className="font-medium tabular-nums">
                           {formatMoney(ie.fee_collections, currency)}
                         </span>
                       </div>
-                      <div className="flex justify-between border-b border-border/30 py-1.5">
+                      <div className="flex justify-between border-b border-border/50 py-1.5">
                         <span className="text-muted-foreground">Other income</span>
                         <span className="font-medium tabular-nums">
                           {formatMoney(ie.other_income, currency)}
@@ -144,7 +144,7 @@ export default function ReportsPage() {
                         ie.expenses_by_category.map((row) => (
                           <div
                             key={row.category}
-                            className="flex justify-between border-b border-border/30 py-1.5"
+                            className="flex justify-between border-b border-border/50 py-1.5"
                           >
                             <span className="text-muted-foreground">{row.category}</span>
                             <span className="font-medium tabular-nums">
@@ -165,10 +165,10 @@ export default function ReportsPage() {
                   <div
                     className={cn(
                       "rounded-xl border p-4 lg:col-span-2",
-                      ie.surplus >= 0 ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5",
+                      ie.surplus >= 0 ? "border-success/50 bg-success/20" : "border-destructive/50 bg-destructive/20",
                     )}
                   >
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/90">
                       {ie.surplus >= 0 ? "Surplus for the period" : "Deficit for the period"}
                     </p>
                     <p
@@ -195,14 +195,14 @@ export default function ReportsPage() {
             {loadingCollection || !collection ? (
               <Skeleton className="h-40 w-full" />
             ) : collection.rows.length === 0 ? (
-              <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+              <p className="py-8 text-center text-[13px] text-muted-foreground/90">
                 No invoices raised in this period.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                       <th className="pb-2.5">Class</th>
                       <th className="pb-2.5 text-right">Students</th>
                       <th className="pb-2.5 text-right">Invoiced</th>
@@ -215,7 +215,7 @@ export default function ReportsPage() {
                     {collection.rows.map((row) => (
                       <tr
                         key={row.arm_id ?? row.arm_name ?? "unassigned"}
-                        className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                        className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                       >
                         <td className="py-3 font-medium">{row.arm_name ?? "Unassigned"}</td>
                         <td className="py-3 text-right tabular-nums text-muted-foreground">
@@ -235,7 +235,7 @@ export default function ReportsPage() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="border-t border-border/60 font-semibold">
+                    <tr className="border-t border-border/80 font-semibold">
                       <td className="py-3">Total</td>
                       <td className="py-3" />
                       <td className="py-3 text-right tabular-nums">
@@ -267,14 +267,14 @@ export default function ReportsPage() {
             {loadingPosition || !position ? (
               <Skeleton className="h-32 w-full" />
             ) : position.rows.length === 0 ? (
-              <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+              <p className="py-8 text-center text-[13px] text-muted-foreground/90">
                 No cash or bank accounts yet.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                       <th className="pb-2.5">Account</th>
                       <th className="pb-2.5">Kind</th>
                       <th className="pb-2.5 text-right">Opening</th>
@@ -288,7 +288,7 @@ export default function ReportsPage() {
                     {position.rows.map((row) => (
                       <tr
                         key={row.cash_account_id}
-                        className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                        className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                       >
                         <td className="py-3 font-medium">{row.name}</td>
                         <td className="py-3 capitalize text-muted-foreground">
@@ -313,7 +313,7 @@ export default function ReportsPage() {
                         </td>
                       </tr>
                     ))}
-                    <tr className="border-t border-border/60 font-semibold">
+                    <tr className="border-t border-border/80 font-semibold">
                       <td className="py-3">Total</td>
                       <td className="py-3" />
                       <td className="py-3" />

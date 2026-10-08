@@ -159,7 +159,7 @@ export default function SuperAdminOverviewPage() {
           ) : (
             <div className="space-y-2.5">
               {data!.alerts!.map((a) => (
-                <div key={a.kind} className="flex items-start justify-between gap-3 rounded-xl border bg-muted/30 p-3">
+                <div key={a.kind} className="flex items-start justify-between gap-3 rounded-xl border bg-muted/55 p-3">
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium capitalize leading-snug">{a.label}</p>
                     <p className="text-xs text-muted-foreground">{titleCase(a.kind)}</p>
@@ -185,15 +185,15 @@ export default function SuperAdminOverviewPage() {
             <PanelSkeleton rows={3} />
           ) : (
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border bg-muted/55 px-4 py-3">
                 <span className="text-[13px] font-medium">Payments</span>
                 <StatusBadge status={(k.past_due_schools ?? 0) > 0 ? "degraded" : "operational"} />
               </div>
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border bg-muted/55 px-4 py-3">
                 <span className="text-[13px] font-medium">Subscriptions</span>
                 <StatusBadge status={(k.past_due_schools ?? 0) > 0 ? "degraded" : "operational"} />
               </div>
-              <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border bg-muted/55 px-4 py-3">
                 <span className="text-[13px] font-medium">AI provider</span>
                 <StatusBadge status={(k.ai_cost ?? 0) > 0 ? "operational" : "operational"} />
               </div>
@@ -218,7 +218,7 @@ export default function SuperAdminOverviewPage() {
           ) : (
             <div className="space-y-2">
               {data!.notifications!.slice(0, 5).map((n) => (
-                <div key={n.id} className="flex items-start gap-2.5 rounded-xl border bg-muted/30 p-3">
+                <div key={n.id} className="flex items-start gap-2.5 rounded-xl border bg-muted/55 p-3">
                   <BellRing className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium leading-snug">{n.title}</p>
@@ -257,7 +257,7 @@ function QuickLink({ href, icon, label, sub }: { href: string; icon: React.React
       href={href}
       className="group flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">{icon}</span>
+      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/20 text-primary">{icon}</span>
       <span className="min-w-0">
         <span className="block text-[13px] font-semibold">{label}</span>
         <span className="block truncate text-xs text-muted-foreground">{sub}</span>

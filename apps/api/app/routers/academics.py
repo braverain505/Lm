@@ -92,6 +92,18 @@ def activate_session(
     return SessionOut.model_validate(session)
 
 
+@router.delete("/sessions/{session_id}", status_code=204)
+def delete_session(
+    session_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Delete a session created by mistake, with its terms and classes. An
+    active session or one with students enrolled is refused."""
+    academics_service.delete_session(db, ctx.school.id, session_id)
+    db.commit()
+
+
 # --- Terms --------------------------------------------------------------------
 @router.get("/sessions/{session_id}/terms", response_model=list[TermOut])
 def list_terms(session_id: uuid.UUID, db: DbSession, ctx=Depends(require_permission(ACADEMICS_VIEW))):
@@ -142,6 +154,18 @@ def close_term(
     return TermOut.model_validate(term)
 
 
+@router.delete("/terms/{term_id}", status_code=204)
+def delete_term(
+    term_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Delete a term created by mistake. The active term, or one with results or
+    assessment components, is refused — close it instead."""
+    academics_service.delete_term(db, ctx.school.id, term_id)
+    db.commit()
+
+
 # --- Class arms ----------------------------------------------------------------
 @router.get("/sessions/{session_id}/arms", response_model=list[ArmOut])
 def list_arms(session_id: uuid.UUID, db: DbSession, ctx=Depends(require_permission(ACADEMICS_VIEW))):
@@ -164,6 +188,18 @@ def create_arm(
     )
     db.commit()
     return ArmOut.model_validate(arm)
+
+
+@router.delete("/arms/{arm_id}", status_code=204)
+def delete_arm(
+    arm_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Delete a class created by mistake. A class with students enrolled is
+    refused; its subject offerings and teacher assignments go with it."""
+    academics_service.delete_arm(db, ctx.school.id, arm_id)
+    db.commit()
 
 
 # --- Subjects -------------------------------------------------------------------

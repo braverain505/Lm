@@ -66,12 +66,12 @@ export function AccountantDashboard() {
         <h1 className="text-[28px] font-bold tracking-tight text-foreground">
           {greeting}, {user?.full_name?.split(" ")[0] ?? "there"} 👋
         </h1>
-        <p className="mt-1.5 text-[14px] text-muted-foreground/60">
+        <p className="mt-1.5 text-[14px] text-muted-foreground/85">
           Here&apos;s the financial picture for your school.
         </p>
         {term && (
-          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary/75" />
             {term.name}
           </p>
         )}
@@ -88,11 +88,11 @@ export function AccountantDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Outstanding</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">Outstanding</p>
               <p className="mt-2 text-[22px] font-bold tracking-tight text-foreground">
                 {isLoading ? <Skeleton className="inline-block h-6 w-24 rounded-md" /> : `${currency} ${ngn.format(outstandingFees)}`}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground/40">{feeCount} students with balances</p>
+              <p className="mt-1 text-[10px] text-muted-foreground/65">{feeCount} students with balances</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-50 ring-1 ring-rose-100">
               <Wallet className="h-5 w-5 text-rose-500" strokeWidth={1.75} />
@@ -109,7 +109,7 @@ export function AccountantDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Today&apos;s Collections</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">Today&apos;s Collections</p>
               <p className="mt-2 text-[22px] font-bold tracking-tight text-foreground">
                 {isLoading ? <Skeleton className="inline-block h-6 w-24 rounded-md" /> : `${currency} ${ngn.format(todayAmount)}`}
               </p>
@@ -132,11 +132,11 @@ export function AccountantDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">This Week</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">This Week</p>
               <p className="mt-2 text-[22px] font-bold tracking-tight text-foreground">
                 {isLoading ? <Skeleton className="inline-block h-6 w-24 rounded-md" /> : `${currency} ${ngn.format(thisWeekAmount)}`}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground/40">{thisWeekCount} payments</p>
+              <p className="mt-1 text-[10px] text-muted-foreground/65">{thisWeekCount} payments</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-100">
               <TrendingUp className="h-5 w-5 text-blue-600" strokeWidth={1.75} />
@@ -153,11 +153,11 @@ export function AccountantDashboard() {
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">With Balance</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">With Balance</p>
               <p className="mt-2 text-[22px] font-bold tracking-tight text-foreground">
                 {isLoading ? <Skeleton className="inline-block h-6 w-12 rounded-md" /> : feeCount}
               </p>
-              <p className="mt-1 text-[10px] text-muted-foreground/40">students owing</p>
+              <p className="mt-1 text-[10px] text-muted-foreground/65">students owing</p>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 ring-1 ring-amber-100">
               <Users className="h-5 w-5 text-amber-500" strokeWidth={1.75} />
@@ -175,12 +175,12 @@ export function AccountantDashboard() {
           transition={{ duration: 0.4, delay: 0.22, ease }}
           className="lg:col-span-3 rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden"
         >
-          <div className="flex items-center justify-between border-b border-border/20 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-border/40 px-5 py-4">
             <div>
               <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Recent Payments</h3>
-              <p className="mt-0.5 text-[12px] text-muted-foreground/50">Latest recorded collections</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/75">Latest recorded collections</p>
             </div>
-            <Link href="/billing" className="text-[11px] font-semibold text-primary/70 hover:text-primary transition-colors">
+            <Link href="/billing" className="text-[11px] font-semibold text-primary/80 hover:text-primary transition-colors">
               View all
             </Link>
           </div>
@@ -192,21 +192,21 @@ export function AccountantDashboard() {
             </div>
           ) : recent.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-5 py-10 text-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
-                <Receipt className="h-5 w-5 text-muted-foreground/25" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/55">
+                <Receipt className="h-5 w-5 text-muted-foreground/45" />
               </div>
-              <p className="mt-3 text-[12px] font-medium text-foreground/50">No payments recorded yet</p>
+              <p className="mt-3 text-[12px] font-medium text-foreground/70">No payments recorded yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-border/15">
+            <div className="divide-y divide-border/30">
               {recent.map((i) => (
-                <div key={i.id} className="flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/15">
+                <div key={i.id} className="flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 hover:bg-muted/35">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
                     <Banknote className="h-4 w-4 text-emerald-600" strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[12px] font-medium text-foreground/80">{i.payment_method ?? "Payment"}</p>
-                    <p className="text-[10px] text-muted-foreground/40">
+                    <p className="truncate text-[12px] font-medium text-foreground/90">{i.payment_method ?? "Payment"}</p>
+                    <p className="text-[10px] text-muted-foreground/65">
                       {i.paid_date ? new Date(i.paid_date).toLocaleDateString(undefined, { day: "numeric", month: "short" }) : ""}
                     </p>
                   </div>
@@ -228,7 +228,7 @@ export function AccountantDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Links</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Financial reports & tools</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Financial reports & tools</p>
           </div>
           <div className="space-y-2">
             {[
@@ -243,16 +243,16 @@ export function AccountantDashboard() {
                 <Link
                   key={r.href}
                   href={r.href}
-                  className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-muted/20"
+                  className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-muted/40"
                 >
                   <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", r.bg)}>
                     <Icon className={cn("h-4 w-4", r.color)} strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium text-foreground/80">{r.label}</p>
-                    <p className="text-[10px] text-muted-foreground/40">{r.desc}</p>
+                    <p className="text-[12px] font-medium text-foreground/90">{r.label}</p>
+                    <p className="text-[10px] text-muted-foreground/65">{r.desc}</p>
                   </div>
-                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-colors duration-200 group-hover:text-primary/60" />
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-colors duration-200 group-hover:text-primary/75" />
                 </Link>
               );
             })}

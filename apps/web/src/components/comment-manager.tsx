@@ -305,7 +305,7 @@ function RoleCommentCard({
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                   source === s
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/20 text-primary"
                     : "text-muted-foreground hover:bg-accent",
                 )}
               >
@@ -336,7 +336,7 @@ function RoleCommentCard({
         </div>
 
         {source === "bank" && (
-          <div className="rounded-lg border bg-muted/30 p-3">
+          <div className="rounded-lg border bg-muted/55 p-3">
             <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_150px_130px]">
               <Select
                 value=""

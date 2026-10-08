@@ -66,7 +66,7 @@ export function HoverPreview({
             onMouseLeave={hide}
           >
             {/* Header gradient */}
-            <div className="relative h-14 bg-gradient-to-r from-primary/10 via-violet-500/10 to-rose-500/10" />
+            <div className="relative h-14 bg-gradient-to-r from-primary/20 via-violet-500/10 to-rose-500/10" />
 
             {/* Avatar */}
             <div className="relative -mt-6 px-4">
@@ -82,12 +82,12 @@ export function HoverPreview({
                 <div className="min-w-0">
                   <p className="text-[13px] font-semibold text-foreground truncate">{data.name}</p>
                   {data.role && (
-                    <p className="text-[11px] text-muted-foreground/50">{data.role}{data.department ? ` · ${data.department}` : ""}</p>
+                    <p className="text-[11px] text-muted-foreground/75">{data.role}{data.department ? ` · ${data.department}` : ""}</p>
                   )}
                 </div>
                 <Link
                   href={data.href}
-                  className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors hover:bg-primary/15"
+                  className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/20 text-primary transition-colors hover:bg-primary/30"
                 >
                   <ArrowUpRight className="h-3 w-3" />
                 </Link>
@@ -96,19 +96,19 @@ export function HoverPreview({
               {/* Contact info */}
               <div className="mt-3 space-y-1.5">
                 {data.email && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/45">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
                     <Mail className="h-3 w-3 shrink-0" />
                     <span className="truncate">{data.email}</span>
                   </div>
                 )}
                 {data.phone && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/45">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
                     <Phone className="h-3 w-3 shrink-0" />
                     <span>{data.phone}</span>
                   </div>
                 )}
                 {data.joined && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/45">
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
                     <Calendar className="h-3 w-3 shrink-0" />
                     <span>Joined {data.joined}</span>
                   </div>
@@ -117,11 +117,11 @@ export function HoverPreview({
 
               {/* Stats */}
               {data.stats && data.stats.length > 0 && (
-                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/20 pt-3">
+                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-border/40 pt-3">
                   {data.stats.map((stat) => (
                     <div key={stat.label} className="text-center">
                       <p className="text-[14px] font-bold text-foreground">{stat.value}</p>
-                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/40">{stat.label}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/65">{stat.label}</p>
                     </div>
                   ))}
                 </div>

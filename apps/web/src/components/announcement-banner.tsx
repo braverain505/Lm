@@ -36,23 +36,23 @@ export function AnnouncementBanner() {
           transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="overflow-hidden"
         >
-          <div className="relative flex items-center gap-3 bg-gradient-to-r from-primary/8 via-primary/5 to-violet-500/5 px-5 py-2.5 border-b border-primary/10">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <div className="relative flex items-center gap-3 bg-gradient-to-r from-primary/25 via-primary/15 to-violet-500/5 px-5 py-2.5 border-b border-primary/20">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-primary/20">
               <Megaphone className="h-3 w-3 text-primary" strokeWidth={2} />
             </div>
             <p className="min-w-0 flex-1 text-[12px]">
-              <span className="font-semibold text-foreground/80">{ANNOUNCEMENT.title}</span>
-              <span className="ml-1.5 text-muted-foreground/50">{ANNOUNCEMENT.body}</span>
+              <span className="font-semibold text-foreground/90">{ANNOUNCEMENT.title}</span>
+              <span className="ml-1.5 text-muted-foreground/75">{ANNOUNCEMENT.body}</span>
             </p>
             <Link
               href={ANNOUNCEMENT.href}
-              className="hidden shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/15 sm:inline-flex"
+              className="hidden shrink-0 items-center gap-1 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/30 sm:inline-flex"
             >
               Try it <ArrowRight className="h-3 w-3" />
             </Link>
             <button
               onClick={dismiss}
-              className="shrink-0 rounded-lg p-1 text-muted-foreground/30 transition-colors hover:bg-muted/30 hover:text-muted-foreground/60"
+              className="shrink-0 rounded-lg p-1 text-muted-foreground/55 transition-colors hover:bg-muted/55 hover:text-muted-foreground/85"
               aria-label="Dismiss"
             >
               <X className="h-3.5 w-3.5" />

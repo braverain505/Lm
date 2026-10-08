@@ -27,16 +27,16 @@ export function WidgetSkeleton({ className }: { className?: string }) {
 export function WidgetEmpty({ title, hint }: { title: string; hint?: string }) {
   return (
     <motion.div
-      className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/40 px-6 py-12 text-center"
+      className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 px-6 py-12 text-center"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, ease }}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/40">
-        <Sparkles className="h-5 w-5 text-muted-foreground/30" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
+        <Sparkles className="h-5 w-5 text-muted-foreground/55" />
       </div>
-      <p className="mt-3 text-[13px] font-medium text-foreground/60">{title}</p>
-      {hint && <p className="mt-1.5 max-w-xs text-[12px] leading-relaxed text-muted-foreground/50">{hint}</p>}
+      <p className="mt-3 text-[13px] font-medium text-foreground/80">{title}</p>
+      {hint && <p className="mt-1.5 max-w-xs text-[12px] leading-relaxed text-muted-foreground/75">{hint}</p>}
     </motion.div>
   );
 }
@@ -44,15 +44,15 @@ export function WidgetEmpty({ title, hint }: { title: string; hint?: string }) {
 export function WidgetError({ message, onRetry }: { message?: string; onRetry?: () => void }) {
   return (
     <motion.div
-      className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-destructive/15 px-6 py-12 text-center"
+      className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-destructive/35 px-6 py-12 text-center"
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3, ease }}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/5">
-        <AlertTriangle className="h-5 w-5 text-destructive/50" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/20">
+        <AlertTriangle className="h-5 w-5 text-destructive/70" />
       </div>
-      <p className="text-[13px] text-muted-foreground/60">{message ?? "Something went wrong"}</p>
+      <p className="text-[13px] text-muted-foreground/85">{message ?? "Something went wrong"}</p>
       {onRetry && (
         <button
           onClick={onRetry}
@@ -99,20 +99,20 @@ export function WidgetCard({
   return (
     <motion.div
       className={cn(
-        "flex flex-col rounded-xl border border-border/40 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/60 hover:shadow-card",
+        "flex flex-col rounded-xl border border-border/60 bg-card shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border/80 hover:shadow-card",
         className,
       )}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease }}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border/20 px-5 py-3.5">
+      <div className="flex items-start justify-between gap-3 border-b border-border/40 px-5 py-3.5">
         <div className="min-w-0">
           <h3 className="flex items-center gap-2 text-[13px] font-semibold tracking-tight text-foreground">
             {icon}
             {title}
           </h3>
-          {subtitle && <p className="mt-0.5 text-[11.5px] text-muted-foreground/50">{subtitle}</p>}
+          {subtitle && <p className="mt-0.5 text-[11.5px] text-muted-foreground/75">{subtitle}</p>}
         </div>
         {actions && <div className="flex shrink-0 items-center gap-1.5">{actions}</div>}
       </div>
@@ -148,28 +148,28 @@ export function WidgetCard({
  */
 const KPI_TONES = {
   blue: {
-    card: "border-2 border-primary/35 bg-primary/[0.12] hover:border-primary/55",
-    chip: "bg-primary/30 text-primary",
+    card: "border-2 border-primary/50 bg-primary/[0.12] hover:border-primary/75",
+    chip: "bg-primary/45 text-primary",
   },
   violet: {
-    card: "border-2 border-accent/35 bg-accent/[0.12] hover:border-accent/55",
-    chip: "bg-accent/30 text-accent",
+    card: "border-2 border-accent/50 bg-accent/[0.12] hover:border-accent/70",
+    chip: "bg-accent/45 text-accent",
   },
   emerald: {
-    card: "border-2 border-success/35 bg-success/[0.12] hover:border-success/55",
-    chip: "bg-success/30 text-success",
+    card: "border-2 border-success/50 bg-success/[0.12] hover:border-success/70",
+    chip: "bg-success/50 text-success",
   },
   amber: {
-    card: "border-2 border-warning/40 bg-warning/[0.14] hover:border-warning/60",
-    chip: "bg-warning/35 text-warning",
+    card: "border-2 border-warning/60 bg-warning/[0.14] hover:border-warning/75",
+    chip: "bg-warning/50 text-warning",
   },
   rose: {
-    card: "border-2 border-chart-4/35 bg-chart-4/[0.12] hover:border-chart-4/55",
-    chip: "bg-chart-4/30 text-chart-4",
+    card: "border-2 border-chart-4/50 bg-chart-4/[0.12] hover:border-chart-4/70",
+    chip: "bg-chart-4/45 text-chart-4",
   },
   cyan: {
-    card: "border-2 border-chart-6/35 bg-chart-6/[0.12] hover:border-chart-6/55",
-    chip: "bg-chart-6/30 text-chart-6",
+    card: "border-2 border-chart-6/50 bg-chart-6/[0.12] hover:border-chart-6/70",
+    chip: "bg-chart-6/45 text-chart-6",
   },
 } as const;
 
@@ -206,12 +206,12 @@ export function KpiCard({
         // fallback supplies border. Setting both would leave the width up to
         // Tailwind's emission order rather than to this component.
         "group block rounded-xl px-5 py-4 shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:shadow-card hover:-translate-y-[1px]",
-        theme ? theme.card : "border border-border/40 bg-card hover:border-border/60",
+        theme ? theme.card : "border border-border/60 bg-card hover:border-border/80",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">{label}</p>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/75">{label}</p>
           <div className="mt-1.5 text-[24px] font-bold tracking-tight text-foreground">
             {loading ? <Skeleton className="h-7 w-16 rounded-md" /> : value}
           </div>
@@ -220,23 +220,23 @@ export function KpiCard({
               <span
                 className={cn(
                   "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
-                  up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive",
+                  up ? "bg-success/25 text-success" : "bg-destructive/25 text-destructive",
                 )}
               >
                 {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                 {Math.abs(delta).toFixed(1)}%
               </span>
-              {deltaLabel && <span className="text-[10px] text-muted-foreground/50">{deltaLabel}</span>}
+              {deltaLabel && <span className="text-[10px] text-muted-foreground/75">{deltaLabel}</span>}
             </div>
           )}
           {sub && !delta && (
-            <p className="mt-2 text-[11px] text-muted-foreground/45">{sub}</p>
+            <p className="mt-2 text-[11px] text-muted-foreground/70">{sub}</p>
           )}
         </div>
         <span
           className={cn(
             "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors duration-200",
-            theme ? theme.chip : "bg-muted/40 text-muted-foreground/40 group-hover:bg-primary/10 group-hover:text-primary/70",
+            theme ? theme.chip : "bg-muted/60 text-muted-foreground/65 group-hover:bg-primary/20 group-hover:text-primary/80",
           )}
         >
           <Icon className="h-4 w-4" />

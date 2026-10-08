@@ -9,9 +9,9 @@
     --background-subtle: 240 10% 98%;
     --background-muted: 240 10% 96%;
     --foreground: 240 12% 12%;
-    --foreground-secondary: 240 8% 40%;
-    --foreground-tertiary: 240 6% 55%;
-    --foreground-muted: 240 5% 70%;
+    --foreground-secondary: 240 8% 30%;
+    --foreground-tertiary: 240 6% 42%;
+    --foreground-muted: 240 5% 56%;
 
     /* ─── Surfaces ─── */
     --card: 0 0% 100%;
@@ -25,15 +25,15 @@
     --primary-border: 221 83% 88%;
 
     /* ─── Secondary ─── */
-    --secondary: 240 8% 95%;
+    --secondary: 240 8% 94%;
     --secondary-foreground: 240 12% 12%;
-    --secondary-hover: 240 8% 92%;
-    --secondary-border: 240 8% 88%;
+    --secondary-hover: 240 8% 90%;
+    --secondary-border: 240 8% 80%;
 
     /* ─── Muted ─── */
-    --muted: 240 8% 95%;
-    --muted-foreground: 240 8% 40%;
-    --muted-hover: 240 8% 92%;
+    --muted: 240 8% 94%;
+    --muted-foreground: 240 8% 32%;
+    --muted-hover: 240 8% 90%;
 
     /* ─── Accent ─── */
     --accent: 270 70% 60%;
@@ -65,10 +65,10 @@
     --info: 217 91% 60%;
 
     /* ─── Borders & Inputs ─── */
-    --border: 240 10% 90%;
-    --border-strong: 240 10% 80%;
-    --border-subtle: 240 10% 95%;
-    --input: 240 10% 90%;
+    --border: 240 10% 84%;
+    --border-strong: 240 10% 70%;
+    --border-subtle: 240 10% 90%;
+    --input: 240 10% 80%;
     --ring: 221 83% 53%;
 
     /* ─── Radius — Restrained ─── */
@@ -77,17 +77,17 @@
     /* ─── Rail — Elegant Slim Bar ─── */
     --rail: 240 10% 98%;
     --rail-foreground: 240 12% 12%;
-    --rail-muted: 240 8% 40%;
+    --rail-muted: 240 8% 32%;
     --rail-active-bg: 221 83% 53%;
     --rail-active-fg: 0 0% 100%;
-    --rail-border: 240 10% 90%;
+    --rail-border: 240 10% 84%;
 
     /* ─── Panel — Clean Expandable Nav ─── */
     --panel: 0 0% 100%;
     --panel-foreground: 240 12% 12%;
-    --panel-muted: 240 8% 40%;
-    --panel-border: 240 10% 90%;
-    --panel-hover: 240 10% 96%;
+    --panel-muted: 240 8% 32%;
+    --panel-border: 240 10% 84%;
+    --panel-hover: 240 10% 94%;
     --panel-active-bg: 221 83% 53%;
     --panel-active-fg: 0 0% 100%;
 
@@ -120,9 +120,9 @@
     --background-muted: 240 10% 11%;
     --background-elevated: 240 10% 13%;
     --foreground: 240 10% 98%;
-    --foreground-secondary: 240 8% 70%;
-    --foreground-tertiary: 240 6% 55%;
-    --foreground-muted: 240 5% 40%;
+    --foreground-secondary: 240 8% 82%;
+    --foreground-tertiary: 240 6% 68%;
+    --foreground-muted: 240 5% 50%;
 
     /* ─── Dark Mode Shadows — Stronger for same elevation perception ─── */
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
@@ -148,15 +148,15 @@
     --primary-border: 221 83% 25%;
 
     /* ─── Secondary ─── */
-    --secondary: 240 8% 18%;
+    --secondary: 240 8% 20%;
     --secondary-foreground: 240 10% 98%;
-    --secondary-hover: 240 8% 22%;
-    --secondary-border: 240 8% 25%;
+    --secondary-hover: 240 8% 25%;
+    --secondary-border: 240 8% 34%;
 
     /* ─── Muted ─── */
-    --muted: 240 8% 18%;
-    --muted-foreground: 240 8% 70%;
-    --muted-hover: 240 8% 22%;
+    --muted: 240 8% 20%;
+    --muted-foreground: 240 8% 80%;
+    --muted-hover: 240 8% 25%;
 
     /* ─── Accent ─── */
     --accent: 270 70% 65%;
@@ -188,26 +188,26 @@
     --info: 217 91% 60%;
 
     /* ─── Borders & Inputs — Subtle ─── */
-    --border: 240 10% 18%;
-    --border-strong: 240 10% 25%;
-    --border-subtle: 240 10% 14%;
-    --input: 240 10% 18%;
+    --border: 240 10% 26%;
+    --border-strong: 240 10% 36%;
+    --border-subtle: 240 10% 20%;
+    --input: 240 10% 30%;
     --ring: 221 83% 58%;
 
     /* ─── Rail — Dark Elegant ─── */
     --rail: 240 10% 9%;
     --rail-foreground: 240 10% 98%;
-    --rail-muted: 240 8% 70%;
+    --rail-muted: 240 8% 80%;
     --rail-active-bg: 221 83% 58%;
     --rail-active-fg: 0 0% 100%;
-    --rail-border: 240 10% 18%;
+    --rail-border: 240 10% 26%;
 
     /* ─── Panel — Dark Sophisticated ─── */
     --panel: 240 10% 11%;
     --panel-foreground: 240 10% 98%;
-    --panel-muted: 240 8% 70%;
-    --panel-border: 240 10% 18%;
-    --panel-hover: 240 10% 15%;
+    --panel-muted: 240 8% 80%;
+    --panel-border: 240 10% 26%;
+    --panel-hover: 240 10% 18%;
     --panel-active-bg: 221 83% 58%;
     --panel-active-fg: 0 0% 100%;
 

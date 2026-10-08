@@ -180,7 +180,7 @@ export default function PayrollPage() {
                   </td></tr>
                 ) : (
                   structures.map((s) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-accent/40">
+                    <tr key={s.id} className="border-b last:border-0 hover:bg-accent/60">
                       <td className="py-2.5 font-medium">{s.name}</td>
                       <td className="py-2.5">{currency(s.basic_salary)}</td>
                       <td className="py-2.5">{s.tax_percent}%</td>
@@ -282,7 +282,7 @@ export default function PayrollPage() {
                   </td></tr>
                 ) : (
                   assignments.map((a) => (
-                    <tr key={a.id} className="border-b last:border-0 hover:bg-accent/40">
+                    <tr key={a.id} className="border-b last:border-0 hover:bg-accent/60">
                       <td className="py-2.5 font-medium">{a.staff_name ?? a.staff_id}</td>
                       <td className="py-2.5">{a.structure_name ?? a.structure_id}</td>
                       <td className="py-2.5">{a.effective_from ?? "—"}</td>
@@ -336,7 +336,7 @@ export default function PayrollPage() {
                   </td></tr>
                 ) : (
                   runs.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-accent/40">
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-accent/60">
                       <td className="py-2.5 font-medium">{r.month}</td>
                       <td className="py-2.5">{currency(r.total_gross)}</td>
                       <td className="py-2.5">{currency(r.total_tax)}</td>

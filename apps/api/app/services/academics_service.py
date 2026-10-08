@@ -6,20 +6,29 @@ from __future__ import annotations
 import uuid
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ..core.errors import ConflictError, NotFoundError, ValidationError
 from ..models import (
     AcademicSession,
+    AssessmentComponent,
     ClassArm,
+    Result,
     Staff,
+    StudentEnrollment,
     Subject,
     SubjectAssignment,
     SubjectOffering,
     Term,
 )
 from ..models.enums import SessionStatus, TermStatus
+
+
+def _has_rows(db: Session, model, *criteria) -> bool:
+    """Whether any row of ``model`` matches ``criteria`` (1 row fetched, not a
+    count) — the existence test behind every delete guard."""
+    return db.scalar(select(model.id).where(*criteria).limit(1)) is not None
 
 
 # --- Sessions ---------------------------------------------------------------
@@ -119,6 +128,35 @@ def activate_session(db: Session, school_id: uuid.UUID, session_id: uuid.UUID) -
     return session
 
 
+def delete_session(db: Session, school_id: uuid.UUID, session_id: uuid.UUID) -> None:
+    """Delete a session created by mistake, together with its terms and classes.
+
+    A session that is in use is refused: an activated (open) session, or one
+    that already has students enrolled, is part of the school's live records.
+    Everything else about a session is structure — its terms and its classes,
+    which are the session's own definition and go with it.
+    """
+    session = get_session(db, school_id, session_id)
+    if session.status == SessionStatus.OPEN.value:
+        raise ConflictError(
+            f"{session.name} is the active session — activate another session before deleting it"
+        )
+    if _has_rows(
+        db, StudentEnrollment, StudentEnrollment.academic_session_id == session.id
+    ):
+        raise ConflictError(
+            f"{session.name} has students enrolled and cannot be deleted"
+        )
+    # The session's own structure goes with it. These run as core DELETEs so the
+    # database cascades terms/classes (and their offerings, assignments,
+    # components and AI artifacts); the ORM would instead try to unhook each
+    # class and hit the NOT NULL foreign key on class_arms.academic_session_id.
+    db.execute(delete(Term).where(Term.academic_session_id == session.id))
+    db.execute(delete(ClassArm).where(ClassArm.academic_session_id == session.id))
+    db.execute(delete(AcademicSession).where(AcademicSession.id == session.id))
+    db.flush()
+
+
 def activate_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
     """Admin activates a term inside its (activated) session: marks it open +
     current, retiring any other current term in the same session.
@@ -176,6 +214,29 @@ def close_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
     term.is_current = False
     db.flush()
     return term
+
+
+def delete_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> None:
+    """Delete a term created by mistake.
+
+    A term that carries real work is refused — the active (open) term, one with
+    results entered, or one whose assessment components have been set up. Close
+    a used term instead: that retires it while keeping its results readable.
+    """
+    term = get_term(db, school_id, term_id)
+    get_session(db, school_id, term.academic_session_id)  # validate ownership
+    if term.status == TermStatus.OPEN.value:
+        raise ConflictError(
+            f"{term.name} is the active term — make another term active before deleting it"
+        )
+    if _has_rows(db, Result, Result.term_id == term.id):
+        raise ConflictError(f"{term.name} has results recorded and cannot be deleted")
+    if _has_rows(db, AssessmentComponent, AssessmentComponent.term_id == term.id):
+        raise ConflictError(
+            f"{term.name} has assessment components set up and cannot be deleted"
+        )
+    db.delete(term)
+    db.flush()
 
 
 def require_active_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> None:
@@ -302,6 +363,23 @@ def create_arm(
     db.add(arm)
     db.flush()
     return arm
+
+
+def delete_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID) -> None:
+    """Delete a class created by mistake.
+
+    A class with students enrolled is refused — those enrollments (and the
+    results built on them) are real data, and the enrollment foreign key is
+    RESTRICT. The class's subject offerings and teacher assignments are part of
+    the class and go with it.
+    """
+    arm = get_arm(db, school_id, arm_id)
+    if _has_rows(db, StudentEnrollment, StudentEnrollment.class_arm_id == arm.id):
+        raise ConflictError(
+            f"{arm.full_name} has students enrolled — move them to another class first"
+        )
+    db.delete(arm)
+    db.flush()
 
 
 # --- Subjects ------------------------------------------------------------------

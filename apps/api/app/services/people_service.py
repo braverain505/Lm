@@ -19,10 +19,11 @@ from ..models import (
     Student,
     StudentEnrollment,
     StudentGuardian,
+    Subject,
     SubjectAssignment,
     User,
 )
-from ..schemas.people import StaffOut
+from ..schemas.people import StaffAssignmentOut, StaffOut
 from .academics_service import get_arm, get_session
 
 
@@ -65,10 +66,54 @@ def serialize_staff_list(
                 for r in db.scalars(select(Role).where(Role.id.in_(role_ids)))
             }
     out: list[StaffOut] = []
+    homeroom: dict = {}
+    staff_ids = [s.id for s in rows]
+    assignments: dict = {}
+    if staff_ids:
+        for arm in db.scalars(
+            select(ClassArm).where(
+                ClassArm.school_id == school_id,
+                ClassArm.class_teacher_id.in_(staff_ids),
+            )
+        ):
+            homeroom.setdefault(arm.class_teacher_id, arm)
+        # The class × subject pairs each teacher teaches, so the staff list can
+        # show that "Maths in JSS 1A" and "Maths in JSS 2A" are separate rows.
+        teaching = db.scalars(
+            select(SubjectAssignment)
+            .where(
+                SubjectAssignment.school_id == school_id,
+                SubjectAssignment.teacher_id.in_(staff_ids),
+            )
+            .order_by(SubjectAssignment.class_arm_id, SubjectAssignment.subject_id)
+        ).all()
+        arm_ids = {a.class_arm_id for a in teaching}
+        subject_ids = {a.subject_id for a in teaching}
+        arm_names = (
+            {ar.id: ar.full_name for ar in db.scalars(select(ClassArm).where(ClassArm.id.in_(arm_ids)))}
+            if arm_ids
+            else {}
+        )
+        subject_names = (
+            {s.id: s.name for s in db.scalars(select(Subject).where(Subject.id.in_(subject_ids)))}
+            if subject_ids
+            else {}
+        )
+        for a in teaching:
+            assignments.setdefault(a.teacher_id, []).append(
+                StaffAssignmentOut(
+                    assignment_id=a.id,
+                    arm_id=a.class_arm_id,
+                    arm_name=arm_names.get(a.class_arm_id, ""),
+                    subject_id=a.subject_id,
+                    subject_name=subject_names.get(a.subject_id, ""),
+                )
+            )
     for s in rows:
         user = users.get(s.user_id) if s.user_id is not None else None
         membership = memberships.get(s.user_id) if s.user_id is not None else None
         role = roles.get(membership.role_id) if membership is not None else None
+        arm = homeroom.get(s.id)
         out.append(
             StaffOut(
                 id=s.id,
@@ -84,6 +129,9 @@ def serialize_staff_list(
                 account_email=user.email if user is not None else None,
                 account_role_id=membership.role_id if membership is not None else None,
                 account_role_name=role.name if role is not None else None,
+                homeroom_arm_id=arm.id if arm is not None else None,
+                homeroom_arm_name=arm.full_name if arm is not None else None,
+                assignments=assignments.get(s.id, []),
             )
         )
     return out
@@ -147,6 +195,28 @@ def update_staff(
     return staff
 
 
+def _assign_homeroom_arm(
+    db: Session, school_id: uuid.UUID, staff: Staff, arm_id: uuid.UUID
+) -> ClassArm:
+    """Make ``staff`` the homeroom (class) teacher of ``arm_id``.
+
+    A teacher keeps one homeroom slot per session, so any other class they were
+    leading in the same session is cleared before the new one is set."""
+    arm = get_arm(db, school_id, arm_id)
+    for other in db.scalars(
+        select(ClassArm).where(
+            ClassArm.school_id == school_id,
+            ClassArm.academic_session_id == arm.academic_session_id,
+            ClassArm.class_teacher_id == staff.id,
+            ClassArm.id != arm.id,
+        )
+    ):
+        other.class_teacher_id = None
+    arm.class_teacher_id = staff.id
+    db.flush()
+    return arm
+
+
 def create_staff_account(
     db: Session,
     school_id: uuid.UUID,
@@ -155,9 +225,13 @@ def create_staff_account(
     email: str,
     password: str,
     role_id: uuid.UUID,
+    arm_id: uuid.UUID | None = None,
 ) -> tuple[Staff, Role]:
     """Create a login account (global user + school membership) for a staff
     member and link it to their Staff record so they can sign in.
+
+    When ``arm_id`` is given, the staff member also becomes the homeroom (class)
+    teacher of that class arm.
 
     Returns the staff record and the school-scoped role that was assigned."""
     staff = get_staff(db, school_id, staff_id)
@@ -184,6 +258,8 @@ def create_staff_account(
     )
     staff.user_id = user.id
     db.flush()
+    if arm_id is not None:
+        _assign_homeroom_arm(db, school_id, staff, arm_id)
     return staff, role
 
 
@@ -195,8 +271,9 @@ def update_staff_account(
     email: str | None = None,
     password: str | None = None,
     role_id: uuid.UUID | None = None,
+    arm_id: uuid.UUID | None = None,
 ) -> tuple[Staff, Role]:
-    """Change a staff member's login: email, password, and/or role.
+    """Change a staff member's login: email, password, role and/or homeroom class.
 
     At least one field must be provided. Raises if the staff member has no
     login yet (use create_staff_account instead)."""
@@ -236,6 +313,9 @@ def update_staff_account(
             membership.role_id = role.id
     if role is None:
         raise NotFoundError("Role not found")
+
+    if arm_id is not None:
+        _assign_homeroom_arm(db, school_id, staff, arm_id)
 
     db.flush()
     return staff, role

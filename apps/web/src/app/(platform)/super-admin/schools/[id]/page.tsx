@@ -137,7 +137,7 @@ export default function SchoolDetailPage() {
       </div>
 
       {/* Profile header */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary via-primary/80 to-primary/40 p-6 text-primary-foreground">
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary via-primary/90 to-primary/55 p-6 text-primary-foreground">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="relative space-y-3">
           <div className="flex flex-wrap items-center gap-3">
@@ -146,7 +146,7 @@ export default function SchoolDetailPage() {
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{p.name}</h1>
-              <p className="text-sm text-primary-foreground/80">
+              <p className="text-sm text-primary-foreground/90">
                 {p.slug} · {titleCase(p.school_type)} · registered {fmtDate(p.registration_date)}
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function SchoolDetailPage() {
               {p.suspended && <Badge className="gap-1 border-white/20 bg-white/10 text-primary-foreground">Suspended</Badge>}
             </div>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-primary-foreground/85">
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-primary-foreground/90">
             {p.state && (
               <span className="flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5" /> {p.state}, {p.country}
@@ -216,7 +216,7 @@ export default function SchoolDetailPage() {
             </div>
 
             <form
-              className="space-y-3 rounded-xl border bg-muted/30 p-3"
+              className="space-y-3 rounded-xl border bg-muted/55 p-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 updateSub.mutate({
@@ -371,7 +371,7 @@ export default function SchoolDetailPage() {
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-xs text-muted-foreground">{row.actor}</p>
-                        <p className="text-[11px] text-muted-foreground/70">{fmtDateTime(row.ts)}</p>
+                        <p className="text-[11px] text-muted-foreground/90">{fmtDateTime(row.ts)}</p>
                       </div>
                     </div>
                   );
@@ -386,10 +386,10 @@ export default function SchoolDetailPage() {
       <Panel
         title="Danger zone"
         subtitle="Permanently delete this school and all of its data"
-        className="border-destructive/30"
+        className="border-destructive/50"
       >
         <div className="space-y-4">
-          <div className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <div className="flex items-start gap-3 rounded-xl border border-destructive/50 bg-destructive/20 p-4 text-sm">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="space-y-1">
               <p className="font-semibold text-foreground">This cannot be undone.</p>

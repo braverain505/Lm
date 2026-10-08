@@ -166,7 +166,7 @@ export default function LoginPage() {
           className="absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_at_center,black,transparent_72%)]"
           style={{
             backgroundImage:
-              "linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px)",
+              "linear-gradient(to right, hsl(var(--border) / 0.85) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.85) 1px, transparent 1px)",
             backgroundSize: "46px 46px",
           }}
         />
@@ -192,12 +192,12 @@ export default function LoginPage() {
             priority
             className="h-16 w-auto object-contain"
           />
-          <p className="text-[12.5px] font-medium tracking-wide text-muted-foreground/70">
+          <p className="text-[12.5px] font-medium tracking-wide text-muted-foreground/90">
             School management, results and reporting
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl">
+        <div className="overflow-hidden rounded-3xl border border-border/80 bg-card/90 shadow-[0_24px_70px_-30px_rgba(15,23,42,0.45)] backdrop-blur-xl">
           {/* Accent hairline — a bit of polish that reads instantly as premium. */}
           <div className="h-[3px] w-full bg-gradient-to-r from-primary/0 via-primary to-primary/0" />
 
@@ -206,7 +206,7 @@ export default function LoginPage() {
             <div
               role="tablist"
               aria-label="Choose how to continue"
-              className="relative grid grid-cols-3 gap-1 rounded-2xl border border-border/50 bg-muted/40 p-1"
+              className="relative grid grid-cols-3 gap-1 rounded-2xl border border-border/70 bg-muted/60 p-1"
             >
               {TABS.map((tab) => {
                 const active = mode === tab.id;
@@ -221,14 +221,14 @@ export default function LoginPage() {
                     className={`relative z-10 flex flex-col items-center gap-1 rounded-xl px-1.5 py-2.5 text-[11px] font-semibold transition-colors duration-200 ${
                       active
                         ? "text-primary"
-                        : "text-muted-foreground/70 hover:text-foreground"
+                        : "text-muted-foreground/90 hover:text-foreground"
                     }`}
                   >
                     {active && (
                       <motion.span
                         layoutId="auth-tab-pill"
                         transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                        className="absolute inset-0 -z-10 rounded-xl border border-border/60 bg-card shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
+                        className="absolute inset-0 -z-10 rounded-xl border border-border/80 bg-card shadow-[0_1px_3px_rgba(15,23,42,0.08)]"
                       />
                     )}
                     <Icon className="h-3.5 w-3.5" />
@@ -270,7 +270,7 @@ export default function LoginPage() {
                         Result code
                       </Label>
                       <div className="group relative">
-                        <Ticket className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50 transition-colors group-focus-within:text-primary" />
+                        <Ticket className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/75 transition-colors group-focus-within:text-primary" />
                         <Input
                           id="result-code"
                           value={code}
@@ -292,7 +292,7 @@ export default function LoginPage() {
                       <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-destructive"
+                        className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/20 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-destructive"
                       >
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <span>{resultError}</span>
@@ -328,7 +328,7 @@ export default function LoginPage() {
                         Email address
                       </Label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/85" />
                         <Input
                           id="email"
                           type="email"
@@ -359,13 +359,13 @@ export default function LoginPage() {
                             setForgotToken(null);
                             setForgotEmail(getValues("email") || savedEmail);
                           }}
-                          className="text-[12px] font-medium text-primary hover:text-primary/80 transition-colors"
+                          className="text-[12px] font-medium text-primary hover:text-primary/90 transition-colors"
                         >
                           Forgot password?
                         </button>
                       </div>
                       <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/85" />
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
@@ -378,7 +378,7 @@ export default function LoginPage() {
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
                           aria-label={showPassword ? "Hide password" : "Show password"}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-muted-foreground/85 hover:text-foreground transition-colors"
                         >
                           {showPassword ? (
                             <EyeOff className="h-4 w-4" />
@@ -400,7 +400,7 @@ export default function LoginPage() {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         transition={{ duration: 0.2 }}
-                        className="space-y-3 rounded-xl border border-border/60 bg-muted/30 p-4"
+                        className="space-y-3 rounded-xl border border-border/80 bg-muted/55 p-4"
                       >
                         <p className="text-[12px] leading-relaxed text-muted-foreground">
                           Enter your email and we&apos;ll send a reset link.
@@ -472,7 +472,7 @@ export default function LoginPage() {
                       <motion.div
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-[13px] text-destructive"
+                        className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/20 px-3.5 py-2.5 text-[13px] text-destructive"
                       >
                         <AlertCircle className="h-4 w-4 shrink-0" />
                         {error}
@@ -525,7 +525,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => switchMode("login")}
-                      className="font-semibold text-primary hover:text-primary/80 transition-colors"
+                      className="font-semibold text-primary hover:text-primary/90 transition-colors"
                     >
                       Sign in
                     </button>
@@ -537,7 +537,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-[11px] tracking-wide text-muted-foreground/60">
+          <p className="text-[11px] tracking-wide text-muted-foreground/85">
             Secure school management for modern institutions
           </p>
         </div>

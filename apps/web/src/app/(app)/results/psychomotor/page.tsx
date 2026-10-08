@@ -91,7 +91,7 @@ export default function PsychomotorPage() {
             <Label htmlFor="arm">Class arm</Label>
             <select
               id="arm"
-              className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+              className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
               value={armId}
               onChange={(e) => {
                 setArmId(e.target.value);
@@ -116,7 +116,7 @@ export default function PsychomotorPage() {
             <Label htmlFor="student">Student</Label>
             <select
               id="student"
-              className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+              className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
               disabled={!armId}

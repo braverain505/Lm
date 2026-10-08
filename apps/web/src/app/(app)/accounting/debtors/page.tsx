@@ -101,9 +101,9 @@ export default function DebtorsPage() {
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground/70">Term</Label>
+            <Label className="text-[11px] text-muted-foreground/90">Term</Label>
             <select
-              className="flex h-9 min-w-[160px] rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+              className="flex h-9 min-w-[160px] rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
               value={termId}
               onChange={(e) => setTermId(e.target.value)}
             >
@@ -116,9 +116,9 @@ export default function DebtorsPage() {
             </select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[11px] text-muted-foreground/70">Class</Label>
+            <Label className="text-[11px] text-muted-foreground/90">Class</Label>
             <select
-              className="flex h-9 min-w-[160px] rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+              className="flex h-9 min-w-[160px] rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
               value={armId}
               onChange={(e) => setArmId(e.target.value)}
             >
@@ -136,7 +136,7 @@ export default function DebtorsPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="premium-card lg:col-span-1">
           <CardContent className="p-4">
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
               Total owed
             </p>
             <p className="mt-1 text-xl font-bold tabular-nums text-destructive">
@@ -150,7 +150,7 @@ export default function DebtorsPage() {
         {agingCards.map((bucket) => (
           <Card key={bucket.key} className="premium-card">
             <CardContent className="p-4">
-              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                 {bucket.label}
               </p>
               <p className={cn("mt-1 text-xl font-bold tabular-nums", bucket.tone)}>
@@ -173,7 +173,7 @@ export default function DebtorsPage() {
           ) : rows.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12 text-center">
               <AlertTriangle className="h-5 w-5 text-success" />
-              <p className="text-[13px] text-muted-foreground/70">
+              <p className="text-[13px] text-muted-foreground/90">
                 No outstanding balances in this scope. Every invoice is settled.
               </p>
             </div>
@@ -181,7 +181,7 @@ export default function DebtorsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     <th className="pb-2.5">Student</th>
                     <th className="pb-2.5">Class</th>
                     <th className="pb-2.5 text-right">Invoiced</th>
@@ -199,7 +199,7 @@ export default function DebtorsPage() {
                   {rows.map((row) => (
                     <tr
                       key={row.student_id}
-                      className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                      className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                     >
                       <td className="py-3">
                         <p className="font-medium">{row.full_name}</p>

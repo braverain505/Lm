@@ -186,7 +186,7 @@ export default function LibraryPage() {
                   </td></tr>
                 ) : (
                   books.map((b) => (
-                    <tr key={b.id} className="border-b last:border-0 hover:bg-accent/40">
+                    <tr key={b.id} className="border-b last:border-0 hover:bg-accent/60">
                       <td className="py-2.5 font-medium">
                         {b.title}
                         {b.isbn && <p className="font-mono text-xs text-muted-foreground">{b.isbn}</p>}
@@ -318,7 +318,7 @@ export default function LibraryPage() {
                   borrowings.map((br) => {
                     const isOverdue = br.status === "borrowed" && br.due_on < todayISO();
                     return (
-                      <tr key={br.id} className="border-b last:border-0 hover:bg-accent/40">
+                      <tr key={br.id} className="border-b last:border-0 hover:bg-accent/60">
                         <td className="py-2.5 font-medium">{br.book_title ?? br.book_id}</td>
                         <td className="py-2.5 capitalize">{br.borrower_name ?? br.borrower_type}</td>
                         <td className="py-2.5">{br.borrowed_on}</td>

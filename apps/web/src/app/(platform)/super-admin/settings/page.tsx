@@ -87,7 +87,7 @@ export default function SuperAdminSettingsPage() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {keys.filter((k) => k.startsWith("platform.") || k.startsWith("ai.")).map((k) => (
-              <div key={k} className="rounded-xl border bg-muted/30 p-3 text-sm">
+              <div key={k} className="rounded-xl border bg-muted/55 p-3 text-sm">
                 <p className="truncate text-xs text-muted-foreground">{titleCase(k)}</p>
                 <p className="mt-0.5 font-semibold">
                   {typeof settings[k] === "number" ? fmtNum(settings[k] as number) : String(settings[k])}

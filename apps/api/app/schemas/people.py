@@ -7,6 +7,17 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
 from ..core.validators import sanitize_string_field
 
 
+class StaffAssignmentOut(BaseModel):
+    """One 'teaches <subject> in <class>' row — a teacher can teach the same
+    subject in several classes, and each class/subject pair has its own teacher."""
+
+    assignment_id: uuid.UUID
+    arm_id: uuid.UUID
+    arm_name: str
+    subject_id: uuid.UUID
+    subject_name: str
+
+
 class StaffOut(BaseModel):
     id: uuid.UUID
     staff_no: str
@@ -21,6 +32,11 @@ class StaffOut(BaseModel):
     account_email: str | None = None
     account_role_id: uuid.UUID | None = None
     account_role_name: str | None = None
+    # The class arm this teacher is the homeroom (class) teacher of, if any.
+    homeroom_arm_id: uuid.UUID | None = None
+    homeroom_arm_name: str | None = None
+    # The class × subject pairs this teacher teaches.
+    assignments: list[StaffAssignmentOut] = []
 
 
 class StaffCreate(BaseModel):
@@ -46,12 +62,17 @@ class StaffAccountCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role_id: uuid.UUID
+    # Required by the UI when the role is "Homeroom Teacher": the class arm the
+    # teacher will be homeroom teacher of.
+    arm_id: uuid.UUID | None = None
 
 
 class StaffAccountUpdate(BaseModel):
     email: EmailStr | None = None
     password: str | None = Field(default=None, min_length=8, max_length=128)
     role_id: uuid.UUID | None = None
+    # Set/replace the class arm this teacher is the homeroom teacher of.
+    arm_id: uuid.UUID | None = None
 
 
 class StaffAccountOut(BaseModel):

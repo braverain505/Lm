@@ -125,7 +125,7 @@ export function LoadingScreen({ text = "Clearis", className, isLoading = true, o
 // A simpler version for inline use (when page is already rendered)
 export function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/90 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
         <motion.div
           className="relative h-16 w-16 rounded-full"
@@ -146,7 +146,7 @@ export function LoadingOverlay() {
             },
           }}
         >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-primary/50 to-primary" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-primary/65 to-primary" />
           <div className="absolute inset-4 rounded-full bg-background" />
         </motion.div>
 

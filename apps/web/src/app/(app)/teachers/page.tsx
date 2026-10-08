@@ -106,10 +106,15 @@ export default function TeachersPage() {
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountRole, setAccountRole] = useState("");
-  const [accountErrors, setAccountErrors] = useState<{ email?: string; password?: string; role?: string }>({});
+  const [accountHomeroomArm, setAccountHomeroomArm] = useState("");
+  const [accountErrors, setAccountErrors] = useState<{ email?: string; password?: string; role?: string; homeroom?: string }>({});
   const createAccount = useCreateStaffAccount();
   const updateAccount = useUpdateStaffAccount();
   const { data: roles = [] } = useRoles();
+
+  // "Homeroom Teacher" is the one role that must be tied to a specific class,
+  // so the UI requires a class arm whenever this role is chosen.
+  const homeroomRoleId = roles.find((r) => r.code === "homeroom_teacher")?.id ?? "";
 
   const [assignFor, setAssignFor] = useState<string | null>(null);
   const [assignArm, setAssignArm] = useState("");
@@ -122,10 +127,14 @@ export default function TeachersPage() {
   // --- Assign role
   const [roleFor, setRoleFor] = useState<string | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState("");
+  const [selectedHomeroomArm, setSelectedHomeroomArm] = useState("");
+  const [roleError, setRoleError] = useState("");
 
   const openRoleForm = (s: Staff) => {
     setRoleFor(s.id);
     setSelectedRoleId(s.account_role_id ?? "");
+    setSelectedHomeroomArm(s.homeroom_arm_id ?? "");
+    setRoleError("");
     setEditFor(null);
     setAccountFor(null);
     setAssignFor(null);
@@ -133,8 +142,19 @@ export default function TeachersPage() {
 
   const saveRole = () => {
     if (!roleFor || !selectedRoleId) return;
+    if (selectedRoleId === homeroomRoleId && homeroomRoleId !== "" && !selectedHomeroomArm) {
+      setRoleError("Choose the class this homeroom teacher will manage");
+      return;
+    }
+    setRoleError("");
     updateAccount.mutate(
-      { staffId: roleFor, input: { role_id: selectedRoleId } },
+      {
+        staffId: roleFor,
+        input: {
+          role_id: selectedRoleId,
+          ...(selectedHomeroomArm ? { arm_id: selectedHomeroomArm } : {}),
+        },
+      },
       {
         onSuccess: () => { toast("Role updated"); setRoleFor(null); },
         onError: () => toast("Failed to update role", "error"),
@@ -157,6 +177,7 @@ export default function TeachersPage() {
     setAccountMode(s.has_account ? "change" : "create");
     setAccountEmail(s.account_email ?? "");
     setAccountRole(s.account_role_id ?? "");
+    setAccountHomeroomArm(s.homeroom_arm_id ?? "");
     setAccountPassword("");
     setAccountErrors({});
     setAssignFor(null);
@@ -167,6 +188,7 @@ export default function TeachersPage() {
     setAccountEmail("");
     setAccountPassword("");
     setAccountRole("");
+    setAccountHomeroomArm("");
     setAccountErrors({});
   };
 
@@ -191,18 +213,21 @@ export default function TeachersPage() {
   const onSubmitAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accountFor) return;
+    const needsHomeroom = accountRole === homeroomRoleId && homeroomRoleId !== "";
+    const homeroomError = needsHomeroom && !accountHomeroomArm ? "Choose the class this homeroom teacher will manage" : undefined;
     if (accountMode === "change") {
       const parsed = accountUpdateSchema.safeParse({
         email: accountEmail,
         password: accountPassword,
         role_id: accountRole,
       });
-      if (!parsed.success) {
-        const fe = parsed.error.flatten().fieldErrors;
+      if (!parsed.success || homeroomError) {
+        const fe = parsed.success ? null : parsed.error.flatten().fieldErrors;
         setAccountErrors({
-          email: fe.email?.[0],
-          password: fe.password?.[0],
-          role: fe.role_id?.[0],
+          email: fe?.email?.[0],
+          password: fe?.password?.[0],
+          role: fe?.role_id?.[0],
+          homeroom: homeroomError,
         });
         return;
       }
@@ -213,6 +238,7 @@ export default function TeachersPage() {
           email: accountEmail,
           ...(accountPassword ? { password: accountPassword } : {}),
           role_id: accountRole,
+          ...(accountHomeroomArm ? { arm_id: accountHomeroomArm } : {}),
         },
       });
     } else {
@@ -221,19 +247,25 @@ export default function TeachersPage() {
         password: accountPassword,
         role_id: accountRole,
       });
-      if (!parsed.success) {
-        const fe = parsed.error.flatten().fieldErrors;
+      if (!parsed.success || homeroomError) {
+        const fe = parsed.success ? null : parsed.error.flatten().fieldErrors;
         setAccountErrors({
-          email: fe.email?.[0],
-          password: fe.password?.[0],
-          role: fe.role_id?.[0],
+          email: fe?.email?.[0],
+          password: fe?.password?.[0],
+          role: fe?.role_id?.[0],
+          homeroom: homeroomError,
         });
         return;
       }
       setAccountErrors({});
       await createAccount.mutateAsync({
         staffId: accountFor,
-        input: { email: accountEmail, password: accountPassword, role_id: accountRole },
+        input: {
+          email: accountEmail,
+          password: accountPassword,
+          role_id: accountRole,
+          ...(accountHomeroomArm ? { arm_id: accountHomeroomArm } : {}),
+        },
       });
     }
     closeAccountForm();
@@ -303,7 +335,7 @@ export default function TeachersPage() {
           <Card className="premium-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
                   <Plus className="h-4 w-4 text-primary" />
                 </span>
                 New staff member
@@ -321,14 +353,14 @@ export default function TeachersPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Type</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={form.membership_type} onChange={(e) => setForm({ ...form, membership_type: e.target.value })}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" value={form.membership_type} onChange={(e) => setForm({ ...form, membership_type: e.target.value })}>
                     <option value="teaching">Teaching</option>
                     <option value="non-teaching">Non-teaching</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Gender</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
                     <option value="">—</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -362,7 +394,7 @@ export default function TeachersPage() {
         <CardContent className="overflow-x-auto p-5">
           <table className="w-full text-[13px]">
             <thead>
-              <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                 <th className="pb-2.5 font-semibold">Staff no.</th>
                 <th className="pb-2.5 font-semibold">Name</th>
                 <th className="pb-2.5 font-semibold">Type</th>
@@ -380,10 +412,10 @@ export default function TeachersPage() {
                 <tr>
                   <td colSpan={6} className="py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60">
-                        <Plus className="h-5 w-5 text-muted-foreground/40" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/75">
+                        <Plus className="h-5 w-5 text-muted-foreground/65" />
                       </div>
-                      <p className="text-[13px] font-medium text-muted-foreground/70">
+                      <p className="text-[13px] font-medium text-muted-foreground/90">
                         No staff yet. Use &ldquo;Add teacher&rdquo; to create your first staff record.
                       </p>
                     </div>
@@ -404,9 +436,12 @@ export default function TeachersPage() {
                     setAccountPassword={setAccountPassword}
                     accountRole={accountRole}
                     setAccountRole={setAccountRole}
+                    accountHomeroomArm={accountHomeroomArm}
+                    setAccountHomeroomArm={setAccountHomeroomArm}
                     accountErrors={accountErrors}
                     setAccountErrors={setAccountErrors}
                     roles={roles}
+                    homeroomRoleId={homeroomRoleId}
                     onSubmitAccount={onSubmitAccount}
                     accountError={createAccount.error?.message ?? updateAccount.error?.message}
                     accountPending={createAccount.isPending || updateAccount.isPending}
@@ -437,6 +472,10 @@ export default function TeachersPage() {
                     setRoleFor={setRoleFor}
                     selectedRoleId={selectedRoleId}
                     setSelectedRoleId={setSelectedRoleId}
+                    selectedHomeroomArm={selectedHomeroomArm}
+                    setSelectedHomeroomArm={setSelectedHomeroomArm}
+                    roleError={roleError}
+                    setRoleError={setRoleError}
                     openRoleForm={openRoleForm}
                     saveRole={saveRole}
                     rolePending={updateAccount.isPending}
@@ -463,9 +502,12 @@ interface TeacherRowProps {
   setAccountPassword: (v: string) => void;
   accountRole: string;
   setAccountRole: (v: string) => void;
-  accountErrors: { email?: string; password?: string; role?: string };
-  setAccountErrors: (e: { email?: string; password?: string; role?: string }) => void;
+  accountHomeroomArm: string;
+  setAccountHomeroomArm: (v: string) => void;
+  accountErrors: { email?: string; password?: string; role?: string; homeroom?: string };
+  setAccountErrors: (e: { email?: string; password?: string; role?: string; homeroom?: string }) => void;
   roles: { id: string; code: string; name: string }[];
+  homeroomRoleId: string;
   onSubmitAccount: (e: React.FormEvent) => void;
   accountError?: string | null;
   accountPending: boolean;
@@ -496,6 +538,10 @@ interface TeacherRowProps {
   setRoleFor: (id: string | null) => void;
   selectedRoleId: string;
   setSelectedRoleId: (v: string) => void;
+  selectedHomeroomArm: string;
+  setSelectedHomeroomArm: (v: string) => void;
+  roleError: string;
+  setRoleError: (v: string) => void;
   openRoleForm: (s: Staff) => void;
   saveRole: () => void;
   rolePending: boolean;
@@ -506,14 +552,17 @@ function TeacherRow(props: TeacherRowProps) {
     staff,
     accountFor, openAccountForm, closeAccountForm, accountMode,
     accountEmail, setAccountEmail, accountPassword, setAccountPassword, accountRole, setAccountRole,
+    accountHomeroomArm, setAccountHomeroomArm,
     accountErrors, setAccountErrors,
-    roles, onSubmitAccount, accountError, accountPending,
+    roles, homeroomRoleId, onSubmitAccount, accountError, accountPending,
     assignFor, setAssignFor, assignArm, setAssignArm, assignSubject, setAssignSubject,
     assignErrors, setAssignErrors,
     arms, subjects, onAssign, assignError, assignPending, onUnassign,
     onDeleteStaff, deletePending,
     editFor, setEditFor, editForm, setEditForm, openEdit, saveEdit, updateStaffPending,
-    roleFor, setRoleFor, selectedRoleId, setSelectedRoleId, openRoleForm, saveRole, rolePending,
+    roleFor, setRoleFor, selectedRoleId, setSelectedRoleId,
+    selectedHomeroomArm, setSelectedHomeroomArm, roleError, setRoleError,
+    openRoleForm, saveRole, rolePending,
   } = props;
 
   const staffId = staff.id;
@@ -525,9 +574,32 @@ function TeacherRow(props: TeacherRowProps) {
 
   return (
     <>
-      <tr className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+      <tr className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
         <td className="py-3 font-mono text-[11px] text-muted-foreground">{staff.staff_no}</td>
-        <td className="py-3 font-medium">{staff.full_name}</td>
+        <td className="py-3 font-medium">
+          <div>
+            {staff.full_name}
+            {staff.homeroom_arm_name && (
+              <span className="ml-2 align-middle">
+                <Badge variant="outline">Homeroom · {staff.homeroom_arm_name}</Badge>
+              </span>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {(staff.assignments ?? []).length === 0 ? (
+              <span className="text-[11px] font-normal text-muted-foreground/80">No subjects assigned</span>
+            ) : (
+              (staff.assignments ?? []).map((a) => (
+                <span
+                  key={a.assignment_id}
+                  className="inline-flex items-center rounded-md border border-border/60 bg-muted/40 px-1.5 py-0.5 text-[10.5px] font-normal text-muted-foreground"
+                >
+                  {a.subject_name} · {a.arm_name}
+                </span>
+              ))
+            )}
+          </div>
+        </td>
         <td className="py-3 capitalize text-muted-foreground">{staff.membership_type.replace("_", " ")}</td>
         <td className="py-3">
           <Badge variant={staff.employment_status === "active" ? "default" : "muted"}>
@@ -537,7 +609,7 @@ function TeacherRow(props: TeacherRowProps) {
         <td className="py-3">
           {staff.has_account ? (
             <Badge variant="outline" className="gap-1.5">
-              <Mail className="h-3 w-3 text-muted-foreground/60" />
+              <Mail className="h-3 w-3 text-muted-foreground/85" />
               <span className="max-w-[180px] truncate">{staff.account_email ?? "Has login"}</span>
             </Badge>
           ) : (
@@ -550,7 +622,7 @@ function TeacherRow(props: TeacherRowProps) {
               Edit
             </Button>
             <Button variant="outline" size="sm" onClick={() => { setAssignFor(showAssign ? null : staffId); closeAccountForm(); setRoleFor(null); }}>
-              {showAssign ? "Close" : "Assign"}
+              {showAssign ? "Close" : "Assign subjects"}
             </Button>
             <Button variant="outline" size="sm" onClick={() => openRoleForm(staff)}>
               {showRole ? "Close" : "Role"}
@@ -580,7 +652,7 @@ function TeacherRow(props: TeacherRowProps) {
 
       {accountFor !== staffId && editFor === staffId && (
         <tr>
-          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+          <td colSpan={6} className="border-b border-border/50 bg-muted/40 px-5 py-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <Label>Full name</Label>
@@ -608,7 +680,7 @@ function TeacherRow(props: TeacherRowProps) {
               <div className="space-y-1.5">
                 <Label>Gender</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={editForm.gender}
                   onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
                 >
@@ -630,7 +702,7 @@ function TeacherRow(props: TeacherRowProps) {
 
       {showAccount && (
         <tr>
-          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+          <td colSpan={6} className="border-b border-border/50 bg-muted/40 px-5 py-4">
             <form onSubmit={onSubmitAccount} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-1.5">
                 <Label>Email (login)</Label>
@@ -658,7 +730,7 @@ function TeacherRow(props: TeacherRowProps) {
               <div className="space-y-1.5">
                 <Label>Role</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={accountRole}
                   onChange={(e) => { setAccountRole(e.target.value); setAccountErrors({}); }}
                   required
@@ -672,8 +744,28 @@ function TeacherRow(props: TeacherRowProps) {
                 </select>
                 {accountErrors.role && <p className="text-[11px] text-destructive">{accountErrors.role}</p>}
               </div>
+              {accountRole === homeroomRoleId && homeroomRoleId !== "" && (
+                <div className="space-y-1.5">
+                  <Label>Class (homeroom)</Label>
+                  <select
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
+                    value={accountHomeroomArm}
+                    onChange={(e) => { setAccountHomeroomArm(e.target.value); setAccountErrors({}); }}
+                    required
+                  >
+                    <option value="">Choose class…</option>
+                    {arms.map((a) => (
+                      <option key={a.id} value={a.id}>{a.full_name}</option>
+                    ))}
+                  </select>
+                  {accountErrors.homeroom && <p className="text-[11px] text-destructive">{accountErrors.homeroom}</p>}
+                </div>
+              )}
               <div className="flex items-end gap-2">
-                <Button type="submit" disabled={accountPending}>
+                <Button
+                  type="submit"
+                  disabled={accountPending || (accountRole === homeroomRoleId && homeroomRoleId !== "" && !accountHomeroomArm)}
+                >
                   {accountPending ? "Saving…" : accountMode === "change" ? "Save" : "Create login"}
                 </Button>
                 <Button type="button" variant="ghost" size="sm" onClick={closeAccountForm}>
@@ -688,13 +780,17 @@ function TeacherRow(props: TeacherRowProps) {
 
       {showAssign && (
         <tr>
-          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+          <td colSpan={6} className="border-b border-border/50 bg-muted/40 px-5 py-4">
             <div className="space-y-4">
+              <p className="text-[12px] text-muted-foreground">
+                Assign a subject in a specific class — for example <span className="font-medium text-foreground">Mathematics in JSS 1A</span>.
+                The same subject can be taught by a different teacher in another class, so each class is assigned on its own.
+              </p>
               <form onSubmit={onAssign} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-1.5">
                   <Label>Class arm</Label>
                   <select
-                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                     value={assignArm}
                     onChange={(e) => { setAssignArm(e.target.value); setAssignErrors({}); }}
                     required
@@ -709,7 +805,7 @@ function TeacherRow(props: TeacherRowProps) {
                 <div className="space-y-1.5">
                   <Label>Subject</Label>
                   <select
-                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                     value={assignSubject}
                     onChange={(e) => { setAssignSubject(e.target.value); setAssignErrors({}); }}
                     required
@@ -730,22 +826,24 @@ function TeacherRow(props: TeacherRowProps) {
               </form>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                   Currently teaching
                 </p>
                 {assignments.length === 0 ? (
-                  <p className="text-[13px] text-muted-foreground/70">No subjects assigned yet.</p>
+                  <p className="text-[13px] text-muted-foreground/90">
+                    No subjects assigned yet — choose a class and a subject above.
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {assignments.map((a) => (
                       <span
                         key={a.assignment_id}
-                        className="inline-flex items-center gap-2 rounded-lg border border-border/40 bg-background/50 px-2.5 py-1 text-[12px]"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/70 px-2.5 py-1 text-[12px]"
                       >
                         {a.arm_name} · {a.subject_name}
                         <button
                           onClick={() => onUnassign(a.assignment_id)}
-                          className="text-muted-foreground/40 transition-colors hover:text-destructive"
+                          className="text-muted-foreground/65 transition-colors hover:text-destructive"
                           aria-label="Remove assignment"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -762,13 +860,13 @@ function TeacherRow(props: TeacherRowProps) {
 
       {showRole && (
         <tr>
-          <td colSpan={6} className="border-b border-border/30 bg-muted/20 px-5 py-4">
+          <td colSpan={6} className="border-b border-border/50 bg-muted/40 px-5 py-4">
             <div className="space-y-4">
               <div className="flex items-end gap-3">
                 <div className="space-y-1.5">
                   <Label>Assign role</Label>
                   <select
-                    className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                    className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                     value={selectedRoleId}
                     onChange={(e) => setSelectedRoleId(e.target.value)}
                     required
@@ -781,11 +879,31 @@ function TeacherRow(props: TeacherRowProps) {
                     ))}
                   </select>
                 </div>
-                <Button onClick={saveRole} disabled={rolePending || !selectedRoleId}>
+                {selectedRoleId === homeroomRoleId && homeroomRoleId !== "" && (
+                  <div className="space-y-1.5">
+                    <Label>Class (homeroom)</Label>
+                    <select
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
+                      value={selectedHomeroomArm}
+                      onChange={(e) => { setSelectedHomeroomArm(e.target.value); setRoleError(""); }}
+                      required
+                    >
+                      <option value="">Choose class…</option>
+                      {arms.map((a) => (
+                        <option key={a.id} value={a.id}>{a.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <Button
+                  onClick={saveRole}
+                  disabled={rolePending || !selectedRoleId || (selectedRoleId === homeroomRoleId && homeroomRoleId !== "" && !selectedHomeroomArm)}
+                >
                   {rolePending ? "Saving…" : "Save role"}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setRoleFor(null)}>Cancel</Button>
               </div>
+              {roleError && <p className="text-[11px] text-destructive">{roleError}</p>}
               {staff.has_account && staff.account_role_name && (
                 <p className="text-[12px] text-muted-foreground">
                   Current role: <span className="font-medium">{staff.account_role_name}</span>

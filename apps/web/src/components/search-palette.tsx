@@ -53,11 +53,11 @@ export function SearchPalette() {
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex h-9 items-center gap-2 rounded-xl border border-white/40 bg-white/50 px-3 text-[12px] text-muted-foreground/50 transition-all duration-200 hover:border-white/60 hover:bg-white/80 hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-52"
+        className="flex h-9 items-center gap-2 rounded-xl border border-white/40 bg-white/50 px-3 text-[12px] text-muted-foreground/75 transition-all duration-200 hover:border-white/60 hover:bg-white/80 hover:text-foreground hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-52"
       >
         <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
         <span className="hidden flex-1 text-left sm:block">Search pages…</span>
-        <kbd className="hidden rounded-lg border border-white/40 bg-white/60 px-1.5 py-px text-[9px] font-semibold text-muted-foreground/40 sm:block">
+        <kbd className="hidden rounded-lg border border-white/40 bg-white/60 px-1.5 py-px text-[9px] font-semibold text-muted-foreground/65 sm:block">
           ⌘K
         </kbd>
       </button>
@@ -84,16 +84,16 @@ export function SearchPalette() {
               className="fixed left-1/2 top-[20%] z-50 w-[90vw] max-w-[420px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/40 bg-white/90 shadow-[0_16px_48px_rgba(0,0,0,0.12)] backdrop-blur-xl"
             >
               {/* Search input */}
-              <div className="flex items-center gap-3 border-b border-border/20 px-4">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground/30" strokeWidth={1.75} />
+              <div className="flex items-center gap-3 border-b border-border/40 px-4">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground/55" strokeWidth={1.75} />
                 <input
                   ref={inputRef}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search pages, actions…"
-                  className="h-12 w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/30"
+                  className="h-12 w-full bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/55"
                 />
-                <kbd className="shrink-0 rounded-lg border border-border/30 bg-muted/30 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground/40">
+                <kbd className="shrink-0 rounded-lg border border-border/50 bg-muted/55 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground/65">
                   ESC
                 </kbd>
               </div>
@@ -102,14 +102,14 @@ export function SearchPalette() {
               <div className="scrollbar-thin max-h-72 overflow-y-auto p-2">
                 {results.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/30">
-                      <Search className="h-4 w-4 text-muted-foreground/30" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/55">
+                      <Search className="h-4 w-4 text-muted-foreground/55" />
                     </div>
-                    <p className="text-[12px] text-muted-foreground/50">No results for &ldquo;{query}&rdquo;</p>
+                    <p className="text-[12px] text-muted-foreground/75">No results for &ldquo;{query}&rdquo;</p>
                   </div>
                 ) : (
                   <>
-                    <p className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/35">
+                    <p className="px-2 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
                       {query ? "Results" : "Quick navigation"}
                     </p>
                     {results.map((item, idx) => (
@@ -125,18 +125,18 @@ export function SearchPalette() {
                           className={cn(
                             "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
                             pathname === item.href
-                              ? "bg-primary/5 text-primary"
-                              : "text-foreground/70 hover:bg-muted/30 hover:text-foreground",
+                              ? "bg-primary/15 text-primary"
+                              : "text-foreground/85 hover:bg-muted/55 hover:text-foreground",
                           )}
                         >
                           <div className={cn(
                             "flex h-8 w-8 items-center justify-center rounded-lg transition-colors duration-150",
-                            pathname === item.href ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground/40 group-hover:bg-muted/50 group-hover:text-foreground/60",
+                            pathname === item.href ? "bg-primary/20 text-primary" : "bg-muted/55 text-muted-foreground/65 group-hover:bg-muted/70 group-hover:text-foreground/80",
                           )}>
                             <item.icon className="h-4 w-4" strokeWidth={1.75} />
                           </div>
                           <span className="flex-1 font-medium">{item.label}</span>
-                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/20 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-primary/50" />
+                          <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-primary/65" />
                         </Link>
                       </motion.div>
                     ))}
@@ -145,16 +145,16 @@ export function SearchPalette() {
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between border-t border-border/20 px-4 py-2.5">
-                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/30">
+              <div className="flex items-center justify-between border-t border-border/40 px-4 py-2.5">
+                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/55">
                   <Sparkles className="h-2.5 w-2.5" />
                   <span>Powered by Clearis</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <kbd className="rounded border border-border/20 bg-muted/20 px-1 py-px text-[8px] text-muted-foreground/30">↑↓</kbd>
-                  <span className="text-[9px] text-muted-foreground/30">navigate</span>
-                  <kbd className="ml-1 rounded border border-border/20 bg-muted/20 px-1 py-px text-[8px] text-muted-foreground/30">↵</kbd>
-                  <span className="text-[9px] text-muted-foreground/30">select</span>
+                  <kbd className="rounded border border-border/40 bg-muted/40 px-1 py-px text-[8px] text-muted-foreground/55">↑↓</kbd>
+                  <span className="text-[9px] text-muted-foreground/55">navigate</span>
+                  <kbd className="ml-1 rounded border border-border/40 bg-muted/40 px-1 py-px text-[8px] text-muted-foreground/55">↵</kbd>
+                  <span className="text-[9px] text-muted-foreground/55">select</span>
                 </div>
               </div>
             </motion.div>

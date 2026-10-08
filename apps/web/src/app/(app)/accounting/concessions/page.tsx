@@ -43,13 +43,13 @@ const REFUND_METHODS = ["cash", "bank_transfer", "cheque", "card", "other"];
 
 function statusChip(status: string) {
   const map: Record<string, string> = {
-    open: "bg-primary/10 text-primary",
-    applied: "bg-success/10 text-success",
+    open: "bg-primary/20 text-primary",
+    applied: "bg-success/25 text-success",
     void: "bg-muted text-muted-foreground",
-    pending: "bg-warning/10 text-warning",
-    approved: "bg-primary/10 text-primary",
-    paid: "bg-success/10 text-success",
-    rejected: "bg-destructive/10 text-destructive",
+    pending: "bg-warning/25 text-warning",
+    approved: "bg-primary/20 text-primary",
+    paid: "bg-success/25 text-success",
+    rejected: "bg-destructive/25 text-destructive",
   };
   return map[status] ?? "bg-muted text-muted-foreground";
 }
@@ -64,7 +64,7 @@ function ApplyCreditNote({ note, onDone }: { note: CreditNote; onDone: () => voi
   return (
     <div className="flex items-center gap-1.5">
       <select
-        className="flex h-8 min-w-[150px] rounded-lg border border-border/80 bg-background/50 px-2 text-[12px]"
+        className="flex h-8 min-w-[150px] rounded-lg border border-border/90 bg-background/70 px-2 text-[12px]"
         value={invoiceId}
         onChange={(e) => setInvoiceId(e.target.value)}
       >
@@ -217,7 +217,7 @@ export default function ConcessionsPage() {
     onChange: (v: string) => void,
   ) => (
     <select
-      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       required
@@ -253,7 +253,7 @@ export default function ConcessionsPage() {
             }}
             className={cn(
               "rounded-xl px-3.5 py-1.5 text-[12.5px] font-medium transition-colors",
-              tab === t ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent/50",
+              tab === t ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-accent/70",
             )}
           >
             {TAB_LABELS[t]}
@@ -262,7 +262,7 @@ export default function ConcessionsPage() {
       </div>
 
       {error && (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-[12.5px] text-destructive">
+        <p className="rounded-xl border border-destructive/50 bg-destructive/20 px-4 py-2.5 text-[12.5px] text-destructive">
           {error}
         </p>
       )}
@@ -297,7 +297,7 @@ export default function ConcessionsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-[11px]">Kind</Label>
                     <select
-                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                       value={discountForm.kind}
                       onChange={(e) => setDiscountForm({ ...discountForm, kind: e.target.value })}
                     >
@@ -312,7 +312,7 @@ export default function ConcessionsPage() {
                     <Label className="text-[11px]">Reduction</Label>
                     <div className="flex gap-2">
                       <select
-                        className="flex h-9 w-24 rounded-xl border border-border/80 bg-background/50 px-2 text-[13px] shadow-sm"
+                        className="flex h-9 w-24 rounded-xl border border-border/90 bg-background/70 px-2 text-[13px] shadow-sm"
                         value={discountForm.mode}
                         onChange={(e) =>
                           setDiscountForm({
@@ -338,7 +338,7 @@ export default function ConcessionsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-[11px]">Applies to</Label>
                     <select
-                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                       value={discountForm.fee_structure_id}
                       onChange={(e) =>
                         setDiscountForm({ ...discountForm, fee_structure_id: e.target.value })
@@ -391,14 +391,14 @@ export default function ConcessionsPage() {
               {loadingDiscounts ? (
                 <Skeleton className="h-32 w-full" />
               ) : discounts.length === 0 ? (
-                <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+                <p className="py-8 text-center text-[13px] text-muted-foreground/90">
                   No discounts or waivers on record.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[13px]">
                     <thead>
-                      <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                         <th className="pb-2.5">Student</th>
                         <th className="pb-2.5">Label</th>
                         <th className="pb-2.5">Kind</th>
@@ -411,7 +411,7 @@ export default function ConcessionsPage() {
                       {discounts.map((d) => (
                         <tr
                           key={d.id}
-                          className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                          className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                         >
                           <td className="py-3">
                             <p className="font-medium">{d.student_name ?? studentName(d.student_id)}</p>
@@ -511,14 +511,14 @@ export default function ConcessionsPage() {
               {loadingNotes ? (
                 <Skeleton className="h-32 w-full" />
               ) : notes.length === 0 ? (
-                <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+                <p className="py-8 text-center text-[13px] text-muted-foreground/90">
                   No credit notes issued.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[13px]">
                     <thead>
-                      <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                         <th className="pb-2.5">Number</th>
                         <th className="pb-2.5">Student</th>
                         <th className="pb-2.5 text-right">Amount</th>
@@ -531,7 +531,7 @@ export default function ConcessionsPage() {
                       {notes.map((n) => (
                         <tr
                           key={n.id}
-                          className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                          className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                         >
                           <td className="py-3 font-mono text-[11px] text-muted-foreground">
                             {n.note_number}
@@ -574,7 +574,7 @@ export default function ConcessionsPage() {
                                 </div>
                               )
                             ) : (
-                              <span className="text-[11px] text-muted-foreground/50">
+                              <span className="text-[11px] text-muted-foreground/75">
                                 {n.applied_invoice_id ? "Applied" : "—"}
                               </span>
                             )}
@@ -623,7 +623,7 @@ export default function ConcessionsPage() {
                   <div className="space-y-1.5">
                     <Label className="text-[11px]">Method</Label>
                     <select
-                      className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                      className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                       value={refundForm.method}
                       onChange={(e) => setRefundForm({ ...refundForm, method: e.target.value })}
                     >
@@ -681,14 +681,14 @@ export default function ConcessionsPage() {
               {loadingRefunds ? (
                 <Skeleton className="h-32 w-full" />
               ) : refunds.length === 0 ? (
-                <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+                <p className="py-8 text-center text-[13px] text-muted-foreground/90">
                   No refunds recorded.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-[13px]">
                     <thead>
-                      <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                         <th className="pb-2.5">Student</th>
                         <th className="pb-2.5 text-right">Amount</th>
                         <th className="pb-2.5">Method</th>
@@ -702,7 +702,7 @@ export default function ConcessionsPage() {
                       {refunds.map((r) => (
                         <tr
                           key={r.id}
-                          className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                          className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                         >
                           <td className="py-3">
                             <p className="font-medium">{r.student_name ?? studentName(r.student_id)}</p>
@@ -766,7 +766,7 @@ export default function ConcessionsPage() {
                                   </Button>
                                 )}
                                 {(r.status === "paid" || r.status === "rejected") && (
-                                  <span className="text-[11px] text-muted-foreground/50">—</span>
+                                  <span className="text-[11px] text-muted-foreground/75">—</span>
                                 )}
                               </div>
                             </td>

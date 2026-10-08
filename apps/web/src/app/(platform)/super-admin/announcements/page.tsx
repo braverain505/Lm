@@ -101,7 +101,7 @@ export default function SuperAdminAnnouncementsPage() {
                     {a.is_active && <Badge variant="success">Active</Badge>}
                   </p>
                   <p className="mt-0.5 text-[13px] text-muted-foreground">{a.body}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground/70">Posted {fmtDate(a.created_at)}</p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground/90">Posted {fmtDate(a.created_at)}</p>
                 </div>
                 <StatusBadge status={a.severity} />
               </div>

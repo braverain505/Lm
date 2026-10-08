@@ -27,7 +27,7 @@ export function NoAccess({
   backLabel?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-card px-6 py-14 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/80 bg-card px-6 py-14 text-center">
       <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
         <Lock className="h-7 w-7 text-muted-foreground" />
       </div>

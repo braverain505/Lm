@@ -151,7 +151,7 @@ export default function ClassRosterPage() {
         </div>
       )}
       {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/50 bg-destructive/25 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -181,7 +181,7 @@ export default function ClassRosterPage() {
                 </tr>
               ) : (
                 roster.map((s) => (
-                  <tr key={s.id} className="border-b last:border-0 hover:bg-accent/40">
+                  <tr key={s.id} className="border-b last:border-0 hover:bg-accent/60">
                     <td className="py-3 font-mono text-xs">{s.admission_no}</td>
                     <td className="py-3 font-medium">{s.full_name}</td>
                     <td className="py-3 capitalize">{s.gender}</td>

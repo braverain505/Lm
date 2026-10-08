@@ -48,7 +48,7 @@ export default function SuperAdminAnalyticsPage() {
                   {mostActive.map((s) => (
                     <div key={s.school_id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[11px] font-bold text-primary">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/20 text-[11px] font-bold text-primary">
                           {s.rank}
                         </span>
                         <p className="truncate font-medium">{s.school_name}</p>
@@ -123,7 +123,7 @@ export default function SuperAdminAnalyticsPage() {
 
 function LoginStat({ label, value }: { label: string; value: number | undefined }) {
   return (
-    <div className="rounded-xl border bg-muted/30 p-3">
+    <div className="rounded-xl border bg-muted/55 p-3">
       <p className="text-xl font-bold">{fmtNum(value)}</p>
       <p className="text-[11px] text-muted-foreground">{titleCase(label)}</p>
     </div>

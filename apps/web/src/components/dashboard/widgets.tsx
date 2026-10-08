@@ -75,7 +75,7 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border/30 bg-muted/20 p-0.5">
+    <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/40 p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -84,7 +84,7 @@ function Segmented<T extends string>({
             "rounded-md px-2.5 py-1 text-[11px] font-medium transition-all duration-200",
             value === o.value
               ? "bg-card text-foreground shadow-xs"
-              : "text-muted-foreground/60 hover:text-foreground",
+              : "text-muted-foreground/85 hover:text-foreground",
           )}
         >
           {o.label}
@@ -103,7 +103,7 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
   return (
     <WidgetCard
       title="Academic performance"
-      icon={<TrendingUp className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<TrendingUp className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Average score and pass rate by term"
       loading={loading}
       error={error}
@@ -113,10 +113,10 @@ export function PerformancePanel({ data, loading, error, onRetry }: { data?: Das
       bodyClassName="pt-3"
     >
       <div className="mb-3.5 flex items-center gap-4 text-[11px]">
-        <span className="flex items-center gap-1.5 text-muted-foreground/50">
+        <span className="flex items-center gap-1.5 text-muted-foreground/75">
           <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Average
         </span>
-        <span className="flex items-center gap-1.5 text-muted-foreground/50">
+        <span className="flex items-center gap-1.5 text-muted-foreground/75">
           <span className="h-1.5 w-1.5 rounded-full bg-success" /> Pass rate
         </span>
       </div>
@@ -174,13 +174,13 @@ export function ReadinessPanel({
   const statuses = [
     { label: "Submitted", value: submitted, color: "bg-primary" },
     { label: "In progress", value: inProgress, color: "bg-warning" },
-    { label: "Pending", value: pending, color: "bg-muted-foreground/30" },
+    { label: "Pending", value: pending, color: "bg-muted-foreground/55" },
   ];
 
   return (
     <WidgetCard
       title="Result readiness"
-      icon={<BarChart3 className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<BarChart3 className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="What's blocking report cards"
       loading={readyLoading}
       error={error}
@@ -193,7 +193,7 @@ export function ReadinessPanel({
         <div className="flex-1 space-y-2">
           {statuses.map(({ label, value, color }) => (
             <div key={label} className="flex items-center justify-between text-[13px]">
-              <span className="flex items-center gap-2 text-muted-foreground/60">
+              <span className="flex items-center gap-2 text-muted-foreground/85">
                 <span className={cn("h-2 w-2 rounded-full", color)} />
                 {label}
               </span>
@@ -204,18 +204,18 @@ export function ReadinessPanel({
       </div>
 
       {agg && agg.list.length > 0 && (
-        <div className="mt-5 space-y-2.5 border-t border-border/20 pt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">By subject</p>
+        <div className="mt-5 space-y-2.5 border-t border-border/40 pt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/75">By subject</p>
           {agg.list.slice(0, 6).map((row) => {
             const pct = row.total ? Math.round((row.entered / row.total) * 100) : 0;
             const done = pct >= 100;
             return (
               <div key={row.subject}>
                 <div className="flex items-center justify-between text-[13px]">
-                  <span className="font-medium text-foreground/80">{row.subject}</span>
+                  <span className="font-medium text-foreground/90">{row.subject}</span>
                   <span className="flex items-center gap-1.5">
                     {done && <Check className="h-3.5 w-3.5 text-success" />}
-                    <span className={cn("font-semibold text-[12px]", done ? "text-success" : "text-foreground/70")}>{pct}%</span>
+                    <span className={cn("font-semibold text-[12px]", done ? "text-success" : "text-foreground/85")}>{pct}%</span>
                   </span>
                 </div>
                 <ReadinessBar value={pct} size="sm" sheen={!done} className="mt-1" />
@@ -227,7 +227,7 @@ export function ReadinessPanel({
 
       <Link
         href="/readiness"
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3.5 py-2 text-[12px] font-semibold text-foreground/80 transition-all duration-200 hover:bg-muted/30 hover:border-border/60"
+        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3.5 py-2 text-[12px] font-semibold text-foreground/90 transition-all duration-200 hover:bg-muted/55 hover:border-border/80"
       >
         View readiness <ArrowRight className="h-3.5 w-3.5" />
       </Link>
@@ -244,7 +244,7 @@ export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: Dash
   return (
     <WidgetCard
       title="Enrollment"
-      icon={<Users className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<Users className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Students by class level"
       loading={loading}
       error={error}
@@ -257,12 +257,12 @@ export function EnrollmentPanel({ data, loading, error, onRetry }: { data?: Dash
       <ul className="mt-3 space-y-1.5">
         {slices.slice(0, 6).map((s) => (
           <li key={s.level_code} className="flex items-center justify-between text-[13px]">
-            <span className="flex items-center gap-2 text-muted-foreground/60">
+            <span className="flex items-center gap-2 text-muted-foreground/85">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {s.level_name}
             </span>
-            <span className="font-medium text-foreground/80">
-              {s.count} <span className="text-muted-foreground/40">· {s.pct}%</span>
+            <span className="font-medium text-foreground/90">
+              {s.count} <span className="text-muted-foreground/65">· {s.pct}%</span>
             </span>
           </li>
         ))}
@@ -294,7 +294,7 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
   return (
     <WidgetCard
       title="Attendance"
-      icon={<CalendarCheck className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<CalendarCheck className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Student attendance across the school"
       loading={loading}
       error={error}
@@ -309,15 +309,15 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
           {bars.length > 0 ? (
             <AttendanceBars data={bars} height={180} />
           ) : (
-            <div className="flex h-[180px] items-center justify-center text-[13px] text-muted-foreground/50">
+            <div className="flex h-[180px] items-center justify-center text-[13px] text-muted-foreground/75">
               No attendance recorded yet.
             </div>
           )}
         </div>
         {ov && (
           <div className="flex flex-col justify-center gap-2">
-            <div className="rounded-lg bg-muted/30 px-4 py-3 text-center">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">Rate</p>
+            <div className="rounded-lg bg-muted/55 px-4 py-3 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/65">Rate</p>
               <p className="text-[22px] font-bold tracking-tight">{ov.rate == null ? "—" : `${Math.round(ov.rate)}%`}</p>
             </div>
             <div className="grid grid-cols-1 gap-1 text-[12px]">
@@ -326,11 +326,11 @@ export function AttendancePanel({ data, loading, error, onRetry }: { data?: Dash
                 { label: "Absent", value: ov.absent, color: "bg-destructive" },
                 { label: "Late", value: ov.late, color: "bg-warning" },
               ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between gap-6 rounded-md border border-border/30 px-3 py-1.5">
-                  <span className="flex items-center gap-1.5 text-muted-foreground/60">
+                <div key={s.label} className="flex items-center justify-between gap-6 rounded-md border border-border/50 px-3 py-1.5">
+                  <span className="flex items-center gap-1.5 text-muted-foreground/85">
                     <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} /> {s.label}
                   </span>
-                  <span className="font-semibold text-foreground/80">{s.value}</span>
+                  <span className="font-semibold text-foreground/90">{s.value}</span>
                 </div>
               ))}
             </div>
@@ -350,7 +350,7 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
   return (
     <WidgetCard
       title="Class performance"
-      icon={<LayoutGrid className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<LayoutGrid className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Average score for the selected term"
       loading={loading}
       error={error}
@@ -360,13 +360,13 @@ export function ClassPerformancePanel({ data, loading, error, onRetry }: { data?
       bodyClassName="pt-3"
     >
       <ClassPerformanceBar data={byClass} />
-      <ul className="mt-3 space-y-1.5 border-t border-border/30 pt-3">
+      <ul className="mt-3 space-y-1.5 border-t border-border/50 pt-3">
         {byClass.slice(0, 6).map((c) => (
           <li key={c.arm_name} className="flex items-center justify-between text-[13px]">
-            <span className="text-muted-foreground/60">{c.arm_name}</span>
+            <span className="text-muted-foreground/85">{c.arm_name}</span>
             <span className="flex items-center gap-3">
-              <span className="font-medium text-foreground/80">{c.avg_score == null ? "—" : `${c.avg_score}%`}</span>
-              <span className="w-14 text-right text-[11px] text-muted-foreground/40">{c.count} results</span>
+              <span className="font-medium text-foreground/90">{c.avg_score == null ? "—" : `${c.avg_score}%`}</span>
+              <span className="w-14 text-right text-[11px] text-muted-foreground/65">{c.count} results</span>
             </span>
           </li>
         ))}
@@ -423,7 +423,7 @@ export function QuickActions() {
               <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${colors.bg} ${colors.text} shadow-md transition-transform duration-200 group-hover:scale-110`}>
                 <a.icon className="h-6 w-6" />
               </span>
-              <span className="text-[12px] font-medium text-foreground/80 leading-tight">{a.label}</span>
+              <span className="text-[12px] font-medium text-foreground/90 leading-tight">{a.label}</span>
             </Link>
           );
         })}
@@ -441,7 +441,7 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
   return (
     <WidgetCard
       title="Recent activity"
-      icon={<Clock className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<Clock className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Latest changes across the school"
       loading={loading}
       error={error}
@@ -451,20 +451,20 @@ export function ActivityPanel({ items, loading, error, onRetry, className }: { i
       className={className}
       bodyClassName="pt-2"
     >
-      <div className="divide-y divide-border/20">
+      <div className="divide-y divide-border/40">
         {list.slice(0, 8).map((a) => (
           <Link
             key={a.id}
             href={a.href ?? "#"}
-            className="group flex items-start gap-3 px-1 py-3 transition-colors duration-200 hover:bg-muted/20"
+            className="group flex items-start gap-3 px-1 py-3 transition-colors duration-200 hover:bg-muted/40"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-medium text-foreground/80">{a.title}</p>
-              <p className="truncate text-[11px] text-muted-foreground/45">
+              <p className="truncate text-[12px] font-medium text-foreground/90">{a.title}</p>
+              <p className="truncate text-[11px] text-muted-foreground/70">
                 {a.detail ? `${a.detail} · ` : ""}{a.actor_name}
               </p>
             </div>
-            <span className="shrink-0 text-[10px] text-muted-foreground/40">{relativeTime(a.created_at)}</span>
+            <span className="shrink-0 text-[10px] text-muted-foreground/65">{relativeTime(a.created_at)}</span>
           </Link>
         ))}
       </div>
@@ -481,7 +481,7 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
   return (
     <WidgetCard
       title="Pending tasks"
-      icon={<ListChecks className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<ListChecks className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Things that need attention"
       loading={loading}
       error={error}
@@ -489,22 +489,22 @@ export function TasksPanel({ tasks, loading, error, onRetry }: { tasks?: TaskIte
       bodyClassName="pt-2"
     >
       {!loading && !error && list.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-lg border border-success/15 bg-success/5 px-3 py-2.5 text-[12px] text-success">
+        <div className="flex items-center gap-2 rounded-lg border border-success/35 bg-success/20 px-3 py-2.5 text-[12px] text-success">
           <CheckCircle2 className="h-3.5 w-3.5" /> All caught up
         </div>
       ) : (
-        <div className="divide-y divide-border/20">
+        <div className="divide-y divide-border/40">
           {list.map((t) => (
             <Link
               key={t.id}
               href={t.href}
-              className="group flex items-center gap-3 px-1 py-2.5 transition-colors duration-100 hover:bg-muted/20"
+              className="group flex items-center gap-3 px-1 py-2.5 transition-colors duration-100 hover:bg-muted/40"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium text-foreground/80">{t.title}</p>
-                <p className="truncate text-[11px] text-muted-foreground/40">{t.detail}</p>
+                <p className="truncate text-[12px] font-medium text-foreground/90">{t.title}</p>
+                <p className="truncate text-[11px] text-muted-foreground/65">{t.detail}</p>
               </div>
-              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-muted/50 px-1.5 text-[10px] font-semibold text-muted-foreground/60">
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-muted/70 px-1.5 text-[10px] font-semibold text-muted-foreground/85">
                 {t.count}
               </span>
             </Link>
@@ -540,18 +540,18 @@ export function InsightsPanel({ items, loading, error, onRetry }: { items?: Insi
     >
       <div className="space-y-2">
         {list.map((i) => (
-          <div key={i.id} className="rounded-lg border border-border/30 p-3">
+          <div key={i.id} className="rounded-lg border border-border/50 p-3">
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[12px] font-semibold text-foreground/80">{i.title}</p>
+              <p className="text-[12px] font-semibold text-foreground/90">{i.title}</p>
               {i.href && (
                 <Link href={i.href} className="shrink-0 text-[10px] font-semibold text-primary hover:underline">
                   View
                 </Link>
               )}
             </div>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground/50">{i.body}</p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground/75">{i.body}</p>
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground/30">Confidence {Math.round(i.confidence * 100)}%</span>
+              <span className="text-[10px] text-muted-foreground/55">Confidence {Math.round(i.confidence * 100)}%</span>
             </div>
           </div>
         ))}
@@ -600,7 +600,7 @@ export function ApprovalQueuePanel({
     .slice(0, 5);
 
   const funnel = [
-    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/20" },
+    { label: "Draft", value: totals.draft, color: "bg-muted-foreground/40" },
     { label: "Submitted", value: totals.submitted, color: "bg-primary" },
     { label: "Verified", value: totals.verified, color: "bg-warning" },
     { label: "Approved", value: totals.approved, color: "bg-success" },
@@ -611,7 +611,7 @@ export function ApprovalQueuePanel({
   return (
     <WidgetCard
       title="Result approval queue"
-      icon={<ListChecks className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<ListChecks className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="Teacher submissions awaiting review"
       loading={busy}
       error={error}
@@ -623,27 +623,27 @@ export function ApprovalQueuePanel({
       <div className="space-y-2">
         {funnel.map((f) => (
           <div key={f.label} className="flex items-center gap-3">
-            <span className="w-20 shrink-0 text-[12px] text-muted-foreground/60">{f.label}</span>
-            <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted/40">
+            <span className="w-20 shrink-0 text-[12px] text-muted-foreground/85">{f.label}</span>
+            <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60">
               <div className={cn("h-full rounded-full transition-all duration-500", f.color)} style={{ width: `${(f.value / maxStage) * 100}%` }} />
             </div>
-            <span className="w-8 shrink-0 text-right text-[12px] font-semibold text-foreground/70">{f.value}</span>
+            <span className="w-8 shrink-0 text-right text-[12px] font-semibold text-foreground/85">{f.value}</span>
           </div>
         ))}
       </div>
 
       {needsReview.length > 0 && (
-        <div className="mt-4 border-t border-border/30 pt-3">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">Needs attention</p>
+        <div className="mt-4 border-t border-border/50 pt-3">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/65">Needs attention</p>
           <div className="space-y-0.5">
             {needsReview.map((r) => (
               <Link
                 key={`${r.arm_id}-${r.subject_id}`}
                 href="/approvals"
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-[12px] transition-colors hover:bg-muted/20"
+                className="flex items-center justify-between rounded-md px-2 py-1.5 text-[12px] transition-colors hover:bg-muted/40"
               >
-                <span className="truncate text-foreground/70">
-                  <span className="font-medium text-foreground/80">{r.arm_name}</span> · {r.subject_name}
+                <span className="truncate text-foreground/85">
+                  <span className="font-medium text-foreground/90">{r.arm_name}</span> · {r.subject_name}
                 </span>
                 <span className="shrink-0 font-semibold text-primary">{(r.submitted + r.verified).toLocaleString()}</span>
               </Link>
@@ -686,7 +686,7 @@ export function CompilePanel({
   return (
     <WidgetCard
       title="Compile results"
-      icon={<Zap className="h-4 w-4 text-muted-foreground/50" />}
+      icon={<Zap className="h-4 w-4 text-muted-foreground/75" />}
       subtitle="One-click finalize scores into report cards"
       loading={busy}
       error={error}
@@ -696,9 +696,9 @@ export function CompilePanel({
       bodyClassName="pt-3"
     >
       {compilable.length > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/10 bg-primary/[0.03] px-3 py-2">
-          <span className="text-[12px] text-muted-foreground/60">
-            <span className="font-semibold text-foreground/80">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready
+        <div className="mb-4 flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/[0.03] px-3 py-2">
+          <span className="text-[12px] text-muted-foreground/85">
+            <span className="font-semibold text-foreground/90">{compilable.length}</span> subject{compilable.length === 1 ? "" : "s"} ready
             {totalDrafts > 0 && <span> · <span className="font-medium">{totalDrafts}</span> draft</span>}
             {totalSubmitted > 0 && <span> · <span className="font-medium">{totalSubmitted}</span> submitted</span>}
           </span>
@@ -717,13 +717,13 @@ export function CompilePanel({
           return (
             <div
               key={key}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-border/30 px-3 py-2.5"
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-border/50 px-3 py-2.5"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium text-foreground/80">
-                  {r.subject_name} <span className="font-normal text-muted-foreground/50">· {r.arm_name}</span>
+                <p className="truncate text-[12px] font-medium text-foreground/90">
+                  {r.subject_name} <span className="font-normal text-muted-foreground/75">· {r.arm_name}</span>
                 </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground/40">
+                <p className="mt-0.5 text-[11px] text-muted-foreground/65">
                   {r.entered}/{r.enrolled} scores entered
                   {r.submitted > 0 && <> · {r.submitted} submitted</>}
                 </p>
@@ -747,20 +747,20 @@ export function CompilePanel({
       </div>
 
       {compileMutation.isSuccess && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-success/15 bg-success/5 px-3 py-2 text-[12px] text-success">
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-success/35 bg-success/20 px-3 py-2 text-[12px] text-success">
           <CheckCircle2 className="h-3.5 w-3.5" /> Results compiled
         </div>
       )}
 
       {compileMutation.isError && (
-        <div className="mt-3 rounded-lg border border-destructive/15 bg-destructive/5 px-3 py-2 text-[12px] text-destructive">
+        <div className="mt-3 rounded-lg border border-destructive/35 bg-destructive/20 px-3 py-2 text-[12px] text-destructive">
           {compileMutation.error?.message ?? "Compilation failed. Please try again."}
         </div>
       )}
 
       <Link
         href="/approvals"
-        className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/40 bg-muted/20 px-3 py-2 text-[12px] font-semibold text-foreground/80 transition-all hover:bg-muted/40"
+        className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-[12px] font-semibold text-foreground/90 transition-all hover:bg-muted/60"
       >
         View approval queue <ArrowRight className="h-3.5 w-3.5" />
       </Link>

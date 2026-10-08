@@ -62,17 +62,17 @@ function Kpi({
       <Card className="premium-card h-full">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/85">
               {label}
             </p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20 text-primary">
               <Icon className="h-4 w-4" />
             </div>
           </div>
           <p className={`mt-3 text-2xl font-bold tabular-nums tracking-tight ${toneClass}`}>
             {value}
           </p>
-          {hint && <p className="mt-1 text-[11.5px] text-muted-foreground/70">{hint}</p>}
+          {hint && <p className="mt-1 text-[11.5px] text-muted-foreground/90">{hint}</p>}
         </CardContent>
       </Card>
     </motion.div>
@@ -228,17 +228,17 @@ export default function AccountingOverviewPage() {
             <Link
               key={item.label}
               href={item.href}
-              className="group flex items-center justify-between rounded-xl border border-border/50 bg-muted/20 px-4 py-3 transition-colors hover:border-primary/30 hover:bg-accent/40"
+              className="group flex items-center justify-between rounded-xl border border-border/70 bg-muted/40 px-4 py-3 transition-colors hover:border-primary/45 hover:bg-accent/60"
             >
               <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/90">
                   {item.label}
                 </p>
                 <p className="mt-0.5 text-xl font-bold tabular-nums">
                   {isLoading ? "…" : item.value}
                 </p>
               </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/65 transition-transform group-hover:translate-x-0.5" />
             </Link>
           ))}
         </CardContent>
@@ -281,13 +281,13 @@ export default function AccountingOverviewPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/40"
+                className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/60"
               >
                 <div className="mt-0.5 min-w-0 flex-1">
                   <p className="text-[13px] font-semibold">{item.title}</p>
                   <p className="text-[12px] text-muted-foreground">{item.body}</p>
                 </div>
-                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/40" />
+                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/65" />
               </Link>
             ))}
           </CardContent>
@@ -308,14 +308,14 @@ export default function AccountingOverviewPage() {
                 Nobody holds the Accountant role in this school yet.
               </p>
             ) : (
-              <ul className="divide-y divide-border/40">
+              <ul className="divide-y divide-border/60">
                 {accountants.map((a) => (
                   <li key={a.user_id} className="flex items-center justify-between py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-medium">{a.full_name}</p>
                       <p className="truncate text-[11.5px] text-muted-foreground">{a.email}</p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10.5px] font-semibold text-primary">
+                    <span className="shrink-0 rounded-full bg-primary/20 px-2 py-0.5 text-[10.5px] font-semibold text-primary">
                       {a.role_name}
                     </span>
                   </li>
@@ -323,7 +323,7 @@ export default function AccountingOverviewPage() {
               </ul>
             )}
 
-            <p className="rounded-lg border border-border/50 bg-muted/25 p-3 text-[12px] text-muted-foreground">
+            <p className="rounded-lg border border-border/70 bg-muted/45 p-3 text-[12px] text-muted-foreground">
               Each accountant signs in with their <strong>own email and password</strong> and can
               only act on this school. School admins give someone the Accountant role from{" "}
               <Link href="/teachers" className="font-medium text-primary hover:underline">
@@ -333,7 +333,7 @@ export default function AccountingOverviewPage() {
             </p>
 
             {canProvision && (
-              <form onSubmit={submit} className="space-y-3 rounded-xl border border-border/50 p-4">
+              <form onSubmit={submit} className="space-y-3 rounded-xl border border-border/70 p-4">
                 <div className="flex items-center gap-2">
                   <UserPlus className="h-4 w-4 text-primary" />
                   <p className="text-[13px] font-semibold">Create an accountant login</p>

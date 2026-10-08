@@ -137,7 +137,7 @@ export default function TimetablePage() {
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground/50">—</span>
+                                <span className="text-muted-foreground/75">—</span>
                               )}
                             </td>
                           );
@@ -166,7 +166,7 @@ export default function TimetablePage() {
               {timeSlots.map((slot) => (
                 <span
                   key={slot.label}
-                  className="inline-block px-2 py-1 text-xs rounded-md bg-muted/20 text-muted"
+                  className="inline-block px-2 py-1 text-xs rounded-md bg-muted/40 text-muted"
                 >
                   {slot.label}
                 </span>

@@ -123,7 +123,7 @@ export function ReportTemplatePicker({
         </div>
         <div>
           <h3 className="text-sm font-semibold tracking-tight text-foreground">Card style</h3>
-          <p className="text-xs text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground/85">
             {interactive
               ? "Applies to the school's current report card design, for everyone"
               : "The style your school's report cards are printed in"}
@@ -141,8 +141,8 @@ export function ReportTemplatePicker({
             className={cn(
               "group relative flex flex-col items-start gap-3 rounded-2xl border-2 p-4 text-left transition-all duration-300",
               value === template.id
-                ? "border-foreground/20 bg-foreground/[0.02]"
-                : "border-transparent bg-white hover:border-foreground/10 hover:bg-foreground/[0.01]",
+                ? "border-foreground/35 bg-foreground/[0.02]"
+                : "border-transparent bg-white hover:border-foreground/25 hover:bg-foreground/[0.01]",
               interactive
                 ? "hover:-translate-y-0.5 hover:shadow-lg"
                 : "cursor-default",
@@ -156,7 +156,7 @@ export function ReportTemplatePicker({
 
             <div className="w-full">
               <p className="text-sm font-semibold text-foreground">{template.name}</p>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/60">
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground/85">
                 {template.description}
               </p>
             </div>
@@ -170,7 +170,7 @@ export function ReportTemplatePicker({
       </div>
 
       {!interactive && (
-        <p className="text-xs text-muted-foreground/60">
+        <p className="text-xs text-muted-foreground/85">
           Only a school admin can change the card style — ask them, or open the Report card
           designer.
         </p>

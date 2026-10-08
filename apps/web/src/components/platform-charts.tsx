@@ -113,7 +113,7 @@ export function SeriesBars({
         <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
         <XAxis dataKey="period" {...axis} dy={6} />
         <YAxis {...axis} allowDecimals={false} />
-        <Tooltip content={<ChartTooltip suffix={suffix} />} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip content={<ChartTooltip suffix={suffix} />} cursor={{ fill: "hsl(var(--muted) / 0.75)" }} />
         {keys.map((k) => (
           <Bar key={k.key} dataKey={k.key} name={k.name} fill={k.color} radius={[4, 4, 2, 2]} maxBarSize={28} />
         ))}

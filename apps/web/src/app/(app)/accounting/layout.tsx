@@ -21,8 +21,8 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
   if (!isAccountant && !isPlatformAdmin) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
-          <Lock className="h-6 w-6 text-muted-foreground/50" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/75">
+          <Lock className="h-6 w-6 text-muted-foreground/75" />
         </div>
         <h1 className="text-lg font-semibold">The accounting desk is Accountant-only</h1>
         <p className="max-w-md text-[13px] text-muted-foreground">

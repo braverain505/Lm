@@ -154,12 +154,12 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
       >
         <div className="min-w-0">
           <h1 className="text-[24px] font-bold tracking-tight text-foreground">Overview</h1>
-          <p className="mt-1 text-[13.5px] text-muted-foreground/60">
+          <p className="mt-1 text-[13.5px] text-muted-foreground/85">
             Here&apos;s what&apos;s happening across {activeSchool?.school_name}.
           </p>
           {term && (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary/80">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/75" />
               {term.name}
             </p>
           )}

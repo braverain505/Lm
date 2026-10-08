@@ -209,7 +209,7 @@ export function ReceiptDialog({
                       className="h-14 w-14 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/20 text-lg font-bold text-primary">
                       {(receipt.school.name ?? "S").charAt(0)}
                     </div>
                   )}
@@ -242,7 +242,7 @@ export function ReceiptDialog({
                 </div>
 
                 {/* Student + invoice */}
-                <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/30 p-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 rounded-lg border bg-muted/55 p-4 text-sm">
                   <div>
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Student</p>
                     <p className="font-semibold">{receipt.student.full_name}</p>

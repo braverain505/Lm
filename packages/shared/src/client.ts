@@ -1144,6 +1144,18 @@ export const activateTerm = (schoolId: string, termId: string) =>
 export const closeTerm = (schoolId: string, termId: string) =>
   schoolFetch<unknown>(schoolId, `/academics/terms/${termId}/close`, { method: "POST" });
 
+// Deletes undo a mistaken setup. The API refuses anything already in use (an
+// active term/session, results, enrolled students), so the UI can offer these
+// next to the create controls without risking live records.
+export const deleteSession = (schoolId: string, sessionId: string) =>
+  schoolFetch<void>(schoolId, `/academics/sessions/${sessionId}`, { method: "DELETE" });
+
+export const deleteTerm = (schoolId: string, termId: string) =>
+  schoolFetch<void>(schoolId, `/academics/terms/${termId}`, { method: "DELETE" });
+
+export const deleteArm = (schoolId: string, armId: string) =>
+  schoolFetch<void>(schoolId, `/academics/arms/${armId}`, { method: "DELETE" });
+
 export const fetchMyAssignments = (schoolId: string) =>
   schoolFetch<MyAssignment[]>(
     schoolId,
@@ -2364,6 +2376,9 @@ export const api = {
   activateSession,
   activateTerm,
   closeTerm,
+  deleteSession,
+  deleteTerm,
+  deleteArm,
   fetchEnrollmentHistory,
   fetchDashboardSummary,
 };

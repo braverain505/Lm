@@ -5,7 +5,7 @@ export function Loader({ className }: { className?: string }) {
     <div
       role="status"
       aria-label="Loading"
-      className={cn("h-6 w-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary", className)}
+      className={cn("h-6 w-6 animate-spin rounded-full border-2 border-primary/35 border-t-primary", className)}
     />
   );
 }

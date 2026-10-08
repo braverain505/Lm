@@ -120,7 +120,7 @@ export default function ResultsPage() {
             <div className="space-y-1.5">
               <Label>Term</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                 value={termId ?? ""}
                 onChange={(e) => setTermId(e.target.value || null)}
               >
@@ -133,7 +133,7 @@ export default function ResultsPage() {
             <div className="space-y-1.5">
               <Label>Class arm</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                 value={armId}
                 onChange={(e) => setArmId(e.target.value)}
               >
@@ -146,7 +146,7 @@ export default function ResultsPage() {
             <div className="space-y-1.5">
               <Label>Subject</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
                 disabled={!armId}
@@ -176,7 +176,7 @@ export default function ResultsPage() {
               <div className="space-y-1.5">
                 <Label>Term</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                   value={termId ?? ""}
                   onChange={(e) => setTermId(e.target.value || null)}
                 >
@@ -189,7 +189,7 @@ export default function ResultsPage() {
               <div className="space-y-1.5">
                 <Label>Class arm</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                   value={armId}
                   onChange={(e) => setArmId(e.target.value)}
                 >
@@ -217,13 +217,13 @@ export default function ResultsPage() {
             </CardHeader>
             <CardContent>
               {quick.length === 0 ? (
-                <p className="text-[13px] text-muted-foreground/70">
+                <p className="text-[13px] text-muted-foreground/90">
                   No readiness rows yet. Enter your scores after assigning components to a term.
                 </p>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {quick.map((g) => (
-                    <Link key={g.url} href={g.url} className="rounded-xl border border-border/40 px-3.5 py-2.5 text-[13px] transition-all duration-150 hover:border-primary/20 hover:bg-accent/50">
+                    <Link key={g.url} href={g.url} className="rounded-xl border border-border/60 px-3.5 py-2.5 text-[13px] transition-all duration-150 hover:border-primary/35 hover:bg-accent/70">
                       <span className="font-medium">{g.armName}</span> <span className="text-muted-foreground">· {g.subjectName}</span>
                     </Link>
                   ))}

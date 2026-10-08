@@ -58,6 +58,35 @@ export default function ClassesPage() {
     onError: (err: Error) => toast(err.message || "Failed to create class", "error"),
   });
 
+  // Deleting undoes a class created by mistake. The API refuses a class with
+  // students enrolled, so the confirmation states that guard rather than hiding
+  // the button.
+  const deleteArm = useMutation({
+    mutationFn: async (armId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.schoolFetch(schoolId, `/academics/arms/${armId}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: (_data, armId) => {
+      invalidate();
+      if (offeringsArmId === armId) setOfferingsArmId("");
+      toast("Class deleted successfully");
+    },
+    onError: (err: Error) => toast(err.message || "Failed to delete class", "error"),
+  });
+
+  const handleDeleteArm = (armId: string, armName: string) => {
+    const confirmed = window.confirm(
+      `Delete the class "${armName}"?\n\n` +
+      `Its subjects and teacher assignments will be removed too.\n` +
+      `A class with students enrolled cannot be deleted.\n\n` +
+      `This action cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+    deleteArm.mutate(armId);
+  };
+
   const createSubject = useMutation({
     mutationFn: async () => {
       if (!schoolId) throw new Error("No active school");
@@ -181,22 +210,33 @@ export default function ClassesPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
+                className="flex items-stretch gap-2"
               >
                 <Link
                   href={`/classes/${arm.id}`}
-                  className="group flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-card hover:border-primary/50"
+                  className="group flex flex-1 items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-card hover:border-primary/65"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/20">
                       <BookOpen className="h-4 w-4 text-primary" />
                     </div>
                     <div>
                       <p className="truncate font-medium">{arm.full_name}</p>
-                      <p className="text-xs text-muted-foreground/50">{currentSession.name}</p>
+                      <p className="text-xs text-muted-foreground/75">{currentSession.name}</p>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/75 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                 </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-auto shrink-0 px-3 text-destructive hover:border-destructive/50 hover:text-destructive"
+                  title={`Delete ${arm.full_name}`}
+                  onClick={() => handleDeleteArm(arm.id, arm.full_name)}
+                  disabled={deleteArm.isPending}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </motion.div>
             ))}
           </div>
@@ -205,7 +245,7 @@ export default function ClassesPage() {
 
       {/* Class + Subject setup */}
       <div className="pt-2">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground/50">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground/75">
           Setup
         </h2>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -310,7 +350,7 @@ export default function ClassesPage() {
                   </div>
                 )}
                 {arms.length === 0 && (
-                  <p className="text-xs text-muted-foreground/50">Add a class first.</p>
+                  <p className="text-xs text-muted-foreground/75">Add a class first.</p>
                 )}
               </CardContent>
             </Card>
@@ -334,7 +374,7 @@ export default function ClassesPage() {
                 {loadingSubjects ? (
                   <Skeleton className="h-20 w-full" />
                 ) : subjects.length === 0 ? (
-                  <p className="text-sm text-muted-foreground/50">No subjects yet — create your first.</p>
+                  <p className="text-sm text-muted-foreground/75">No subjects yet — create your first.</p>
                 ) : (
                   subjects.map((s, idx) => (
                     <motion.div
@@ -382,7 +422,7 @@ export default function ClassesPage() {
                               title={s.is_core ? "Remove from core subjects" : "Make a core subject (Best in Subject award)"}
                               className={cn(
                                 "shrink-0 transition-colors",
-                                s.is_core ? "text-amber-500" : "text-muted-foreground/40 hover:text-muted-foreground",
+                                s.is_core ? "text-amber-500" : "text-muted-foreground/65 hover:text-muted-foreground",
                               )}
                             >
                               <Star className="h-4 w-4" fill={s.is_core ? "currentColor" : "none"} />
@@ -391,7 +431,7 @@ export default function ClassesPage() {
                             {s.is_core && <Badge variant="warning">core</Badge>}
                           </div>
                           <div className="flex shrink-0 items-center gap-1">
-                            <span className="font-mono text-xs text-muted-foreground/50 mr-2">{s.code}</span>
+                            <span className="font-mono text-xs text-muted-foreground/75 mr-2">{s.code}</span>
                             <Button
                               size="sm"
                               variant="ghost"

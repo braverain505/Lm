@@ -232,7 +232,7 @@ export default function InventoryPage() {
                   items.map((i) => {
                     const isLow = i.quantity <= i.low_stock_threshold;
                     return (
-                      <tr key={i.id} className="border-b last:border-0 hover:bg-accent/40">
+                      <tr key={i.id} className="border-b last:border-0 hover:bg-accent/60">
                         <td className="py-2.5">
                           <p className="font-medium">{i.name}</p>
                           {i.sku && <p className="font-mono text-xs text-muted-foreground">{i.sku}</p>}

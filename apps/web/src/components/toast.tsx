@@ -33,11 +33,11 @@ const ICONS: Record<ToastVariant, React.ElementType> = {
 
 const STYLES: Record<ToastVariant, string> = {
   success:
-    "border-success/30 bg-success/10 text-success",
+    "border-success/50 bg-success/25 text-success",
   error:
-    "border-destructive/30 bg-destructive/10 text-destructive",
+    "border-destructive/50 bg-destructive/25 text-destructive",
   info:
-    "border-primary/30 bg-primary/10 text-primary",
+    "border-primary/45 bg-primary/20 text-primary",
 };
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {

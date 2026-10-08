@@ -163,7 +163,7 @@ function ReportsWorkspace() {
         >
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Report cards</h1>
-            <p className="text-sm text-muted-foreground/50">
+            <p className="text-sm text-muted-foreground/75">
               Premium printable term reports built from published results — totals are frozen at
               publish, so cards never drift.
             </p>
@@ -185,7 +185,7 @@ function ReportsWorkspace() {
                   >
                     <Files className="h-4 w-4" /> All report cards
                     {!indexLoading && index.length > 0 && (
-                      <span className="text-muted-foreground/50">({index.filter((r) => r.subjects_published > 0).length})</span>
+                      <span className="text-muted-foreground/75">({index.filter((r) => r.subjects_published > 0).length})</span>
                     )}
                   </Button>
                 )}
@@ -213,7 +213,7 @@ function ReportsWorkspace() {
         >
           {terms.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm text-muted-foreground/50">Term</span>
+              <span className="text-sm text-muted-foreground/75">Term</span>
               {terms.map((t) => (
                 <button
                   key={t.id}
@@ -221,8 +221,8 @@ function ReportsWorkspace() {
                   className={cn(
                     "rounded-md border px-3 py-1.5 text-sm font-medium transition-all duration-200",
                     t.id === term?.id
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-input text-muted-foreground/50 hover:bg-accent",
+                      ? "border-primary bg-primary/20 text-primary"
+                      : "border-input text-muted-foreground/75 hover:bg-accent",
                   )}
                 >
                   {t.name}
@@ -267,7 +267,7 @@ function ReportsWorkspace() {
                 {indexLoading ? (
                   <Skeleton className="h-32 w-full" />
                 ) : index.length === 0 ? (
-                  <p className="text-sm text-muted-foreground/50">No enrollments in this arm.</p>
+                  <p className="text-sm text-muted-foreground/75">No enrollments in this arm.</p>
                 ) : (
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {index.map((row, idx) => (
@@ -277,7 +277,7 @@ function ReportsWorkspace() {
                         className={cn(
                           "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all duration-200",
                           row.student_id === studentId
-                            ? "border-primary bg-primary/10"
+                            ? "border-primary bg-primary/20"
                             : "border-input hover:bg-accent hover:-translate-y-[1px]",
                         )}
                         initial={{ opacity: 0, y: 8 }}
@@ -322,8 +322,8 @@ function ReportsWorkspace() {
                 onChange={handleThemeChange}
                 disabled={themeBusy}
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-4">
-                <p className="text-xs text-muted-foreground/60">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/80 pt-4">
+                <p className="text-xs text-muted-foreground/85">
                   {design
                     ? design.builtin
                       ? "Your cards use the built-in design. Open the designer to make it your own."
@@ -354,7 +354,7 @@ function ReportsWorkspace() {
               <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
                 <div>
                   <p className="text-sm font-medium">All report cards — {armId ? arms.find((a) => a.id === armId)?.full_name ?? "this arm" : ""}</p>
-                  <p className="text-xs text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground/75">
                     {bulkLoading || bulkFetching
                       ? "Loading…"
                       : `${bulkCards.length} card${bulkCards.length === 1 ? "" : "s"} ready · prints one card per page`}
@@ -393,7 +393,7 @@ function ReportsWorkspace() {
               transition={{ duration: 0.35, delay: 0.08, ease }}
             >
               <Card>
-                <CardContent className="py-12 text-center text-muted-foreground/50">
+                <CardContent className="py-12 text-center text-muted-foreground/75">
                   No published report cards for this arm this term yet.
                 </CardContent>
               </Card>
@@ -423,7 +423,7 @@ function ReportsWorkspace() {
           transition={{ duration: 0.35, delay: 0.04, ease }}
         >
           <Card className="transition-all duration-200 hover:-translate-y-[1px] hover:shadow-card">
-            <CardContent className="py-12 text-center text-muted-foreground/50">
+            <CardContent className="py-12 text-center text-muted-foreground/75">
               {studentId
                 ? "No published results for this student in this term yet."
                 : "Pick a student to view their report card."}

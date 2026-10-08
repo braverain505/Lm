@@ -74,6 +74,7 @@ def create_staff_account(
     staff, role = people_service.create_staff_account(
         db, ctx.school.id, staff_id,
         email=str(payload.email), password=payload.password, role_id=payload.role_id,
+        arm_id=payload.arm_id,
     )
     db.commit()
     return StaffAccountOut(
@@ -106,6 +107,7 @@ def update_staff_account(
         email=str(payload.email) if payload.email is not None else None,
         password=payload.password,
         role_id=payload.role_id,
+        arm_id=payload.arm_id,
     )
     db.commit()
     return StaffAccountOut(

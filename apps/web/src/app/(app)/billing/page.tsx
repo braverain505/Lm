@@ -111,8 +111,8 @@ export default function BillingPage() {
   if (!canView) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
-          <Lock className="h-6 w-6 text-muted-foreground/50" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/75">
+          <Lock className="h-6 w-6 text-muted-foreground/75" />
         </div>
         <h1 className="text-lg font-semibold">Accounting is Accountant-only</h1>
         <p className="max-w-sm text-[13px] text-muted-foreground">
@@ -151,7 +151,7 @@ export default function BillingPage() {
                     { onSuccess: () => { resetStructure(); setShowStructureForm(false); } },
                   );
                 })}
-                className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-5"
+                className="grid gap-4 rounded-xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-5"
               >
                 <div className="space-y-1.5">
                   <Label>Name</Label>
@@ -160,7 +160,7 @@ export default function BillingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Type</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regStructure("fee_type")}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" {...regStructure("fee_type")}>
                     {["tuition", "boarding", "activity", "examination", "library", "other"].map((t) => (
                       <option key={t} value={t}>{t}</option>
                     ))}
@@ -173,7 +173,7 @@ export default function BillingPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Frequency</Label>
-                  <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regStructure("billing_frequency")}>
+                  <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" {...regStructure("billing_frequency")}>
                     {["term", "month", "year", "one_time"].map((f) => (
                       <option key={f} value={f}>{f}</option>
                     ))}
@@ -191,7 +191,7 @@ export default function BillingPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                   <th className="pb-2.5 font-semibold">Name</th>
                   <th className="pb-2.5 font-semibold">Type</th>
                   <th className="pb-2.5 font-semibold">Amount</th>
@@ -204,18 +204,18 @@ export default function BillingPage() {
                 {loadingStructures ? (
                   <tr><td colSpan={6}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                 ) : structures.length === 0 ? (
-                  <tr><td colSpan={6} className="py-12 text-center text-[13px] text-muted-foreground/70">
+                  <tr><td colSpan={6} className="py-12 text-center text-[13px] text-muted-foreground/90">
                     No fee structures yet. Add one above.
                   </td></tr>
                 ) : (
                   structures.map((s) => (
-                    <tr key={s.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                    <tr key={s.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                       <td className="py-3 font-medium">{s.name}</td>
                       <td className="py-3 capitalize text-muted-foreground">{s.fee_type}</td>
                       <td className="py-3 font-medium">₦{s.amount.toLocaleString()}</td>
                       <td className="py-3 capitalize text-muted-foreground">{s.billing_frequency}</td>
                       <td className="py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${s.is_active ? "bg-success/25 text-success" : "bg-muted text-muted-foreground"}`}>
                           {s.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
@@ -248,7 +248,7 @@ export default function BillingPage() {
             <div className="space-y-1.5">
               <Label>Student</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value)}
               >
@@ -268,11 +268,11 @@ export default function BillingPage() {
                   { onSuccess: () => resetInvoice() },
                 );
               })}
-              className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-3"
+              className="grid gap-4 rounded-xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-3"
             >
               <div className="space-y-1.5">
                 <Label>Fee structure</Label>
-                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...regInvoice("fee_structure_id")}>
+                <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" {...regInvoice("fee_structure_id")}>
                   <option value="">Choose…</option>
                   {structures.filter((s) => s.is_active).map((s) => (
                     <option key={s.id} value={s.id}>{s.name} — ₦{s.amount.toLocaleString()}</option>
@@ -289,21 +289,21 @@ export default function BillingPage() {
           )}
 
           {balance && (
-            <div className="grid gap-3 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-4">
+            <div className="grid gap-3 rounded-xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Owed</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Owed</p>
                 <p className="mt-0.5 text-lg font-bold">₦{balance.total_owed.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Paid</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Paid</p>
                 <p className="mt-0.5 text-lg font-bold text-success">₦{balance.total_paid.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Unpaid</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Unpaid</p>
                 <p className="mt-0.5 text-lg font-bold text-destructive">₦{balance.total_unpaid.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Current invoice</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">Current invoice</p>
                 <p className="mt-0.5 text-lg font-bold">₦{balance.current_invoice_total.toLocaleString()}</p>
               </div>
             </div>
@@ -312,7 +312,7 @@ export default function BillingPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                   <th className="pb-2.5 font-semibold">Ref</th>
                   <th className="pb-2.5 font-semibold">Amount</th>
                   <th className="pb-2.5 font-semibold">Status</th>
@@ -322,18 +322,18 @@ export default function BillingPage() {
               </thead>
               <tbody>
                 {invoices.length === 0 ? (
-                  <tr><td colSpan={5} className="py-8 text-center text-[13px] text-muted-foreground/70">
+                  <tr><td colSpan={5} className="py-8 text-center text-[13px] text-muted-foreground/90">
                     No invoices for this student yet.
                   </td></tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                    <tr key={inv.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                       <td className="py-3 font-mono text-[11px] text-muted-foreground">{inv.reference_number}</td>
                       <td className="py-3 font-medium">₦{inv.total_amount.toLocaleString()}</td>
                       <td className="py-3">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
-                          inv.status === "paid" ? "bg-success/10 text-success" :
-                          inv.status === "partial" ? "bg-warning/10 text-warning" :
+                          inv.status === "paid" ? "bg-success/25 text-success" :
+                          inv.status === "partial" ? "bg-warning/25 text-warning" :
                           "bg-muted text-muted-foreground"
                         }`}>{inv.status}</span>
                       </td>
@@ -350,7 +350,7 @@ export default function BillingPage() {
                             className="flex flex-wrap items-center justify-end gap-2"
                           >
                             <Input type="number" step="0.01" placeholder="Amount" className="h-8 w-28 text-[12px]" {...regPayment("amount")} />
-                            <select className="flex h-8 w-32 rounded-lg border border-border/80 bg-background/50 px-2 text-[12px]" {...regPayment("payment_method")}>
+                            <select className="flex h-8 w-32 rounded-lg border border-border/90 bg-background/70 px-2 text-[12px]" {...regPayment("payment_method")}>
                               {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
                             </select>
                             <Button type="submit" size="sm" variant="outline" disabled={paymentSubmitting}>
@@ -376,9 +376,9 @@ export default function BillingPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/60">Term</Label>
+              <Label className="text-[11px] text-muted-foreground/85">Term</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                 value={statusTermId}
                 onChange={(e) => setStatusTermId(e.target.value)}
               >
@@ -389,9 +389,9 @@ export default function BillingPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/60">Class</Label>
+              <Label className="text-[11px] text-muted-foreground/85">Class</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                 value={statusArmId}
                 onChange={(e) => setStatusArmId(e.target.value)}
               >
@@ -402,15 +402,15 @@ export default function BillingPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/60">Owing</Label>
-              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 text-[13px] font-semibold text-destructive">
+              <Label className="text-[11px] text-muted-foreground/85">Owing</Label>
+              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/80 bg-background/70 px-3 text-[13px] font-semibold text-destructive">
                 <XCircle className="h-4 w-4" />
                 {loadingStatus ? "…" : (feeStatus?.summary.unpaid ?? 0)} unpaid
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/60">Cleared</Label>
-              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/60 bg-background/50 px-3 text-[13px] font-semibold text-success">
+              <Label className="text-[11px] text-muted-foreground/85">Cleared</Label>
+              <div className="flex h-9 items-center gap-2 rounded-xl border border-border/80 bg-background/70 px-3 text-[13px] font-semibold text-success">
                 <CheckCircle2 className="h-4 w-4" />
                 {loadingStatus ? "…" : (feeStatus?.summary.paid ?? 0)} paid
               </div>
@@ -420,14 +420,14 @@ export default function BillingPage() {
           {loadingStatus ? (
             <Skeleton className="h-40 w-full" />
           ) : feeStatus?.students.length === 0 ? (
-            <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+            <p className="py-8 text-center text-[13px] text-muted-foreground/90">
               No students in this scope yet. Create invoices or enroll students to see payment status.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     <th className="pb-2.5 font-semibold">Student</th>
                     <th className="pb-2.5 font-semibold">Class</th>
                     <th className="pb-2.5 font-semibold">Invoiced</th>
@@ -438,7 +438,7 @@ export default function BillingPage() {
                 </thead>
                 <tbody>
                   {feeStatus?.students.map((s) => (
-                    <tr key={s.student_id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                    <tr key={s.student_id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                       <td className="py-3">
                         <p className="font-medium">{s.full_name}</p>
                         <p className="font-mono text-[11px] text-muted-foreground">{s.admission_no}</p>
@@ -453,8 +453,8 @@ export default function BillingPage() {
                       </td>
                       <td className="py-3 text-right">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          s.status === "paid" ? "bg-success/10 text-success" :
-                          s.status === "partial" ? "bg-warning/10 text-warning" :
+                          s.status === "paid" ? "bg-success/25 text-success" :
+                          s.status === "partial" ? "bg-warning/25 text-warning" :
                           "bg-muted text-muted-foreground"
                         }`}>
                           {s.status === "unpaid" ? "not paid" : s.status}
@@ -476,14 +476,14 @@ export default function BillingPage() {
         </CardHeader>
         <CardContent>
           {payments.length === 0 ? (
-            <p className="py-8 text-center text-[13px] text-muted-foreground/70">
+            <p className="py-8 text-center text-[13px] text-muted-foreground/90">
               No payments recorded yet. Record a payment on an invoice above.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     <th className="pb-2.5 font-semibold">Receipt no.</th>
                     <th className="pb-2.5 font-semibold">Date</th>
                     <th className="pb-2.5 font-semibold">Student</th>
@@ -496,7 +496,7 @@ export default function BillingPage() {
                   {payments.map((p) => {
                     const st = students.find((x) => x.id === p.student_id);
                     return (
-                      <tr key={p.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                      <tr key={p.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                         <td className="py-3 font-mono text-[11px] text-muted-foreground">{p.receipt_number ?? "—"}</td>
                         <td className="py-3">{p.payment_date}</td>
                         <td className="py-3">{st?.full_name ?? "—"}</td>
@@ -508,7 +508,7 @@ export default function BillingPage() {
                               <Printer className="h-3.5 w-3.5" /> View
                             </Button>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground/60">Accountant only</span>
+                            <span className="text-[11px] text-muted-foreground/85">Accountant only</span>
                           )}
                         </td>
                       </tr>

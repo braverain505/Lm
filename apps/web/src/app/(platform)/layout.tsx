@@ -27,10 +27,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
 
   if (!user.is_superadmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <div className="flex min-h-screen items-center justify-center bg-muted/55 p-6">
         <Card className="max-w-md">
           <CardContent className="space-y-3 p-8 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/25">
               <ShieldAlert className="h-6 w-6 text-destructive" />
             </div>
             <h1 className="text-lg font-semibold">Platform admins only</h1>

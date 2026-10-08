@@ -35,13 +35,13 @@ function StudentCommentRow({
   const canComment = card.can_comment;
 
   return (
-    <div className="rounded-xl border transition-colors hover:border-primary/20">
+    <div className="rounded-xl border transition-colors hover:border-primary/35">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
             {card.student.full_name.charAt(0)}
           </span>
           <div className="min-w-0">

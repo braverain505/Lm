@@ -33,7 +33,7 @@ export default function SuperAdminSystemPage() {
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {services.map((s) => (
-              <div key={s.service} className="rounded-xl border bg-muted/30 p-4">
+              <div key={s.service} className="rounded-xl border bg-muted/55 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-semibold">{s.label}</p>
                   <StatusBadge status={s.status} />
@@ -43,7 +43,7 @@ export default function SuperAdminSystemPage() {
                   {s.last_checked ? ` · ${fmtDateTime(s.last_checked)}` : ""}
                 </p>
                 {"note" in s && (s as { note?: string | null }).note && (
-                  <p className="mt-1 text-[11px] text-muted-foreground/70">{(s as { note: string }).note}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground/90">{(s as { note: string }).note}</p>
                 )}
               </div>
             ))}
@@ -91,7 +91,7 @@ export default function SuperAdminSystemPage() {
                     <span className="ml-2 text-muted-foreground">{a.school_name ?? ""}</span>
                   </p>
                   <p className="truncate text-xs text-muted-foreground">{a.detail}</p>
-                  <p className="text-[11px] text-muted-foreground/70">
+                  <p className="text-[11px] text-muted-foreground/90">
                     {a.actor} · {fmtDateTime(a.ts)}
                   </p>
                 </div>

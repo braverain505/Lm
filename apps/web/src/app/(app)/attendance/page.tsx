@@ -92,7 +92,7 @@ export default function AttendancePage() {
             Mark daily attendance and review summaries.
           </p>
         </div>
-        <div className="flex rounded-xl border border-border/60 bg-muted/40 p-0.5 text-[12px]">
+        <div className="flex rounded-xl border border-border/80 bg-muted/60 p-0.5 text-[12px]">
           {(["students", "staff"] as const).map((m) => (
             <button
               key={m}
@@ -112,7 +112,7 @@ export default function AttendancePage() {
 
       {/* Closed term warning */}
       {isTermClosed && (
-        <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-[13px] text-warning">
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning/20 px-4 py-3 text-[13px] text-warning">
           <Lock className="h-4 w-4 shrink-0" />
           <span>
             The current term is closed. Attendance marking is disabled — records are read-only.
@@ -131,7 +131,7 @@ export default function AttendancePage() {
             <div className="space-y-1.5">
               <Label>{mode === "students" ? "Student" : "Staff member"}</Label>
               <select
-                className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm transition-all"
+                className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
                 value={subjectId}
                 onChange={(e) => (mode === "students" ? setStudentId(e.target.value) : setStaffId(e.target.value))}
                 disabled={isTermClosed}
@@ -151,7 +151,7 @@ export default function AttendancePage() {
           {subjectId && (
             <form
               onSubmit={handleSubmit(mark)}
-              className="grid gap-4 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-4 rounded-xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4"
             >
               <div className="space-y-1.5">
                 <Label>Date</Label>
@@ -160,7 +160,7 @@ export default function AttendancePage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Status</Label>
-                <select className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm" {...register("status")} disabled={isTermClosed}>
+                <select className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm" {...register("status")} disabled={isTermClosed}>
                   {(["present", "absent", "late", "excused"] as const).map((s) => (
                     <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                   ))}
@@ -190,7 +190,7 @@ export default function AttendancePage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                       <th className="pb-2.5 font-semibold">Date</th>
                       <th className="pb-2.5 font-semibold">Status</th>
                       <th className="pb-2.5 font-semibold">Notes</th>
@@ -200,18 +200,18 @@ export default function AttendancePage() {
                     {isLoading ? (
                       <tr><td colSpan={3}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                     ) : records.length === 0 ? (
-                      <tr><td colSpan={3} className="py-12 text-center text-[13px] text-muted-foreground/70">
+                      <tr><td colSpan={3} className="py-12 text-center text-[13px] text-muted-foreground/90">
                         No attendance marked yet.
                       </td></tr>
                     ) : (
                       records.map((r) => (
-                        <tr key={r.id} className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40">
+                        <tr key={r.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
                           <td className="py-3">{r.date}</td>
                           <td className="py-3">
                             <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${
-                              r.status === "present" ? "bg-success/10 text-success" :
-                              r.status === "absent" ? "bg-destructive/10 text-destructive" :
-                              r.status === "late" ? "bg-warning/10 text-warning" :
+                              r.status === "present" ? "bg-success/25 text-success" :
+                              r.status === "absent" ? "bg-destructive/25 text-destructive" :
+                              r.status === "late" ? "bg-warning/25 text-warning" :
                               "bg-muted text-muted-foreground"
                             }`}>{STATUS_LABELS[r.status] ?? r.status}</span>
                           </td>
@@ -236,7 +236,7 @@ export default function AttendancePage() {
                 <div className="flex justify-between"><span className="text-destructive">Absent</span><span className="font-medium">{summary.absent_days}</span></div>
                 <div className="flex justify-between"><span className="text-warning">Late</span><span className="font-medium">{summary.late_days}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Excused</span><span className="font-medium">{summary.excused_days}</span></div>
-                <div className="mt-2 border-t border-border/40 pt-2.5 flex justify-between">
+                <div className="mt-2 border-t border-border/60 pt-2.5 flex justify-between">
                   <span className="font-semibold">Percentage</span>
                   <span className="font-bold text-primary">{summary.percentage}%</span>
                 </div>

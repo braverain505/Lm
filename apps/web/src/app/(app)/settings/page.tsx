@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Trash2, Unlock } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -64,6 +64,12 @@ export default function SettingsPage() {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["sessions"] });
     void queryClient.invalidateQueries({ queryKey: ["terms"] });
+    // Removing a session or term changes the structure below it too — the
+    // classes, their offerings/assignments and the term's components.
+    void queryClient.invalidateQueries({ queryKey: ["arms"] });
+    void queryClient.invalidateQueries({ queryKey: ["offerings"] });
+    void queryClient.invalidateQueries({ queryKey: ["assignments"] });
+    void queryClient.invalidateQueries({ queryKey: ["components"] });
   };
 
   // Track which session's terms we're showing
@@ -197,6 +203,36 @@ export default function SettingsPage() {
     onError: (err: Error) => toast(err.message || "Failed to activate session", "error"),
   });
 
+  // Deleting is the undo for a session/term created by mistake. The API refuses
+  // anything in use, so the confirmation can promise the guard rather than
+  // hide the button.
+  const deleteSession = useMutation({
+    mutationFn: async (sessionId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteSession(schoolId, sessionId);
+    },
+    onSuccess: (_data, sessionId) => {
+      invalidate();
+      // Keep the terms panel pointed at a session that still exists.
+      if (selectedSessionId === sessionId) {
+        setSelectedSessionId(sessions.find((s) => s.id !== sessionId)?.id ?? "");
+      }
+      toast("Session deleted");
+    },
+    onError: (err: Error) => toast(err.message || "Failed to delete session", "error"),
+  });
+
+  const handleDeleteSession = (sessionId: string, sessionName: string) => {
+    const confirmed = window.confirm(
+      `Delete the ${sessionName} session?\n\n` +
+      `Its terms and classes will be removed too.\n` +
+      `A session that is active or has students enrolled cannot be deleted.\n\n` +
+      `This action cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+    deleteSession.mutate(sessionId);
+  };
+
   // --- Term creation ---
   const [termName, setTermName] = useState("");
   const [termNo, setTermNo] = useState(0);
@@ -253,6 +289,28 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => toast(err.message || "Failed to activate term", "error"),
   });
+
+  const deleteTerm = useMutation({
+    mutationFn: async (termId: string) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.deleteTerm(schoolId, termId);
+    },
+    onSuccess: () => {
+      invalidate();
+      toast("Term deleted");
+    },
+    onError: (err: Error) => toast(err.message || "Failed to delete term", "error"),
+  });
+
+  const handleDeleteTerm = (termId: string, termName: string) => {
+    const confirmed = window.confirm(
+      `Delete the ${termName} term?\n\n` +
+      `A term with results or assessment components cannot be deleted — close it instead.\n\n` +
+      `This action cannot be undone. Continue?`
+    );
+    if (!confirmed) return;
+    deleteTerm.mutate(termId);
+  };
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
 
@@ -459,6 +517,18 @@ export default function SettingsPage() {
                               <Power className="h-3 w-3" /> Activate
                             </Button>
                           )}
+                          {/* Undo a session created by mistake. The API refuses
+                              an active session or one with students enrolled. */}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            title={`Delete ${s.name}`}
+                            disabled={deleteSession.isPending || activateSession.isPending}
+                            onClick={() => handleDeleteSession(s.id, s.name)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </li>
                     ))}
@@ -582,6 +652,18 @@ export default function SettingsPage() {
                                 Close term
                               </Button>
                             )}
+                            {/* Undo a term created by mistake. A term with
+                                results or components is refused server-side. */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              title={`Delete ${t.name}`}
+                              onClick={() => handleDeleteTerm(t.id, t.name)}
+                              disabled={deleteTerm.isPending || closeTerm.isPending || activateTerm.isPending}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
                       );

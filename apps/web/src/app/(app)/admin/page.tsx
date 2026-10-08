@@ -54,7 +54,7 @@ function CreateAdminCard({ schoolId }: { schoolId: string }) {
   };
 
   return (
-    <div className="rounded-xl border bg-muted/30 p-3">
+    <div className="rounded-xl border bg-muted/55 p-3">
       {created ? (
         <div className="space-y-2 text-sm">
           <p className="font-medium">Admin created — {created.email}</p>
@@ -122,7 +122,7 @@ function SchoolRow({ school }: { school: { id: string; name: string; slug: strin
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/20 font-semibold text-primary">
               {school.name.charAt(0)}
             </div>
             <div className="min-w-0">
@@ -249,7 +249,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary via-primary/80 to-primary/40 p-6 text-primary-foreground sm:p-8">
+      <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary via-primary/90 to-primary/55 p-6 text-primary-foreground sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-white/10 blur-xl" />
         <div className="relative space-y-4">
@@ -260,7 +260,7 @@ export default function AdminPage() {
             <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Command center
             </h1>
-            <p className="max-w-2xl text-sm text-primary-foreground/80">
+            <p className="max-w-2xl text-sm text-primary-foreground/90">
               Every school on Clearis at a glance — enable premium AI, manage access,
               and support your tenants from one place.
             </p>
@@ -326,7 +326,7 @@ function StatChip({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 backdrop-blur">
       <p className="text-lg font-semibold leading-none">{value}</p>
-      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-primary-foreground/70">
+      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-primary-foreground/85">
         {label}
       </p>
     </div>

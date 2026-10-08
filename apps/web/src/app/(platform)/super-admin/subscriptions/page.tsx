@@ -109,7 +109,7 @@ export default function SuperAdminSubscriptionsPage() {
                     <Link
                       key={s.school_id}
                       href={`/super-admin/schools/${s.school_id}`}
-                      className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-accent/50"
+                      className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-accent/70"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium">{s.school_name}</p>
@@ -137,7 +137,7 @@ function SchoolLinkRow({ s, label }: { s: SubListRow; label: string }) {
   return (
     <Link
       href={`/super-admin/schools/${s.school_id}`}
-      className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-accent/50"
+      className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:bg-accent/70"
     >
       <div className="min-w-0">
         <p className="truncate font-medium">{s.school_name}</p>

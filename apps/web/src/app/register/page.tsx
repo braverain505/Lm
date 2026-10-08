@@ -173,7 +173,7 @@ export default function RegisterPage() {
               key={i}
               animate={{ y: [-20, 20, -20], opacity: [0.15, 0.3, 0.15] }}
               transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut", delay: i * 0.5 }}
-              className="absolute h-2 w-2 rounded-full bg-success/20"
+              className="absolute h-2 w-2 rounded-full bg-success/35"
               style={{
                 left: `${15 + i * 14}%`,
                 top: `${10 + (i % 3) * 25}%`,
@@ -214,7 +214,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay: 0.3, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="rounded-2xl border border-border/40 bg-white/80 p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:bg-white/5 sm:p-10"
+            className="rounded-2xl border border-border/60 bg-white/80 p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:bg-white/5 sm:p-10"
           >
             {/* Success badge */}
             <motion.div
@@ -269,7 +269,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: 1.0 }}
             >
-              <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+              <p className="mb-4 text-center text-[12px] font-semibold uppercase tracking-wider text-muted-foreground/90">
                 What to do next
               </p>
               <div className="grid gap-2.5 sm:grid-cols-2">
@@ -286,7 +286,7 @@ export default function RegisterPage() {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1.1 + i * 0.08 }}
-                    className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-white/60 px-3.5 py-2.5 backdrop-blur-sm dark:bg-white/5"
+                    className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-white/60 px-3.5 py-2.5 backdrop-blur-sm dark:bg-white/5"
                   >
                     <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${item.color}`}>
                       {item.icon}
@@ -329,7 +329,7 @@ export default function RegisterPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.5 }}
-            className="mt-6 text-center text-[11px] text-muted-foreground/50"
+            className="mt-6 text-center text-[11px] text-muted-foreground/75"
           >
             Secure school data · Role-based access · Automated backups
           </motion.p>
@@ -417,7 +417,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-border/60 bg-card p-7 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:p-8">
+        <div className="rounded-2xl border border-border/80 bg-card p-7 shadow-[0_1px_3px_rgba(0,0,0,0.04)] sm:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -513,7 +513,7 @@ export default function RegisterPage() {
                     </Field>
 
                     {/* Logo upload */}
-                    <div className="rounded-xl border border-dashed border-border/60 p-4">
+                    <div className="rounded-xl border border-dashed border-border/80 p-4">
                       <div className="flex items-center gap-3">
                         <ImagePlus className="h-5 w-5 text-muted-foreground" />
                         <div className="min-w-0 flex-1">
@@ -528,7 +528,7 @@ export default function RegisterPage() {
                             school workspace.
                           </p>
                         </div>
-                        <label className="cursor-pointer rounded-lg bg-primary/10 px-3 py-2 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/15">
+                        <label className="cursor-pointer rounded-lg bg-primary/20 px-3 py-2 text-[12px] font-semibold text-primary transition-colors hover:bg-primary/30">
                           Choose
                           <input
                             type="file"
@@ -605,7 +605,7 @@ export default function RegisterPage() {
                         />
                       </Field>
                     </div>
-                    <label className="flex gap-3 rounded-xl border border-border/60 bg-muted/30 p-4 text-[13px]">
+                    <label className="flex gap-3 rounded-xl border border-border/80 bg-muted/55 p-4 text-[13px]">
                       <input
                         type="checkbox"
                         className="mt-0.5 h-4 w-4 accent-primary"
@@ -626,7 +626,7 @@ export default function RegisterPage() {
 
                 {step === 2 && (
                   <div className="space-y-4">
-                    <div className="rounded-xl border border-border/60 bg-muted/30 p-5">
+                    <div className="rounded-xl border border-border/80 bg-muted/55 p-5">
                       <div className="flex items-center gap-4">
                         {logoPreview ? (
                           <img
@@ -635,7 +635,7 @@ export default function RegisterPage() {
                             className="h-14 w-14 rounded-xl border bg-white object-contain"
                           />
                         ) : (
-                          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 text-lg font-bold text-primary">
                             {(values.school_name ?? "S").charAt(0)}
                           </div>
                         )}
@@ -661,7 +661,7 @@ export default function RegisterPage() {
                         .map((item) => (
                           <p
                             key={item}
-                            className="rounded-lg border border-border/60 px-3 py-2 text-muted-foreground"
+                            className="rounded-lg border border-border/80 px-3 py-2 text-muted-foreground"
                           >
                             {item}
                           </p>
@@ -679,7 +679,7 @@ export default function RegisterPage() {
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-[13px] text-destructive"
+                    className="rounded-xl border border-destructive/40 bg-destructive/20 px-3.5 py-2.5 text-[13px] text-destructive"
                   >
                     {error}
                   </motion.div>
@@ -731,7 +731,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-primary hover:text-primary/80 transition-colors"
+              className="font-semibold text-primary hover:text-primary/90 transition-colors"
             >
               Sign in
             </Link>
@@ -739,7 +739,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-[11px] tracking-wide text-muted-foreground/60">
+          <p className="text-[11px] tracking-wide text-muted-foreground/85">
             Secure school data · Role-based access · Automated backups
           </p>
         </div>

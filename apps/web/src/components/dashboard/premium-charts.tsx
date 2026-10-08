@@ -35,7 +35,7 @@ function ChartTooltip({
   return (
     <div className="rounded-xl border border-white/60 bg-white px-3.5 py-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
       {label != null && (
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/75">
           {label}
         </p>
       )}
@@ -46,7 +46,7 @@ function ChartTooltip({
               className="inline-block h-2 w-2 rounded-full"
               style={{ background: p.color }}
             />
-            <span className="text-muted-foreground/60">{p.name}:</span>
+            <span className="text-muted-foreground/85">{p.name}:</span>
             <span className="font-semibold text-foreground">
               {p.value}
               {suffix}
@@ -59,7 +59,7 @@ function ChartTooltip({
 }
 
 const axisStyle = {
-  tick: { fontSize: 10, fill: "hsl(var(--muted-foreground) / 0.4)" },
+  tick: { fontSize: 10, fill: "hsl(var(--muted-foreground) / 0.75)" },
   tickLine: false,
   axisLine: false,
 };
@@ -103,7 +103,7 @@ export function EnrollmentDonut({
           <p className="text-[22px] font-bold tracking-tight text-foreground">
             {total.toLocaleString()}
           </p>
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40">
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/65">
             students
           </p>
         </div>
@@ -124,12 +124,12 @@ export function AttendanceOverviewChart({
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.65)" vertical={false} />
         <XAxis dataKey="name" {...axisStyle} />
         <YAxis allowDecimals={false} {...axisStyle} />
         <Tooltip
           content={<ChartTooltip />}
-          cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
+          cursor={{ fill: "hsl(var(--muted) / 0.65)" }}
         />
         <Bar dataKey="present" name="Present" stackId="a" fill="#10b981" radius={[0, 0, 3, 3]} maxBarSize={36} />
         <Bar dataKey="late" name="Late" stackId="a" fill="#f59e0b" maxBarSize={36} />
@@ -161,7 +161,7 @@ export function PerformanceTrendChart({
             <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.65)" vertical={false} />
         <XAxis dataKey="month" {...axisStyle} dy={4} />
         <YAxis domain={[0, 100]} {...axisStyle} />
         <Tooltip content={<ChartTooltip suffix="%" />} />
@@ -213,14 +213,14 @@ export function ScoreEntryChart({
             transition={{ duration: 0.3, delay: 0.1 + idx * 0.05, ease }}
           >
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-medium text-foreground/70 truncate max-w-[120px]">
+              <span className="text-[11px] font-medium text-foreground/85 truncate max-w-[120px]">
                 {item.subject}
               </span>
-              <span className="text-[10px] font-semibold text-muted-foreground/50">
+              <span className="text-[10px] font-semibold text-muted-foreground/75">
                 {item.entered}/{item.total} · {pct}%
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-muted/30 overflow-hidden">
+            <div className="h-2 w-full rounded-full bg-muted/55 overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ backgroundColor: color }}

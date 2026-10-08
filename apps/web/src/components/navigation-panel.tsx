@@ -175,40 +175,40 @@ export function NavigationPanel({ open, onNavigate, isTablet = false }: Navigati
                         if (m) setActiveSchool(m);
                         close();
                       }}
-                      className="w-full rounded-md border border-border/50 bg-background px-2 py-1.5 text-[11px] font-medium text-foreground outline-none focus:ring-1 focus:ring-ring"
+                      className="w-full rounded-md border border-border/70 bg-background px-2 py-1.5 text-[11px] font-medium text-foreground outline-none focus:ring-1 focus:ring-ring"
                     >
                       {memberships.map((m) => (
                         <option key={m.school_id} value={m.school_id}>{m.school_name}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="border-t border-border/30" />
+                  <div className="border-t border-border/50" />
                 </>
               )}
 
               <div className="px-1 py-1">
                 {canManageSchool && isSchoolAdminRole(activeSchool?.role?.code) && (
                   <>
-                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/85 transition-colors hover:bg-accent hover:text-foreground">
                       Profile
                     </Link>
-                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-accent hover:text-foreground">
+                    <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-foreground/85 transition-colors hover:bg-accent hover:text-foreground">
                       Preferences
                     </Link>
                   </>
                 )}
                 <div className="flex items-center justify-between px-2.5 py-2">
-                  <span className="text-[12px] font-medium text-foreground/70">Theme</span>
+                  <span className="text-[12px] font-medium text-foreground/85">Theme</span>
                   <ThemeSwitch />
                 </div>
               </div>
 
-              <div className="border-t border-border/30" />
+              <div className="border-t border-border/50" />
 
               <div className="px-1 py-1">
                 <button
                   onClick={() => { handleLogout(); close(); }}
-                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-destructive/80 transition-colors hover:bg-destructive/5 hover:text-destructive"
+                  className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-[12px] font-medium text-destructive/90 transition-colors hover:bg-destructive/20 hover:text-destructive"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Sign out

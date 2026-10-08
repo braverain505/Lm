@@ -30,9 +30,9 @@ const STATUS_FILTERS = ["", "draft", "approved", "paid", "rejected"] as const;
 function statusChip(status: string) {
   const map: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
-    approved: "bg-primary/10 text-primary",
-    paid: "bg-success/10 text-success",
-    rejected: "bg-destructive/10 text-destructive",
+    approved: "bg-primary/20 text-primary",
+    paid: "bg-success/25 text-success",
+    rejected: "bg-destructive/25 text-destructive",
   };
   return map[status] ?? "bg-muted text-muted-foreground";
 }
@@ -136,7 +136,7 @@ export default function ExpensesPage() {
         ].map((item) => (
           <Card key={item.label} className="premium-card">
             <CardContent className="p-4">
-              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <p className="text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                 {item.label}
               </p>
               <p className={cn("mt-1 text-xl font-bold tabular-nums", item.tone)}>
@@ -189,7 +189,7 @@ export default function ExpensesPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Paid with</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={form.payment_method}
                   onChange={(e) => setForm({ ...form, payment_method: e.target.value })}
                 >
@@ -203,7 +203,7 @@ export default function ExpensesPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Category</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={form.category_id}
                   onChange={(e) => setForm({ ...form, category_id: e.target.value })}
                 >
@@ -218,7 +218,7 @@ export default function ExpensesPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Account</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={form.cash_account_id}
                   onChange={(e) => setForm({ ...form, cash_account_id: e.target.value })}
                 >
@@ -277,7 +277,7 @@ export default function ExpensesPage() {
               {error && <p className="text-[11.5px] text-destructive lg:col-span-3">{error}</p>}
             </form>
 
-            <div className="flex flex-wrap items-end gap-2 border-t border-border/40 pt-4">
+            <div className="flex flex-wrap items-end gap-2 border-t border-border/60 pt-4">
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Add an expense category</Label>
                 <Input
@@ -316,8 +316,8 @@ export default function ExpensesPage() {
                 className={cn(
                   "rounded-lg px-2.5 py-1 text-[11.5px] font-medium capitalize transition-colors",
                   status === s
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent/50",
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:bg-accent/70",
                 )}
               >
                 {s || "all"}
@@ -329,14 +329,14 @@ export default function ExpensesPage() {
           {isLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : rows.length === 0 ? (
-            <p className="py-10 text-center text-[13px] text-muted-foreground/70">
+            <p className="py-10 text-center text-[13px] text-muted-foreground/90">
               No expenses recorded{status ? ` with status “${status}”` : ""} yet.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     <th className="pb-2.5">Date</th>
                     <th className="pb-2.5">Voucher</th>
                     <th className="pb-2.5">Description</th>
@@ -351,7 +351,7 @@ export default function ExpensesPage() {
                   {rows.map((row) => (
                     <tr
                       key={row.id}
-                      className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                      className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                     >
                       <td className="py-3 text-muted-foreground">{row.expense_date}</td>
                       <td className="py-3 font-mono text-[11px] text-muted-foreground">

@@ -138,7 +138,7 @@ export function ClassPerformanceBar({
         <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
         <XAxis dataKey="arm_name" {...AxisTicks()} interval={0} tick={{ ...AxisTicks().tick, fontSize: 10 }} />
         <YAxis domain={[0, 100]} {...AxisTicks()} />
-        <Tooltip content={<ChartTooltip suffix="%" />} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip content={<ChartTooltip suffix="%" />} cursor={{ fill: "hsl(var(--muted) / 0.75)" }} />
         <Bar dataKey="avg_score" name="Avg score" radius={[5, 5, 2, 2]} maxBarSize={36}>
           {data.map((_, i) => (
             <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
@@ -209,7 +209,7 @@ export function AttendanceBars({
         <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
         <XAxis dataKey="name" {...AxisTicks()} />
         <YAxis allowDecimals={false} {...AxisTicks()} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.4)" }} />
+        <Tooltip content={<ChartTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.75)" }} />
         <Bar dataKey="present" name="Present" stackId="a" fill="hsl(var(--chart-3))" radius={[0, 0, 2, 2]} maxBarSize={44} />
         <Bar dataKey="late" name="Late" stackId="a" fill="hsl(var(--chart-4))" maxBarSize={44} />
         <Bar dataKey="absent" name="Absent" stackId="a" fill="hsl(var(--chart-6))" radius={[4, 4, 0, 0]} maxBarSize={44} />

@@ -206,6 +206,17 @@ export const EnrollmentHistoryRowSchema = z.object({
 });
 export type EnrollmentHistoryRow = z.infer<typeof EnrollmentHistoryRowSchema>;
 
+// A teacher's "teaches <subject> in <class>" row. Declared before StaffSchema
+// because the staff list embeds these.
+export const MyAssignmentSchema = z.object({
+  arm_id: z.string().uuid(),
+  arm_name: z.string(),
+  subject_id: z.string().uuid(),
+  subject_name: z.string(),
+  assignment_id: z.string().uuid(),
+});
+export type MyAssignment = z.infer<typeof MyAssignmentSchema>;
+
 export const StaffSchema = z.object({
   id: z.string().uuid(),
   staff_no: z.string(),
@@ -220,6 +231,9 @@ export const StaffSchema = z.object({
   account_email: z.string().nullable(),
   account_role_id: z.string().uuid().nullable(),
   account_role_name: z.string().nullable(),
+  homeroom_arm_id: z.string().uuid().nullable().optional(),
+  homeroom_arm_name: z.string().nullable().optional(),
+  assignments: z.array(MyAssignmentSchema).optional(),
 });
 export type Staff = z.infer<typeof StaffSchema>;
 
@@ -238,6 +252,7 @@ export const StaffAccountCreateSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   role_id: z.string().uuid(),
+  arm_id: z.string().uuid().optional(),
 });
 export type StaffAccountCreate = z.infer<typeof StaffAccountCreateSchema>;
 
@@ -245,6 +260,7 @@ export const StaffAccountUpdateSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
   role_id: z.string().uuid().optional(),
+  arm_id: z.string().uuid().optional(),
 });
 export type StaffAccountUpdate = z.infer<typeof StaffAccountUpdateSchema>;
 
@@ -277,15 +293,6 @@ export const AssignmentCreateSchema = z.object({
   teacher_id: z.string().uuid(),
 });
 export type AssignmentCreate = z.infer<typeof AssignmentCreateSchema>;
-
-export const MyAssignmentSchema = z.object({
-  arm_id: z.string().uuid(),
-  arm_name: z.string(),
-  subject_id: z.string().uuid(),
-  subject_name: z.string(),
-  assignment_id: z.string().uuid(),
-});
-export type MyAssignment = z.infer<typeof MyAssignmentSchema>;
 
 // --- Results ---------------------------------------------------------------------
 export const AssessmentComponentSchema = z.object({

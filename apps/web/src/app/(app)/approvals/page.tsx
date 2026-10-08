@@ -213,7 +213,7 @@ export default function ProcessResultsPage() {
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {selectedTermClosed && (
-            <span className="inline-flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-3 py-2 text-[12px] text-warning">
+            <span className="inline-flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/20 px-3 py-2 text-[12px] text-warning">
               <Lock className="h-3.5 w-3.5 shrink-0" />
               This term is closed — actions are disabled.
             </span>
@@ -229,7 +229,7 @@ export default function ProcessResultsPage() {
       {/* ── Term ───────────────────────────────────────────────────────── */}
       {terms.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">Term</span>
+          <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/85">Term</span>
           {terms.map((t) => (
             <button
               key={t.id}
@@ -245,8 +245,8 @@ export default function ProcessResultsPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors duration-150",
                 t.id === term?.id
-                  ? "border-primary/40 bg-primary/10 text-primary"
-                  : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                  ? "border-primary/55 bg-primary/20 text-primary"
+                  : "border-border/80 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
               )}
             >
               {t.name}
@@ -315,8 +315,8 @@ export default function ProcessResultsPage() {
               <ReadinessBar value={termPct} size="lg" />
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {STAGE_ORDER.slice(0, 4).map((stage) => (
-                  <div key={stage} className="rounded-lg border border-border/50 bg-muted/20 px-2.5 py-2">
-                    <p className="text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                  <div key={stage} className="rounded-lg border border-border/70 bg-muted/40 px-2.5 py-2">
+                    <p className="text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground/85">
                       {STAGE_META[stage].label}
                     </p>
                     <p className="mt-0.5 text-[15px] font-semibold tabular-nums text-foreground">
@@ -354,7 +354,7 @@ export default function ProcessResultsPage() {
                       </p>
                     </div>
                     <div className="relative shrink-0">
-                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/75" />
                       <Input
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}

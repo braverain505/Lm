@@ -231,14 +231,14 @@ function PaletteItem({
         "flex w-full items-start gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-left transition-all duration-150",
         disabled
           ? "cursor-not-allowed opacity-40"
-          : "cursor-grab hover:border-border/70 hover:bg-accent active:cursor-grabbing",
+          : "cursor-grab hover:border-border/85 hover:bg-accent active:cursor-grabbing",
         isDragging && "opacity-40",
       )}
     >
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/90" />
       <span className="min-w-0">
         <span className="block truncate text-[12.5px] font-medium">{def.label}</span>
-        <span className="block text-[11px] leading-snug text-muted-foreground/60">
+        <span className="block text-[11px] leading-snug text-muted-foreground/85">
           {def.description}
         </span>
       </span>
@@ -281,7 +281,7 @@ function CanvasItem({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
         "group flex items-center gap-2 rounded-lg border bg-card px-2.5 py-2 transition-colors",
-        selected ? "border-primary/50 bg-primary/[0.04]" : "border-border/70",
+        selected ? "border-primary/65 bg-primary/[0.04]" : "border-border/85",
         isDragging && "z-10 shadow-pop",
         widget.hidden && "opacity-50",
       )}
@@ -302,12 +302,12 @@ function CanvasItem({
         {...listeners}
         {...attributes}
         aria-label={`Reorder ${def.label}`}
-        className="cursor-grab touch-none rounded p-0.5 text-muted-foreground/40 hover:text-foreground active:cursor-grabbing"
+        className="cursor-grab touch-none rounded p-0.5 text-muted-foreground/65 hover:text-foreground active:cursor-grabbing"
       >
         <GripVertical className="h-3.5 w-3.5" />
       </button>
 
-      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/90" />
 
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[12.5px] font-medium">
@@ -315,7 +315,7 @@ function CanvasItem({
             ? (widget.props.title as string)
             : def.label}
         </span>
-        <span className="block text-[10.5px] text-muted-foreground/50">
+        <span className="block text-[10.5px] text-muted-foreground/75">
           {def.label}
           {half && " · half width"}
           {widget.hidden && " · hidden"}
@@ -331,7 +331,7 @@ function CanvasItem({
             e.stopPropagation();
             onMove(index - 1);
           }}
-          className="rounded p-1 text-muted-foreground/60 hover:bg-accent hover:text-foreground disabled:opacity-30"
+          className="rounded p-1 text-muted-foreground/85 hover:bg-accent hover:text-foreground disabled:opacity-30"
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
@@ -343,7 +343,7 @@ function CanvasItem({
             e.stopPropagation();
             onMove(index + 1);
           }}
-          className="rounded p-1 text-muted-foreground/60 hover:bg-accent hover:text-foreground disabled:opacity-30"
+          className="rounded p-1 text-muted-foreground/85 hover:bg-accent hover:text-foreground disabled:opacity-30"
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -354,7 +354,7 @@ function CanvasItem({
             e.stopPropagation();
             onToggleHidden();
           }}
-          className="rounded p-1 text-muted-foreground/60 hover:bg-accent hover:text-foreground"
+          className="rounded p-1 text-muted-foreground/85 hover:bg-accent hover:text-foreground"
         >
           {widget.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </button>
@@ -365,7 +365,7 @@ function CanvasItem({
             e.stopPropagation();
             onDuplicate();
           }}
-          className="rounded p-1 text-muted-foreground/60 hover:bg-accent hover:text-foreground"
+          className="rounded p-1 text-muted-foreground/85 hover:bg-accent hover:text-foreground"
         >
           <Copy className="h-3.5 w-3.5" />
         </button>
@@ -376,7 +376,7 @@ function CanvasItem({
             e.stopPropagation();
             onRemove();
           }}
-          className="rounded p-1 text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
+          className="rounded p-1 text-muted-foreground/85 hover:bg-destructive/25 hover:text-destructive"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
@@ -396,7 +396,7 @@ function Inspector({
 }) {
   if (!widget) {
     return (
-      <div className="px-3 py-6 text-center text-[12px] text-muted-foreground/60">
+      <div className="px-3 py-6 text-center text-[12px] text-muted-foreground/85">
         Pick a block on the card to change its settings.
       </div>
     );
@@ -409,13 +409,13 @@ function Inspector({
     <div className="space-y-3.5 p-3">
       <div>
         <p className="text-[12.5px] font-semibold">{def.label}</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground/60">
+        <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground/85">
           {def.description}
         </p>
       </div>
 
       {fields.length === 0 && (
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-[11px] text-muted-foreground/85">
           This block has no settings — it always draws the same way.
         </p>
       )}
@@ -449,10 +449,10 @@ function Inspector({
                 value={typeof value === "string" ? value : ""}
                 placeholder={field.placeholder}
                 onChange={(e) => onProp(field.key, e.target.value)}
-                className="w-full resize-y rounded-xl border border-border/80 bg-background/50 px-3 py-2 text-[13px] shadow-sm focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/10"
+                className="w-full resize-y rounded-xl border border-border/90 bg-background/70 px-3 py-2 text-[13px] shadow-sm focus-visible:border-primary/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
               />
               {field.help && (
-                <p className="text-[10.5px] text-muted-foreground/60">{field.help}</p>
+                <p className="text-[10.5px] text-muted-foreground/85">{field.help}</p>
               )}
             </div>
           );
@@ -480,7 +480,7 @@ function Inspector({
                 id={`f-${field.key}`}
                 value={typeof value === "string" ? value : ""}
                 onChange={(e) => onProp(field.key, e.target.value)}
-                className="h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px]"
+                className="h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px]"
               >
                 {(field.options ?? []).map((o) => (
                   <option key={o.value} value={o.value}>
@@ -500,18 +500,18 @@ function Inspector({
               placeholder={field.placeholder}
               onChange={(e) => onProp(field.key, e.target.value)}
             />
-            {field.help && <p className="text-[10.5px] text-muted-foreground/60">{field.help}</p>}
+            {field.help && <p className="text-[10.5px] text-muted-foreground/85">{field.help}</p>}
           </div>
         );
       })}
 
-      <div className="space-y-1 border-t border-border/60 pt-3.5">
+      <div className="space-y-1 border-t border-border/80 pt-3.5">
         <Label htmlFor="f-width">Width</Label>
         <select
           id="f-width"
           value={width}
           onChange={(e) => onProp("width", e.target.value)}
-          className="h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px]"
+          className="h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px]"
         >
           <option value="full">Full width</option>
           <option value="half">
@@ -656,13 +656,13 @@ export function ReportCardDesigner({
     <div className="space-y-3">
       {/* View switch: designing and proof-reading want different canvases. */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1 rounded-lg border border-border/70 p-0.5">
+        <div className="flex items-center gap-1 rounded-lg border border-border/85 p-0.5">
           <button
             type="button"
             onClick={() => setView("design")}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-              view === "design" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent",
+              view === "design" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-accent",
             )}
           >
             <LayoutTemplate className="h-3.5 w-3.5" /> Design
@@ -672,14 +672,14 @@ export function ReportCardDesigner({
             onClick={() => setView("preview")}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-              view === "preview" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent",
+              view === "preview" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:bg-accent",
             )}
           >
             <Pencil className="h-3.5 w-3.5" /> Preview
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground/60">Theme</span>
+          <span className="text-[11px] text-muted-foreground/85">Theme</span>
           <div className="flex items-center gap-1">
             {REPORT_TEMPLATES.map((t) => (
               <button
@@ -691,7 +691,7 @@ export function ReportCardDesigner({
                 className={cn(
                   "h-6 w-6 rounded-full border-2 transition-transform",
                   layout.theme === t.id
-                    ? "border-foreground/60 scale-110"
+                    ? "border-foreground/80 scale-110"
                     : "border-transparent hover:scale-110",
                 )}
                 style={{ background: t.accent }}
@@ -704,7 +704,7 @@ export function ReportCardDesigner({
       {view === "preview" ? (
         <div className="report-card-stage">
           <ReportCardDocument card={SAMPLE_CARD} layout={layout} />
-          <p className="mt-2 text-center text-[11px] text-muted-foreground/60">
+          <p className="mt-2 text-center text-[11px] text-muted-foreground/85">
             Sample data — a real card shows the selected student&apos;s published results.
           </p>
         </div>
@@ -719,17 +719,17 @@ export function ReportCardDesigner({
         >
           <div className="grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)_16rem]">
             {/* Palette */}
-            <div className="flex max-h-[36rem] flex-col rounded-xl border border-border/70 bg-card">
-              <div className="border-b border-border/60 px-3 py-2.5">
+            <div className="flex max-h-[36rem] flex-col rounded-xl border border-border/85 bg-card">
+              <div className="border-b border-border/80 px-3 py-2.5">
                 <p className="text-[12.5px] font-semibold">Blocks</p>
-                <p className="text-[10.5px] text-muted-foreground/60">
+                <p className="text-[10.5px] text-muted-foreground/85">
                   Drag onto the card, or click to add
                 </p>
               </div>
               <div className="scrollbar-thin flex-1 space-y-2 overflow-y-auto p-2">
                 {grouped.map(([group, defs]) => (
                   <div key={group} className="space-y-0.5">
-                    <p className="px-2.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/50">
+                    <p className="px-2.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/75">
                       {group}
                     </p>
                     {defs.map((def) => (
@@ -751,7 +751,7 @@ export function ReportCardDesigner({
             {/* Canvas */}
             <div
               ref={setCanvasRef}
-              className="rounded-xl border border-border/70 bg-muted/20 p-2.5"
+              className="rounded-xl border border-border/85 bg-muted/40 p-2.5"
             >
               <SortableContext
                 items={layout.widgets.map((w) => w.id)}
@@ -781,15 +781,15 @@ export function ReportCardDesigner({
               </SortableContext>
 
               {layout.widgets.length === 0 && (
-                <p className="py-10 text-center text-[12px] text-muted-foreground/60">
+                <p className="py-10 text-center text-[12px] text-muted-foreground/85">
                   The card is empty. Drag a block in from the left.
                 </p>
               )}
             </div>
 
             {/* Inspector */}
-            <div className="max-h-[36rem] overflow-y-auto rounded-xl border border-border/70 bg-card">
-              <div className="border-b border-border/60 px-3 py-2.5">
+            <div className="max-h-[36rem] overflow-y-auto rounded-xl border border-border/85 bg-card">
+              <div className="border-b border-border/80 px-3 py-2.5">
                 <p className="text-[12.5px] font-semibold">Settings</p>
               </div>
               <Inspector
@@ -804,7 +804,7 @@ export function ReportCardDesigner({
 
           <DragOverlay dropAnimation={null}>
             {draggingDef && (
-              <div className="flex items-center gap-2 rounded-lg border border-primary/40 bg-card px-3 py-2 shadow-pop">
+              <div className="flex items-center gap-2 rounded-lg border border-primary/55 bg-card px-3 py-2 shadow-pop">
                 <draggingDef.icon className="h-3.5 w-3.5 text-primary" />
                 <span className="text-[12.5px] font-medium">{draggingDef.label}</span>
                 <Badge variant="default">

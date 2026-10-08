@@ -83,7 +83,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Card */}
-          <div className="rounded-2xl border border-border/40 bg-white/80 p-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:bg-white/5">
+          <div className="rounded-2xl border border-border/60 bg-white/80 p-10 text-center shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-sm dark:bg-white/5">
             {/* Icon */}
             <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-50 to-amber-50 ring-1 ring-red-100/80">
               <ShieldAlert className="h-7 w-7 text-red-500" />
@@ -105,7 +105,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
             {/* Description */}
             <p className="mt-5 text-[13px] leading-relaxed text-muted-foreground">
-              This school has been suspended by <span className="font-semibold text-foreground/70">Clearis</span>. All access is blocked until the suspension is lifted by our team.
+              This school has been suspended by <span className="font-semibold text-foreground/85">Clearis</span>. All access is blocked until the suspension is lifted by our team.
             </p>
 
             {/* Divider */}
@@ -138,7 +138,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
 
           {/* Footer */}
-          <p className="mt-6 text-center text-[11px] text-muted-foreground/50">
+          <p className="mt-6 text-center text-[11px] text-muted-foreground/75">
             Clearis School Management Platform
           </p>
         </div>

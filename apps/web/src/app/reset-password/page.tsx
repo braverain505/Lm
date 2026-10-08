@@ -97,7 +97,7 @@ function ResetPasswordForm() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-border/60 bg-card p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+        <div className="rounded-2xl border border-border/80 bg-card p-8 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5"
@@ -108,7 +108,7 @@ function ResetPasswordForm() {
                 New password
               </Label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/85" />
                 <Input
                   id="new_password"
                   type="password"
@@ -148,7 +148,7 @@ function ResetPasswordForm() {
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3.5 py-2.5 text-[13px] text-destructive"
+                className="flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/20 px-3.5 py-2.5 text-[13px] text-destructive"
               >
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {error}
@@ -171,7 +171,7 @@ function ResetPasswordForm() {
           <p className="text-[13px] text-muted-foreground">
             <Link
               href="/login"
-              className="font-semibold text-primary hover:text-primary/80 transition-colors"
+              className="font-semibold text-primary hover:text-primary/90 transition-colors"
             >
               Back to sign in
             </Link>

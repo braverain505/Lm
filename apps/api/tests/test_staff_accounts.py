@@ -133,6 +133,110 @@ def test_staff_account_404_for_foreign_staff(client):
     assert r.json()["error"]["code"] == "ERR_NOT_FOUND"
 
 
+def test_homeroom_role_requires_and_sets_a_class(client):
+    """A homeroom teacher is tied to a class: creating the account with the
+    homeroom role and an arm makes that teacher the arm's class teacher."""
+    from .test_academics import _create_arm, _create_session
+
+    register_school(client)
+    sid = active_school_id(client)
+    session_id = _create_session(client, sid)
+    arm_id = _create_arm(client, sid, session_id, "JSS 1A")
+    staff = _add_staff(client, sid, staff_no="T010")
+
+    r = client.post(
+        f"{STAFF}/{staff['id']}/account",
+        json={
+            "email": "homeroom@test.edu",
+            "password": "Str0ng!Pass",
+            "role_id": _role_id(client, sid, "homeroom_teacher"),
+            "arm_id": arm_id,
+        },
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["role_code"] == "homeroom_teacher"
+
+    # The staff list reports the class the teacher leads.
+    row = next(
+        s
+        for s in client.get(STAFF, headers={"X-School-Id": sid}).json()
+        if s["id"] == staff["id"]
+    )
+    assert row["homeroom_arm_id"] == arm_id
+    assert row["homeroom_arm_name"] == "JSS 1A"
+
+
+def test_updating_role_to_homeroom_links_and_moves_the_class(client):
+    """Promoting an existing account to homeroom teacher links the chosen class,
+    and choosing another class in the same session releases the previous one."""
+    from .test_academics import _create_arm, _create_session
+
+    register_school(client)
+    sid = active_school_id(client)
+    session_id = _create_session(client, sid)
+    arm_a = _create_arm(client, sid, session_id, "JSS 2A")
+    arm_b = _create_arm(client, sid, session_id, "JSS 2B")
+    staff = _add_staff(client, sid, staff_no="T011")
+    assert _create_account(client, sid, staff["id"], email="role@test.edu").status_code == 201
+
+    role = _role_id(client, sid, "homeroom_teacher")
+    r = client.patch(
+        f"{STAFF}/{staff['id']}/account",
+        json={"role_id": role, "arm_id": arm_a},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["role_code"] == "homeroom_teacher"
+
+    r = client.patch(
+        f"{STAFF}/{staff['id']}/account",
+        json={"role_id": role, "arm_id": arm_b},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    row = next(
+        s
+        for s in client.get(STAFF, headers={"X-School-Id": sid}).json()
+        if s["id"] == staff["id"]
+    )
+    assert row["homeroom_arm_id"] == arm_b
+
+
+def test_staff_list_shows_subject_per_class(client):
+    """The same subject is taught by different teachers in different classes;
+    the staff list reports each class × subject pair separately."""
+    from .test_academics import _create_arm, _create_session
+
+    register_school(client)
+    sid = active_school_id(client)
+    session_id = _create_session(client, sid)
+    arm_1 = _create_arm(client, sid, session_id, "JSS 1 A")
+    arm_2 = _create_arm(client, sid, session_id, "JSS 2 A")
+    maths = client.post(
+        "/api/academics/subjects",
+        json={"name": "Mathematics", "code": "MTH"},
+        headers={"X-School-Id": sid},
+    ).json()["id"]
+
+    teacher_a = _add_staff(client, sid, staff_no="T020", full_name="Ada Maths")
+    teacher_b = _add_staff(client, sid, staff_no="T021", full_name="Bola Maths")
+
+    for staff, arm in ((teacher_a, arm_1), (teacher_b, arm_2)):
+        r = client.post(
+            "/api/academics/assignments",
+            json={"arm_id": arm, "subject_id": maths, "teacher_id": staff["id"]},
+            headers={"X-School-Id": sid},
+        )
+        assert r.status_code == 201, r.text
+
+    listing = client.get(STAFF, headers={"X-School-Id": sid}).json()
+    a = next(s for s in listing if s["id"] == teacher_a["id"])
+    b = next(s for s in listing if s["id"] == teacher_b["id"])
+    assert [(x["subject_name"], x["arm_name"]) for x in a["assignments"]] == [("Mathematics", "JSS 1 A")]
+    assert [(x["subject_name"], x["arm_name"]) for x in b["assignments"]] == [("Mathematics", "JSS 2 A")]
+
+
 def test_account_with_random_role_id_404(client):
     register_school(client)
     sid = active_school_id(client)

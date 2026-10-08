@@ -127,11 +127,11 @@ export default function SuperAdminSchoolsPage() {
             <Link
               key={s.id}
               href={`/super-admin/schools/${s.id}`}
-              className="block rounded-xl border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
+              className="block rounded-xl border bg-card p-4 shadow-sm transition-all hover:border-primary/55 hover:shadow-md"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/20 font-semibold text-primary">
                     {s.name.charAt(0)}
                   </div>
                   <div className="min-w-0">

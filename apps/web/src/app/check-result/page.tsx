@@ -185,7 +185,7 @@ export default function CheckResultPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Chrome — never printed. */}
-      <header className="sticky top-0 z-20 border-b border-border/50 bg-background/80 backdrop-blur-xl print:hidden">
+      <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 backdrop-blur-xl print:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <button
             type="button"
@@ -228,14 +228,14 @@ export default function CheckResultPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease }}
-          className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.5)] sm:p-7"
+          className="relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-[0_20px_60px_-35px_rgba(15,23,42,0.5)] sm:p-7"
         >
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -right-16 -top-24 h-64 w-64 rounded-full bg-primary/[0.07] blur-3xl" />
           </div>
 
           <div className="relative flex flex-wrap items-center gap-5">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-white">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/80 bg-white">
               {card?.school.logo_url ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -251,7 +251,7 @@ export default function CheckResultPage() {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/70">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/90">
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                 Verified result
               </p>
@@ -261,13 +261,13 @@ export default function CheckResultPage() {
               <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <UserRound className="h-3.5 w-3.5" />
-                  <strong className="font-semibold text-foreground/90">
+                  <strong className="font-semibold text-foreground/95">
                     {session.student.full_name}
                   </strong>
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   Admission No.
-                  <strong className="font-semibold text-foreground/90">
+                  <strong className="font-semibold text-foreground/95">
                     {session.student.admission_no}
                   </strong>
                 </span>
@@ -288,18 +288,18 @@ export default function CheckResultPage() {
               return (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-border/50 bg-muted/25 p-4"
+                  className="rounded-2xl border border-border/70 bg-muted/45 p-4"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
                       {stat.label}
                     </p>
-                    <Icon className="h-3.5 w-3.5 text-primary/70" />
+                    <Icon className="h-3.5 w-3.5 text-primary/80" />
                   </div>
                   <p className="mt-2 text-[22px] font-bold tabular-nums leading-none">
                     {cardLoading ? "—" : stat.value}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground/70">{stat.sub}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground/90">{stat.sub}</p>
                 </div>
               );
             })}
@@ -321,12 +321,12 @@ export default function CheckResultPage() {
                   onClick={() => setTermId(t.id)}
                   className={`rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-all duration-150 ${
                     active
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
+                      ? "border-primary/45 bg-primary/20 text-primary"
+                      : "border-border/80 text-muted-foreground hover:border-border hover:text-foreground"
                   }`}
                 >
                   {t.name}
-                  <span className="ml-1.5 font-normal text-muted-foreground/60">
+                  <span className="ml-1.5 font-normal text-muted-foreground/85">
                     {t.session_name}
                   </span>
                 </button>
@@ -344,7 +344,7 @@ export default function CheckResultPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex h-72 items-center justify-center rounded-3xl border border-border/60 bg-card"
+                className="flex h-72 items-center justify-center rounded-3xl border border-border/80 bg-card"
               >
                 <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -357,9 +357,9 @@ export default function CheckResultPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="rounded-3xl border border-border/60 bg-card px-6 py-14 text-center"
+                className="rounded-3xl border border-border/80 bg-card px-6 py-14 text-center"
               >
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/60">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/75">
                   <BookOpen className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <h2 className="text-[15px] font-semibold">
@@ -390,8 +390,8 @@ export default function CheckResultPage() {
           </AnimatePresence>
         </div>
 
-        <p className="mt-6 flex items-center justify-center gap-2 text-center text-[11.5px] text-muted-foreground/70 print:hidden">
-          <ShieldCheck className="h-3.5 w-3.5 text-primary/70" />
+        <p className="mt-6 flex items-center justify-center gap-2 text-center text-[11.5px] text-muted-foreground/90 print:hidden">
+          <ShieldCheck className="h-3.5 w-3.5 text-primary/80" />
           Published by {session.school.name} · served securely through Clearis
         </p>
 

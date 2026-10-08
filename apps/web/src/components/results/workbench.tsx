@@ -140,14 +140,14 @@ export function ArmRail({
 }) {
   return (
     <aside
-      className={cn("rounded-2xl border border-border/60 bg-card p-2 shadow-xs", className)}
+      className={cn("rounded-2xl border border-border/80 bg-card p-2 shadow-xs", className)}
       aria-label="Classes"
     >
       <div className="flex items-center justify-between px-2 py-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/85">
           Classes
         </span>
-        <span className="text-[11px] tabular-nums text-muted-foreground/60">{arms.length}</span>
+        <span className="text-[11px] tabular-nums text-muted-foreground/85">{arms.length}</span>
       </div>
       <div className="space-y-1">
         {arms.map((arm) => {
@@ -162,8 +162,8 @@ export function ArmRail({
               className={cn(
                 "block w-full rounded-xl border px-3 py-2.5 text-left transition-[background-color,border-color] duration-150",
                 selected
-                  ? "border-primary/40 bg-primary/[0.06]"
-                  : "border-transparent hover:border-border/60 hover:bg-muted/40",
+                  ? "border-primary/55 bg-primary/[0.06]"
+                  : "border-transparent hover:border-border/80 hover:bg-muted/60",
               )}
             >
               <div className="flex items-center justify-between gap-2">
@@ -180,7 +180,7 @@ export function ArmRail({
                 )}
               </div>
               <ReadinessBar size="sm" value={published} className="mt-2" sheen={false} />
-              <div className="mt-1 flex items-center justify-between text-[10.5px] text-muted-foreground/70">
+              <div className="mt-1 flex items-center justify-between text-[10.5px] text-muted-foreground/90">
                 <span>
                   {arm.totals.subjects} subject{arm.totals.subjects === 1 ? "" : "s"}
                 </span>
@@ -234,12 +234,12 @@ export function StageTabs({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[12px] font-medium transition-colors duration-150",
               active
-                ? "border-primary/40 bg-primary/10 text-primary"
-                : "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                ? "border-primary/55 bg-primary/20 text-primary"
+                : "border-border/80 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
             )}
           >
             {tab.label}
-            <span className={cn("tabular-nums text-[11px]", active ? "text-primary/70" : "text-muted-foreground/60")}>
+            <span className={cn("tabular-nums text-[11px]", active ? "text-primary/80" : "text-muted-foreground/85")}>
               {tab.count}
             </span>
           </button>
@@ -291,7 +291,7 @@ export function SubjectRow({
     <div
       className={cn(
         "rounded-xl border bg-card px-3.5 py-3 transition-[border-color,background-color] duration-150",
-        busy ? "border-primary/40 bg-primary/[0.03]" : "border-border/50 hover:border-border",
+        busy ? "border-primary/55 bg-primary/[0.03]" : "border-border/70 hover:border-border",
       )}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
@@ -306,7 +306,7 @@ export function SubjectRow({
           </div>
           <div className="mt-1.5 flex items-center gap-2">
             <ReadinessBar size="sm" value={entered} className="max-w-[150px]" sheen={false} />
-            <span className="text-[11px] tabular-nums text-muted-foreground/70">
+            <span className="text-[11px] tabular-nums text-muted-foreground/90">
               {row.entered}/{row.enrolled} entered
               {row.published > 0 ? ` · ${row.published} published` : ""}
             </span>
@@ -353,7 +353,7 @@ export function SubjectRow({
       {error && <p className="mt-2 px-1 text-[11.5px] text-destructive">{error}</p>}
 
       {rejecting && (
-        <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-destructive/20 bg-destructive/[0.04] p-3">
+        <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-destructive/40 bg-destructive/[0.04] p-3">
           <div className="min-w-[220px] flex-1 space-y-1">
             <Label htmlFor={`reason-${row.arm_id}-${row.subject_id}`} className="text-[11.5px]">
               Why is this going back to draft?
@@ -402,7 +402,7 @@ export function BatchProgress({
   const finished = done >= total;
   const value = pct(done, total);
   return (
-    <Card className="border-primary/25 bg-primary/[0.03]">
+    <Card className="border-primary/40 bg-primary/[0.03]">
       <CardContent className="space-y-2.5 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[13px] font-semibold text-foreground">

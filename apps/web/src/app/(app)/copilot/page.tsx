@@ -53,7 +53,7 @@ function CopilotAvatar({ className }: { className?: string }) {
 // ---------------------------------------------------------------------------
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-md border bg-muted/40 px-3 py-2">
+    <div className="rounded-md border bg-muted/60 px-3 py-2">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-sm font-semibold">{value}</p>
     </div>
@@ -67,7 +67,7 @@ const ACTION_TONES: Record<string, string> = {
   done: "border-emerald-300 bg-emerald-50 text-emerald-900",
   denied: "border-rose-300 bg-rose-50 text-rose-900",
   failed: "border-rose-300 bg-rose-50 text-rose-900",
-  cancelled: "border-input bg-muted/40 text-muted-foreground",
+  cancelled: "border-input bg-muted/60 text-muted-foreground",
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -101,7 +101,7 @@ function ActionCard({ action }: { action: Record<string, unknown> }) {
     <div
       className={cn(
         "mt-2 rounded-md border px-3 py-2",
-        ACTION_TONES[status] ?? "border-input bg-muted/40",
+        ACTION_TONES[status] ?? "border-input bg-muted/60",
       )}
     >
       <p className="text-[11px] font-semibold uppercase tracking-wide">
@@ -176,7 +176,7 @@ function PayloadCard({ payload }: { payload: Record<string, unknown> | null }) {
     return (
       <div className="mt-2 overflow-hidden rounded-md border bg-background">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs text-muted-foreground">
+          <thead className="bg-muted/70 text-xs text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Student</th>
@@ -204,7 +204,7 @@ function PayloadCard({ payload }: { payload: Record<string, unknown> | null }) {
     return (
       <div className="mt-2 overflow-hidden rounded-md border bg-background">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs text-muted-foreground">
+          <thead className="bg-muted/70 text-xs text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left font-medium">#</th>
               <th className="px-3 py-2 text-left font-medium">Student</th>
@@ -435,7 +435,7 @@ export default function CopilotPage() {
       {/* The messenger window: sidebar + thread in one rounded frame. */}
       <div className="flex h-[calc(100vh-12rem)] min-h-[28rem] overflow-hidden rounded-xl border bg-card shadow-sm">
         {/* Sidebar: saved conversations */}
-        <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/20 sm:flex">
+        <aside className="hidden w-72 shrink-0 flex-col border-r bg-muted/40 sm:flex">
           <div className="flex items-center justify-between gap-2 border-b px-3 py-3">
             <p className="text-sm font-semibold">Chats</p>
             <Button size="sm" variant="outline" onClick={newChat}>
@@ -458,7 +458,7 @@ export default function CopilotPage() {
                 key={c.id}
                 className={cn(
                   "group flex items-center gap-1 rounded-lg transition-colors",
-                  c.id === activeConvId ? "bg-primary/10" : "hover:bg-accent",
+                  c.id === activeConvId ? "bg-primary/20" : "hover:bg-accent",
                 )}
               >
                 <button
@@ -472,7 +472,7 @@ export default function CopilotPage() {
                     className={cn(
                       "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
                       c.id === activeConvId
-                        ? "bg-primary/15 text-primary"
+                        ? "bg-primary/30 text-primary"
                         : "bg-muted text-muted-foreground",
                     )}
                   >
@@ -489,7 +489,7 @@ export default function CopilotPage() {
                   onClick={() => removeChat(c.id, c.title)}
                   aria-label={`Delete chat ${c.title}`}
                   title="Delete chat"
-                  className="mr-1 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
+                  className="mr-1 rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/25 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -551,7 +551,7 @@ export default function CopilotPage() {
                 }
                 aria-label="Delete this chat"
                 title="Delete this chat"
-                className="hover:bg-destructive/10 hover:text-destructive"
+                className="hover:bg-destructive/25 hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -559,7 +559,7 @@ export default function CopilotPage() {
           </header>
 
           {/* Term scope — only meaningful for a chat that has not started yet. */}
-          <div className="flex flex-wrap items-center gap-2 border-b bg-muted/20 px-3 py-2 sm:px-4">
+          <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 sm:px-4">
             {activeConvId ? (
               <span className="text-xs text-muted-foreground">
                 Scoped to{" "}
@@ -575,7 +575,7 @@ export default function CopilotPage() {
                     className={cn(
                       "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                       scopeTermId === t.id
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? "border-primary bg-primary/20 text-primary"
                         : "border-input text-muted-foreground hover:bg-accent",
                     )}
                   >
@@ -589,7 +589,7 @@ export default function CopilotPage() {
           {/* Messages */}
           <div
             ref={scrollRef}
-            className="flex-1 space-y-3 overflow-y-auto bg-muted/10 px-3 py-4 sm:px-5"
+            className="flex-1 space-y-3 overflow-y-auto bg-muted/30 px-3 py-4 sm:px-5"
           >
             {activeConvId && threadLoading && (
               <div className="space-y-3">

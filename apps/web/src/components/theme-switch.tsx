@@ -14,7 +14,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className={cn("inline-flex items-center gap-0.5 rounded-md border border-border/40 bg-transparent p-0.5", className)}>
+    <div className={cn("inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-transparent p-0.5", className)}>
       {themes.map(({ value, icon: Icon, label }) => (
         <button
           key={value}
@@ -25,7 +25,7 @@ export function ThemeSwitch({ className }: { className?: string }) {
             "flex h-6 w-6 items-center justify-center rounded text-[10px] transition-all duration-100",
             theme === value
               ? "bg-muted text-foreground shadow-xs"
-              : "text-muted-foreground/40 hover:text-foreground",
+              : "text-muted-foreground/65 hover:text-foreground",
           )}
         >
           <Icon className="h-3 w-3" />

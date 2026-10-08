@@ -103,7 +103,7 @@ export default function LessonPlansPage() {
                 className={cn(
                   "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
                   t.id === term?.id
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary/20 text-primary"
                     : "border-input text-muted-foreground hover:bg-accent",
                 )}
               >

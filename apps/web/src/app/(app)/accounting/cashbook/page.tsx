@@ -110,12 +110,12 @@ export default function CashbookPage() {
               {accounts.map((account) => (
                 <div
                   key={account.id}
-                  className="rounded-xl border border-border/50 bg-muted/20 p-4"
+                  className="rounded-xl border border-border/70 bg-muted/40 p-4"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-[13px] font-semibold">{account.name}</p>
                     {account.is_default && (
-                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      <span className="shrink-0 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
                         Default
                       </span>
                     )}
@@ -139,7 +139,7 @@ export default function CashbookPage() {
           {showAccountForm && canReconcile && (
             <form
               onSubmit={submitAccount}
-              className="grid gap-3 rounded-xl border border-border/40 bg-muted/20 p-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="grid gap-3 rounded-xl border border-border/60 bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4"
             >
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Name</Label>
@@ -153,7 +153,7 @@ export default function CashbookPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px]">Kind</Label>
                 <select
-                  className="flex h-9 w-full rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                   value={accountForm.kind}
                   onChange={(e) => setAccountForm({ ...accountForm, kind: e.target.value })}
                 >
@@ -218,9 +218,9 @@ export default function CashbookPage() {
           <CardTitle>Movements</CardTitle>
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/70">Account</Label>
+              <Label className="text-[11px] text-muted-foreground/90">Account</Label>
               <select
-                className="flex h-9 min-w-[180px] rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] shadow-sm"
+                className="flex h-9 min-w-[180px] rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
                 value={accountId}
                 onChange={(e) => setAccountId(e.target.value)}
               >
@@ -233,7 +233,7 @@ export default function CashbookPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/70">From</Label>
+              <Label className="text-[11px] text-muted-foreground/90">From</Label>
               <Input
                 type="date"
                 value={dateFrom}
@@ -243,7 +243,7 @@ export default function CashbookPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground/70">To</Label>
+              <Label className="text-[11px] text-muted-foreground/90">To</Label>
               <Input
                 type="date"
                 value={dateTo}
@@ -270,8 +270,8 @@ export default function CashbookPage() {
                 { label: "Money out", value: book.total_out, tone: "text-destructive" },
                 { label: "Closing", value: book.closing, tone: "text-foreground" },
               ].map((item) => (
-                <div key={item.label} className="rounded-xl border border-border/50 bg-muted/20 p-3.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <div key={item.label} className="rounded-xl border border-border/70 bg-muted/40 p-3.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     {item.label}
                   </p>
                   <p className={cn("mt-1 text-lg font-bold tabular-nums", item.tone)}>
@@ -279,8 +279,8 @@ export default function CashbookPage() {
                   </p>
                 </div>
               ))}
-              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+              <div className="rounded-xl border border-border/70 bg-muted/40 p-3.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                   Unreconciled
                 </p>
                 <p className="mt-1 text-lg font-bold tabular-nums text-primary">
@@ -296,14 +296,14 @@ export default function CashbookPage() {
           {isLoading ? (
             <Skeleton className="h-48 w-full" />
           ) : !book || book.lines.length === 0 ? (
-            <p className="py-10 text-center text-[13px] text-muted-foreground/70">
+            <p className="py-10 text-center text-[13px] text-muted-foreground/90">
               Nothing has moved in this window yet.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="border-b border-border/40 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
                     <th className="pb-2.5">Date</th>
                     <th className="pb-2.5">Description</th>
                     <th className="pb-2.5">Reference</th>
@@ -320,7 +320,7 @@ export default function CashbookPage() {
                     return (
                       <tr
                         key={key}
-                        className="border-b border-border/30 last:border-0 transition-colors hover:bg-accent/40"
+                        className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
                       >
                         <td className="py-3 text-muted-foreground">{line.entry_date ?? "—"}</td>
                         <td className="py-3">
@@ -366,14 +366,14 @@ export default function CashbookPage() {
                               className={cn(
                                 "mx-auto flex h-6 w-6 items-center justify-center rounded-md border transition-colors",
                                 line.reconciled
-                                  ? "border-success/40 bg-success/10 text-success"
-                                  : "border-border text-muted-foreground/40 hover:border-primary/40 hover:text-primary",
+                                  ? "border-success/60 bg-success/25 text-success"
+                                  : "border-border text-muted-foreground/65 hover:border-primary/55 hover:text-primary",
                               )}
                             >
                               {line.reconciled ? <Check className="h-3.5 w-3.5" /> : null}
                             </button>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground/40">
+                            <span className="text-[11px] text-muted-foreground/65">
                               {line.source_type === "opening" ? "—" : ""}
                             </span>
                           )}

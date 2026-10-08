@@ -26,7 +26,7 @@ export function FlintwireCredit({
     <p
       className={cn(
         "text-center text-[11px] leading-relaxed",
-        onDark ? "text-white/40" : "text-muted-foreground/60",
+        onDark ? "text-white/40" : "text-muted-foreground/85",
         className,
       )}
     >

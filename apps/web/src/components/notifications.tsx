@@ -118,10 +118,10 @@ function NotificationDetail({
       className="absolute inset-0 z-10 flex flex-col bg-white"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/20 px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border/40 px-4 py-3">
         <button
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/50 transition-colors hover:bg-muted/30 hover:text-foreground"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground/75 transition-colors hover:bg-muted/55 hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
@@ -139,28 +139,28 @@ function NotificationDetail({
           <h2 className="text-[16px] font-bold tracking-tight text-foreground">
             {notification.title}
           </h2>
-          <p className="mt-1 text-[13px] font-medium text-muted-foreground/60">
+          <p className="mt-1 text-[13px] font-medium text-muted-foreground/85">
             {notification.body}
           </p>
         </div>
 
-        <div className="mb-4 flex items-center gap-2 text-[11px] text-muted-foreground/40">
+        <div className="mb-4 flex items-center gap-2 text-[11px] text-muted-foreground/65">
           <Clock className="h-3 w-3" />
           {notification.time}
         </div>
 
         <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent mb-4" />
 
-        <p className="text-[13px] leading-relaxed text-foreground/70">
+        <p className="text-[13px] leading-relaxed text-foreground/85">
           {notification.detail}
         </p>
       </div>
 
       {/* Footer */}
-      <div className="border-t border-border/20 px-4 py-3">
+      <div className="border-t border-border/40 px-4 py-3">
         <button
           onClick={onClose}
-          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-muted/30 text-[12px] font-semibold text-foreground/60 transition-colors hover:bg-muted/50"
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-muted/55 text-[12px] font-semibold text-foreground/80 transition-colors hover:bg-muted/70"
         >
           Dismiss
         </button>
@@ -199,7 +199,7 @@ export function Notifications() {
       onOpenChange={(open) => { if (!open) setSelected(null); }}
       trigger={
         <motion.span
-          className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground/50 transition-all duration-200 hover:bg-muted/50 hover:text-foreground"
+          className="relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground/75 transition-all duration-200 hover:bg-muted/70 hover:text-foreground"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -237,7 +237,7 @@ export function Notifications() {
                 exit={{ opacity: 0 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between border-b border-border/20 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <h3 className="text-[13px] font-semibold text-foreground">Notifications</h3>
                     {unreadCount > 0 && (
@@ -249,7 +249,7 @@ export function Notifications() {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllRead}
-                      className="text-[10px] font-semibold text-primary/70 hover:text-primary transition-colors"
+                      className="text-[10px] font-semibold text-primary/80 hover:text-primary transition-colors"
                     >
                       Mark all read
                     </button>
@@ -263,8 +263,8 @@ export function Notifications() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50">
                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                       </div>
-                      <p className="text-[12px] font-medium text-foreground/60">All caught up</p>
-                      <p className="text-[11px] text-muted-foreground/40">No new notifications</p>
+                      <p className="text-[12px] font-medium text-foreground/80">All caught up</p>
+                      <p className="text-[11px] text-muted-foreground/65">No new notifications</p>
                     </div>
                   ) : (
                     notifications.map((item, idx) => {
@@ -276,25 +276,25 @@ export function Notifications() {
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.2, delay: idx * 0.03 }}
-                          className="border-b border-border/10 last:border-0"
+                          className="border-b border-border/30 last:border-0"
                         >
                           <button
                             onClick={(e) => handleClick(item, e)}
-                            className={`w-full group flex items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/20 ${isUnread ? "bg-primary/[0.02]" : ""}`}
+                            className={`w-full group flex items-start gap-3 px-4 py-3 text-left transition-colors duration-150 hover:bg-muted/40 ${isUnread ? "bg-primary/[0.02]" : ""}`}
                           >
                             <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${item.color.split(" ")[1]}`}>
                               <Icon className={`h-4 w-4 ${item.color.split(" ")[0]}`} strokeWidth={1.75} />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="text-[12px] font-medium text-foreground/80 truncate">{item.title}</p>
+                                <p className="text-[12px] font-medium text-foreground/90 truncate">{item.title}</p>
                                 {isUnread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />}
                               </div>
-                              <p className="text-[11px] text-muted-foreground/45 truncate">{item.body}</p>
+                              <p className="text-[11px] text-muted-foreground/70 truncate">{item.body}</p>
                             </div>
                             <div className="flex shrink-0 flex-col items-end gap-1">
-                              <span className="text-[9px] text-muted-foreground/35">{item.time}</span>
-                              <ArrowRight className="h-3 w-3 text-muted-foreground/20 group-hover:text-primary/40 transition-colors" />
+                              <span className="text-[9px] text-muted-foreground/60">{item.time}</span>
+                              <ArrowRight className="h-3 w-3 text-muted-foreground/40 group-hover:text-primary/55 transition-colors" />
                             </div>
                           </button>
                         </motion.div>
@@ -304,11 +304,11 @@ export function Notifications() {
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-border/20 px-2 py-2">
+                <div className="border-t border-border/40 px-2 py-2">
                   <Link
                     href="/dashboard"
                     onClick={close}
-                    className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold text-primary/70 transition-colors hover:bg-muted/20 hover:text-primary"
+                    className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold text-primary/80 transition-colors hover:bg-muted/40 hover:text-primary"
                   >
                     View all activity
                   </Link>
@@ -336,37 +336,37 @@ export function ProfileMenu() {
   return (
     <Dropdown
       trigger={
-        <div className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors duration-200 hover:bg-muted/40 cursor-pointer">
+        <div className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition-colors duration-200 hover:bg-muted/60 cursor-pointer">
           <Avatar name={user?.full_name} className="h-8 w-8 bg-gradient-to-br from-primary to-primary-hover text-xs font-semibold text-white" />
-          <span className="hidden text-[12px] font-medium text-foreground/70 md:block">{user?.full_name?.split(" ")[0]}</span>
+          <span className="hidden text-[12px] font-medium text-foreground/85 md:block">{user?.full_name?.split(" ")[0]}</span>
         </div>
       }
       contentClassName="w-60 p-0"
     >
       {(close) => (
         <div>
-          <div className="flex items-center gap-3 border-b border-border/20 px-4 py-3.5">
+          <div className="flex items-center gap-3 border-b border-border/40 px-4 py-3.5">
             <Avatar name={user?.full_name} className="h-10 w-10 bg-gradient-to-br from-primary to-primary-hover text-sm font-semibold text-white" />
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-foreground">{user?.full_name}</p>
-              <p className="truncate text-[11px] text-muted-foreground/50">{user?.email}</p>
+              <p className="truncate text-[11px] text-muted-foreground/75">{user?.email}</p>
             </div>
           </div>
           <div className="px-4 py-2.5">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/40">Current role</p>
-            <p className="mt-0.5 text-[12px] font-medium text-foreground/70 capitalize">{activeSchool?.role?.name ?? "Member"}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/65">Current role</p>
+            <p className="mt-0.5 text-[12px] font-medium text-foreground/85 capitalize">{activeSchool?.role?.name ?? "Member"}</p>
           </div>
           {isSchoolAdminRole(activeSchool?.role?.code) && (
             <>
-              <div className="border-t border-border/20" />
+              <div className="border-t border-border/40" />
               <div className="p-1.5">
-                <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground">
+                <Link href="/settings" onClick={close} className="flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium text-foreground/85 transition-colors hover:bg-muted/55 hover:text-foreground">
                   Account settings
                 </Link>
               </div>
             </>
           )}
-          <div className="border-t border-border/20" />
+          <div className="border-t border-border/40" />
           <div className="p-1.5">
             <button
               onClick={() => { close(); handleLogout(); }}

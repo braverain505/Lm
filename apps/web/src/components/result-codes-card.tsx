@@ -195,7 +195,7 @@ export function ResultCodeCard() {
     <Card className="premium-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-[15px]">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
             <Ticket className="h-4 w-4 text-primary" />
           </span>
           Results portal codes
@@ -210,7 +210,7 @@ export function ResultCodeCard() {
         {isLoading ? (
           <Skeleton className="h-48 w-full" />
         ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-8 text-center">
+          <div className="rounded-2xl border border-dashed border-border/85 bg-muted/40 px-5 py-8 text-center">
             <p className="text-[13px] font-medium">No students on file yet</p>
             <p className="mx-auto mt-1 max-w-sm text-[12px] leading-relaxed text-muted-foreground">
               A result code is issued per student, so there is nothing to hand
@@ -223,7 +223,7 @@ export function ResultCodeCard() {
             <div className="flex flex-wrap items-start gap-3">
               {/* Student picker — the card's primary control */}
               <div className="relative min-w-[240px] flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/50" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/75" />
                 <Input
                   ref={searchRef}
                   placeholder="Find a student by name or admission number…"
@@ -253,10 +253,10 @@ export function ResultCodeCard() {
                   <div
                     id="result-code-picker-list"
                     role="listbox"
-                    className="absolute z-30 mt-1.5 max-h-72 w-full overflow-y-auto rounded-2xl border border-border/60 bg-card p-1.5 shadow-pop"
+                    className="absolute z-30 mt-1.5 max-h-72 w-full overflow-y-auto rounded-2xl border border-border/80 bg-card p-1.5 shadow-pop"
                   >
                     {matches.length === 0 ? (
-                      <p className="px-3 py-4 text-center text-[12px] text-muted-foreground/60">
+                      <p className="px-3 py-4 text-center text-[12px] text-muted-foreground/85">
                         No student matches “{query.trim()}”.
                       </p>
                     ) : (
@@ -272,14 +272,14 @@ export function ResultCodeCard() {
                             pick(row);
                           }}
                           className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-accent ${
-                            row.student_id === selectedId ? "bg-accent/60" : ""
+                            row.student_id === selectedId ? "bg-accent/75" : ""
                           }`}
                         >
                           <span className="min-w-0">
                             <span className="block truncate text-[13px] font-medium">
                               {row.student_name}
                             </span>
-                            <span className="block font-mono text-[11px] text-muted-foreground/60">
+                            <span className="block font-mono text-[11px] text-muted-foreground/85">
                               {row.admission_no}
                             </span>
                           </span>
@@ -292,7 +292,7 @@ export function ResultCodeCard() {
                       ))
                     )}
                     {hits.length > matches.length && (
-                      <p className="px-3 pb-1 pt-2 text-[11px] text-muted-foreground/60">
+                      <p className="px-3 pb-1 pt-2 text-[11px] text-muted-foreground/85">
                         {hits.length} matches — showing the first {matches.length},
                         keep typing to narrow it down.
                       </p>
@@ -322,7 +322,7 @@ export function ResultCodeCard() {
               </Button>
             </div>
 
-            <p className="text-[11.5px] text-muted-foreground/70">
+            <p className="text-[11.5px] text-muted-foreground/90">
               <strong className="font-semibold text-foreground">{withCode}</strong>{" "}
               of <strong className="font-semibold text-foreground">{rows.length}</strong>{" "}
               students have a live code.
@@ -330,13 +330,13 @@ export function ResultCodeCard() {
 
             {/* The chosen student and their code */}
             {selected ? (
-              <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-4">
+              <div className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-4">
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[14px] font-semibold">
                       {selected.student_name}
                     </p>
-                    <p className="font-mono text-[11px] text-muted-foreground/60">
+                    <p className="font-mono text-[11px] text-muted-foreground/85">
                       {selected.admission_no}
                     </p>
                   </div>
@@ -346,7 +346,7 @@ export function ResultCodeCard() {
                       type="button"
                       onClick={() => copy(selected.code!)}
                       title="Copy code"
-                      className="rounded-lg border border-primary/20 bg-primary/[0.04] px-3 py-1.5 font-mono text-[15px] font-bold tracking-[0.12em] text-primary transition-colors hover:bg-primary/10"
+                      className="rounded-lg border border-primary/35 bg-primary/[0.04] px-3 py-1.5 font-mono text-[15px] font-bold tracking-[0.12em] text-primary transition-colors hover:bg-primary/20"
                     >
                       {selected.code}
                     </button>
@@ -429,7 +429,7 @@ export function ResultCodeCard() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-5 py-6 text-center">
+              <div className="rounded-2xl border border-dashed border-border/85 bg-muted/40 px-5 py-6 text-center">
                 <p className="text-[12.5px] text-muted-foreground">
                   Pick a student above to hand out their result code.
                 </p>
@@ -438,7 +438,7 @@ export function ResultCodeCard() {
           </>
         )}
 
-        <p className="text-[11.5px] leading-relaxed text-muted-foreground/70">
+        <p className="text-[11.5px] leading-relaxed text-muted-foreground/90">
           A code identifies one student, so it only ever opens that student&apos;s
           published result. Regenerating invalidates the old code immediately;
           withdrawn codes stop working at once and a new one can be issued later.

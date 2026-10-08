@@ -126,17 +126,17 @@ export function AdminDashboard() {
         <h1 className="text-[28px] font-bold tracking-tight text-foreground">
           {greeting}, {user?.full_name?.split(" ")[0] ?? "there"} 👋
         </h1>
-        <p className="mt-1.5 text-[14px] text-muted-foreground/60">
+        <p className="mt-1.5 text-[14px] text-muted-foreground/85">
           Here&apos;s what&apos;s happening across your school today.
         </p>
         <div className="mt-2 flex items-center gap-3">
           {term && (
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/5 px-3 py-1 text-[12px] font-medium text-primary/70">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-[12px] font-medium text-primary/80">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/75" />
               {term.name}
             </p>
           )}
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-muted/30 px-3 py-1 text-[11px] font-medium text-muted-foreground/50">
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-muted/55 px-3 py-1 text-[11px] font-medium text-muted-foreground/75">
             <Clock className="h-3 w-3" />
             {time.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </p>
@@ -160,7 +160,7 @@ export function AdminDashboard() {
               >
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/75">
                       {kpi.label}
                     </p>
                     <p className="mt-2 text-[26px] font-bold tracking-tight text-foreground">
@@ -171,7 +171,7 @@ export function AdminDashboard() {
                         <ArrowUpRight className="h-3 w-3" />
                         {kpi.delta}
                       </span>
-                      <span className="text-[10px] text-muted-foreground/40">{kpi.deltaLabel}</span>
+                      <span className="text-[10px] text-muted-foreground/65">{kpi.deltaLabel}</span>
                     </div>
                   </div>
                   <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl ring-1", kpi.bg, kpi.ring)}>
@@ -194,9 +194,9 @@ export function AdminDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Quick Actions</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Frequently used tasks</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Frequently used tasks</p>
           </div>
-          <Clock className="h-4 w-4 text-muted-foreground/30" />
+          <Clock className="h-4 w-4 text-muted-foreground/55" />
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-6">
@@ -211,12 +211,12 @@ export function AdminDashboard() {
               >
                 <Link
                   href={action.href}
-                  className="group flex flex-col items-center gap-2.5 rounded-xl p-3 transition-all duration-200 hover:bg-muted/30"
+                  className="group flex flex-col items-center gap-2.5 rounded-xl p-3 transition-all duration-200 hover:bg-muted/55"
                 >
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110", action.bg)}>
                     <Icon className={cn("h-5 w-5", action.color)} strokeWidth={1.75} />
                   </div>
-                  <span className="text-[11px] font-medium text-foreground/70 text-center leading-tight">{action.label}</span>
+                  <span className="text-[11px] font-medium text-foreground/85 text-center leading-tight">{action.label}</span>
                 </Link>
               </motion.div>
             );
@@ -235,13 +235,13 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Performance Trend</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Average score & pass rate</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Average score & pass rate</p>
           </div>
           <div className="mb-3 flex items-center gap-4 text-[10px]">
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#6366f1]" /> Average
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Pass rate
             </span>
           </div>
@@ -267,16 +267,16 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Attendance Overview</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">This week&apos;s breakdown</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">This week&apos;s breakdown</p>
           </div>
           <div className="mb-3 flex items-center gap-4 text-[10px]">
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#10b981]" /> Present
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b]" /> Late
             </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground/75">
               <span className="h-1.5 w-1.5 rounded-full bg-[#f43f5e]" /> Absent
             </span>
           </div>
@@ -301,7 +301,7 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Enrollment</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Students by level</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Students by level</p>
           </div>
           <EnrollmentDonut
             data={[
@@ -322,8 +322,8 @@ export function AdminDashboard() {
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-[10px] text-muted-foreground/50">{item.label}</span>
-                <span className="text-[10px] font-semibold text-foreground/60 ml-auto">{item.value}</span>
+                <span className="text-[10px] text-muted-foreground/75">{item.label}</span>
+                <span className="text-[10px] font-semibold text-foreground/80 ml-auto">{item.value}</span>
               </div>
             ))}
           </div>
@@ -341,12 +341,12 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Result Readiness</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Overall score entry progress</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Overall score entry progress</p>
           </div>
           {/* Circular gauge */}
           <div className="relative mx-auto mb-5 h-36 w-36">
             <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="hsl(var(--muted) / 0.3)" strokeWidth="8" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="hsl(var(--muted) / 0.65)" strokeWidth="8" />
               <motion.circle
                 cx="60" cy="60" r="52" fill="none" stroke="#6366f1" strokeWidth="8" strokeLinecap="round"
                 strokeDasharray={2 * Math.PI * 52}
@@ -357,7 +357,7 @@ export function AdminDashboard() {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <p className="text-[28px] font-bold tracking-tight text-foreground">68%</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40">complete</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/65">complete</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -381,7 +381,7 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Score Entry Progress</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">By subject — this term</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">By subject — this term</p>
           </div>
           <ScoreEntryChart
             data={[
@@ -405,7 +405,7 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Readiness by Level</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">Result compilation status</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">Result compilation status</p>
           </div>
           <div className="space-y-4">
             {[
@@ -415,12 +415,12 @@ export function AdminDashboard() {
             ].map((item, idx) => (
               <div key={item.level}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[12px] font-medium text-foreground/70">{item.level}</span>
-                  <span className="text-[11px] font-semibold text-muted-foreground/50">
+                  <span className="text-[12px] font-medium text-foreground/85">{item.level}</span>
+                  <span className="text-[11px] font-semibold text-muted-foreground/75">
                     {item.done}/{item.classes} classes · {item.pct}%
                   </span>
                 </div>
-                <div className="h-2.5 w-full rounded-full bg-muted/30 overflow-hidden">
+                <div className="h-2.5 w-full rounded-full bg-muted/55 overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
                     style={{ backgroundColor: item.color }}
@@ -441,7 +441,7 @@ export function AdminDashboard() {
             ].map((s) => (
               <div key={s.label} className="rounded-xl px-2.5 py-2 text-center">
                 <p className={cn("text-[16px] font-bold", s.color.split(" ")[1])}>{s.value}</p>
-                <p className="text-[9px] text-muted-foreground/50">{s.label}</p>
+                <p className="text-[9px] text-muted-foreground/75">{s.label}</p>
               </div>
             ))}
           </div>
@@ -460,9 +460,9 @@ export function AdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Recent Activity</h3>
-              <p className="mt-0.5 text-[12px] text-muted-foreground/50">Latest changes across the school</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground/75">Latest changes across the school</p>
             </div>
-            <Link href="/activity" className="text-[11px] font-semibold text-primary/70 hover:text-primary transition-colors">
+            <Link href="/activity" className="text-[11px] font-semibold text-primary/80 hover:text-primary transition-colors">
               View all
             </Link>
           </div>
@@ -475,16 +475,16 @@ export function AdminDashboard() {
                   initial={{ opacity: 0, x: -5 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.28 + idx * 0.04, ease }}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-muted/20"
+                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-muted/40"
                 >
                   <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", item.color.split(" ")[1])}>
                     <Icon className={cn("h-4 w-4", item.color.split(" ")[0])} strokeWidth={1.75} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-medium text-foreground/80 truncate">{item.title}</p>
-                    <p className="text-[11px] text-muted-foreground/45 truncate">{item.detail}</p>
+                    <p className="text-[12px] font-medium text-foreground/90 truncate">{item.title}</p>
+                    <p className="text-[11px] text-muted-foreground/70 truncate">{item.detail}</p>
                   </div>
-                  <span className="shrink-0 text-[10px] text-muted-foreground/35">{item.time}</span>
+                  <span className="shrink-0 text-[10px] text-muted-foreground/60">{item.time}</span>
                 </motion.div>
               );
             })}
@@ -500,7 +500,7 @@ export function AdminDashboard() {
         >
           <div className="mb-4">
             <h3 className="text-[14px] font-semibold tracking-tight text-foreground">Upcoming Events</h3>
-            <p className="mt-0.5 text-[12px] text-muted-foreground/50">School calendar</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground/75">School calendar</p>
           </div>
           <div className="space-y-3">
             {[
@@ -513,8 +513,8 @@ export function AdminDashboard() {
                   <Calendar className={cn("h-4 w-4", event.color.split(" ")[1])} strokeWidth={1.75} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-medium text-foreground/80">{event.title}</p>
-                  <p className="text-[11px] text-muted-foreground/45">{event.date} · {event.time}</p>
+                  <p className="text-[12px] font-medium text-foreground/90">{event.title}</p>
+                  <p className="text-[11px] text-muted-foreground/70">{event.date} · {event.time}</p>
                 </div>
               </div>
             ))}

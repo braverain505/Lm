@@ -101,7 +101,7 @@ export default function QuestionBanksPage() {
                 className={cn(
                   "rounded-md border px-3 py-1.5 text-sm font-medium transition-colors",
                   t.id === term?.id
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? "border-primary bg-primary/20 text-primary"
                     : "border-input text-muted-foreground hover:bg-accent",
                 )}
               >
@@ -231,7 +231,7 @@ export default function QuestionBanksPage() {
                             className={cn(
                               "flex items-start gap-2 rounded-md px-2.5 py-1.5 text-sm",
                               isAnswer
-                                ? "bg-primary/10 font-medium text-primary"
+                                ? "bg-primary/20 font-medium text-primary"
                                 : "text-muted-foreground",
                             )}
                           >

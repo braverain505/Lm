@@ -16,7 +16,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex h-9 items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-border/80 bg-background/50 px-3 text-[13px] font-medium shadow-sm transition-all duration-150 hover:bg-accent hover:border-border focus-visible:outline-none focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/10 data-[placeholder]:text-muted-foreground/50",
+      "inline-flex h-9 items-center justify-between gap-2 whitespace-nowrap rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] font-medium shadow-sm transition-all duration-150 hover:bg-accent hover:border-border focus-visible:outline-none focus-visible:border-primary/55 focus-visible:ring-2 focus-visible:ring-primary/20 data-[placeholder]:text-muted-foreground/75",
       className,
     )}
     {...props}
@@ -26,7 +26,7 @@ const SelectTrigger = React.forwardRef<
       {children}
     </span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/75" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -42,7 +42,7 @@ const SelectContent = React.forwardRef<
       position={position}
       sideOffset={6}
       className={cn(
-        "z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-xl border border-border/60 bg-card p-1 shadow-pop animate-scale-in",
+        "z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-xl border border-border/80 bg-card p-1 shadow-pop animate-scale-in",
         position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)]",
         className,
       )}

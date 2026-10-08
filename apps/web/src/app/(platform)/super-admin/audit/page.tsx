@@ -119,7 +119,7 @@ export default function SuperAdminAuditPage() {
                     {e.school_name && <span className="text-xs text-muted-foreground">· {e.school_name}</span>}
                   </p>
                   {e.details && <p className="mt-0.5 text-[13px] text-muted-foreground">{e.details}</p>}
-                  <p className="mt-0.5 text-[11px] text-muted-foreground/70">
+                  <p className="mt-0.5 text-[11px] text-muted-foreground/90">
                     {e.actor}{e.ip ? ` · ${e.ip}` : ""} · {fmtDateTime(e.ts)}
                   </p>
                 </div>

@@ -14,9 +14,9 @@ import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_TONE: Record<string, string> = {
-  critical: "bg-destructive/10 text-destructive",
-  warning: "bg-warning/10 text-warning",
-  info: "bg-info/10 text-info",
+  critical: "bg-destructive/25 text-destructive",
+  warning: "bg-warning/25 text-warning",
+  info: "bg-info/25 text-info",
 };
 
 export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
@@ -35,7 +35,7 @@ export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => voi
   }
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-xl lg:px-6 print:hidden">
+    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur-xl lg:px-6 print:hidden">
       <button
         onClick={onOpenMobileNav}
         className="focus-ring -ml-1 flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent lg:hidden"
@@ -62,7 +62,7 @@ export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => voi
       <div className="ml-auto flex items-center gap-2">
         <Link
           href="/dashboard"
-          className="focus-ring hidden h-9 items-center gap-1.5 rounded-lg border border-input bg-background px-3 text-[13px] font-medium text-muted-foreground shadow-card transition-colors hover:bg-accent/60 hover:text-foreground sm:inline-flex"
+          className="focus-ring hidden h-9 items-center gap-1.5 rounded-lg border border-input bg-background px-3 text-[13px] font-medium text-muted-foreground shadow-card transition-colors hover:bg-accent/75 hover:text-foreground sm:inline-flex"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> School view
         </Link>
@@ -70,7 +70,7 @@ export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => voi
         {/* Platform notifications */}
         <Dropdown
           trigger={
-            <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-card transition-colors hover:bg-accent/60 hover:text-foreground">
+            <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input bg-background text-muted-foreground shadow-card transition-colors hover:bg-accent/75 hover:text-foreground">
               <Bell className="h-4 w-4" />
               {unread > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
@@ -132,7 +132,7 @@ export function PlatformHeader({ onOpenMobileNav }: { onOpenMobileNav: () => voi
           trigger={
             <Avatar
               name={user?.full_name}
-              className="bg-gradient-to-br from-amber-500 to-orange-600 text-white ring-2 ring-ring/30"
+              className="bg-gradient-to-br from-amber-500 to-orange-600 text-white ring-2 ring-ring/50"
             />
           }
         >

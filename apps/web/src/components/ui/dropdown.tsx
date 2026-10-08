@@ -58,7 +58,7 @@ export function Dropdown({ trigger, children, align = "end", className, contentC
           <motion.div
             role="menu"
             className={cn(
-              "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border border-border/60 bg-card p-1.5 shadow-pop",
+              "absolute z-50 mt-2 min-w-56 overflow-hidden rounded-xl border border-border/80 bg-card p-1.5 shadow-pop",
               align === "end" ? "right-0" : "left-0",
               contentClassName,
             )}
@@ -87,7 +87,7 @@ export function MenuItem({ className, icon, variant = "default", children, ...pr
       className={cn(
         "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-all duration-150 hover:translate-x-[2px] active:scale-[0.98]",
         variant === "danger"
-          ? "text-destructive hover:bg-destructive/8"
+          ? "text-destructive hover:bg-destructive/25"
           : "text-foreground hover:bg-accent",
         className,
       )}
@@ -101,12 +101,12 @@ export function MenuItem({ className, icon, variant = "default", children, ...pr
 
 export function MenuLabel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <p className={cn("px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60", className)}>
+    <p className={cn("px-3 pb-1.5 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/85", className)}>
       {children}
     </p>
   );
 }
 
 export function MenuSeparator({ className }: { className?: string }) {
-  return <div className={cn("my-1 h-px bg-border/60", className)} />;
+  return <div className={cn("my-1 h-px bg-border/80", className)} />;
 }
