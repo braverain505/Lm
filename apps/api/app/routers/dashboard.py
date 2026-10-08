@@ -43,9 +43,14 @@ def summary(
     can_attendance = ATTENDANCE_REPORT in perms or ctx.user.is_superadmin
     can_ai = AI_COPILOT in perms or ctx.user.is_superadmin
 
-    resolved_term = term_id or None
+    # Resolve once: an explicit term_id wins, otherwise fall back to the
+    # school's current term. Passing the resolved id to every section keeps the
+    # readiness KPI, tasks and insights populated even when the client has not
+    # yet picked a term.
+    resolved_term = dashboard_service.resolve_term(db, school_id, term_id)
+    resolved_term_id = resolved_term.id if resolved_term is not None else None
 
-    k = dashboard_service.kpis(db=db, school_id=school_id, term_id=resolved_term)
+    k = dashboard_service.kpis(db=db, school_id=school_id, term_id=resolved_term_id)
     if not can_results:
         k["readiness_overall"] = None
         k["readiness_submitted"] = 0
@@ -53,7 +58,7 @@ def summary(
     if not can_fees:
         k["outstanding_fees"] = 0.0
 
-    perf = dashboard_service.performance(db=db, school_id=school_id, term_id=resolved_term) if can_results else {"by_term": [], "by_class": []}
+    perf = dashboard_service.performance(db=db, school_id=school_id, term_id=resolved_term_id) if can_results else {"by_term": [], "by_class": []}
     dist = dashboard_service.distribution(db=db, school_id=school_id) if can_students else {"total": 0, "slices": []}
     if can_attendance:
         att = dashboard_service.attendance(db=db, school_id=school_id)
@@ -65,9 +70,9 @@ def summary(
         }
     act = dashboard_service.activity(db=db, school_id=school_id)
     tasks = dashboard_service.tasks(
-        db=db, school_id=school_id, term_id=resolved_term, can_fees=can_fees
+        db=db, school_id=school_id, term_id=resolved_term_id, can_fees=can_fees
     )
-    ins = dashboard_service.insights(db=db, school_id=school_id, term_id=resolved_term) if can_ai else {"insights": []}
+    ins = dashboard_service.insights(db=db, school_id=school_id, term_id=resolved_term_id) if can_ai else {"insights": []}
 
     return DashboardSummary(
         kpis=DashboardKpis(**k),

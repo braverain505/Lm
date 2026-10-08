@@ -74,9 +74,16 @@ export const ACTION_PAST: Record<Action, string> = {
   publish: "published",
 };
 
-/** A cell can only be generated once every enrolled student has a score. */
+/**
+ * A cell is ready to process once every enrolled student has a score and the
+ * cell is not already fully published.
+ *
+ * Teachers submit their scores before the admin acts on them, so this must
+ * count submitted/verified/approved cells too — not only drafts — or the
+ * "Process ready results" button goes grey the moment a teacher submits.
+ */
 export function isEntered(row: WorkbenchRow): boolean {
-  return row.draft > 0 && row.entered === row.enrolled;
+  return row.enrolled > 0 && row.entered === row.enrolled && row.published < row.enrolled;
 }
 
 /**

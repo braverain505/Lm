@@ -1005,3 +1005,114 @@ def test_reconcile_clears_current_flag_on_a_planned_term(client, db):
     assert term.status == "planned"  # left intact — only the flag changed
     # Idempotent: nothing left to correct.
     assert reconcile_stale_current_terms(db) == 0
+
+
+# --- Readiness/workbench coverage of entered-but-unoffered subjects ----------
+def test_scores_for_unoffered_subject_surface_in_readiness_and_workbench(client, db):
+    """Marks saved for a subject that is not formally offered still count as a
+    results cell, so the admin can see and process them.
+
+    A teacher may open any grid for their arm and save marks; readiness and the
+    approval workbench must reflect that entered work rather than hiding it
+    because no ``SubjectOffering`` row exists. This is the report that scores
+    were entered but never showed up on the readiness board or workbench.
+    """
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+
+    r = client.post(
+        f"{ACAD}/subjects",
+        json={"name": "Unoffered Studies", "code": "UOS"},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+    subject_id = r.json()["id"]
+
+    extra = {**w, "subject_id": subject_id}
+    _enter_all(client, sid, extra, comps)
+
+    def find(rows: list[dict]) -> dict | None:
+        return next((row for row in rows if row["subject_id"] == subject_id), None)
+
+    r = client.get(
+        f"{BASE}/readiness",
+        params={"term_id": w["term_id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    row = find(r.json())
+    assert row is not None, "unoffered subject with marks is missing from readiness"
+    assert row["entered"] == 3 and row["student_count"] == 3
+
+    r = client.get(
+        f"{BASE}/workbench",
+        params={"term_id": w["term_id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    row = find(r.json())
+    assert row is not None, "unoffered subject with marks is missing from the workbench"
+    assert row["entered"] == 3 and row["draft"] == 3
+
+    # It can be processed end to end, producing a published report card.
+    for step in ("submit", "verify", "approve", "publish"):
+        assert _act(client, sid, extra, step).status_code == 200, step
+    r = client.get(
+        f"{BASE}/report-index",
+        params={"arm_id": w["arm_id"], "term_id": w["term_id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    assert all(row["subjects_published"] == 1 for row in r.json())
+
+
+def test_assigned_subject_without_offering_surfaces_on_readiness(client, db):
+    """An arm x subject a teacher is assigned to is a real cell even when the
+    offering list was never filled in."""
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+
+    r = client.post(
+        f"{ACAD}/subjects",
+        json={"name": "Unoffered Studies", "code": "UOS"},
+        headers={"X-School-Id": sid},
+    )
+    subject_id = r.json()["id"]
+    from .test_staff_accounts import _add_staff
+
+    staff = _add_staff(client, sid, staff_no="T100")
+    r = client.post(
+        f"{ACAD}/assignments",
+        json={"arm_id": w["arm_id"], "subject_id": subject_id, "teacher_id": staff["id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 201, r.text
+
+    r = client.get(
+        f"{BASE}/readiness",
+        params={"term_id": w["term_id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    assert any(row["subject_id"] == subject_id for row in r.json())
+
+
+# --- Dashboard readiness without an explicit term ----------------------------
+def test_dashboard_summary_readiness_populates_without_term_id(client, db):
+    """The dashboard readiness KPI must not read empty just because the client
+    has not picked a term yet — the server resolves the current term itself."""
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _enter_all(client, sid, w, comps)
+
+    r = client.get("/api/dashboard/summary", headers={"X-School-Id": sid})
+    assert r.status_code == 200, r.text
+    k = r.json()["kpis"]
+    assert k["term_name"] == "First Term"
+    assert k["readiness_overall"] == 100.0
+    assert k["readiness_pending"] == 0

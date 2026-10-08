@@ -49,6 +49,24 @@ def _current_term(db: Session, school_id: uuid.UUID, session_id: uuid.UUID | Non
     return db.scalar(q.order_by(Term.is_current.desc(), Term.term_no))
 
 
+def resolve_term(
+    db: Session, school_id: uuid.UUID, term_id: uuid.UUID | str | None = None
+) -> Term | None:
+    """The term a dashboard request should speak about.
+
+    An explicit ``term_id`` wins. When the caller omits one — the frontend does
+    until its session/term context has resolved — fall back to the school's
+    current term so readiness, tasks and insights are populated instead of
+    silently coming back empty.
+    """
+    if term_id is not None:
+        return db.scalar(
+            select(Term).where(Term.school_id == school_id, Term.id == term_id)
+        )
+    session = _current_session(db, school_id)
+    return _current_term(db, school_id, session.id if session else None)
+
+
 def _avg_score(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID) -> tuple[float | None, float | None, int]:
     """Overall average score, pass rate (>=50) and count for a term."""
     totals = list(
@@ -112,21 +130,23 @@ def kpis(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) -> dic
     if school is not None and school.currency:
         fee_currency = school.currency
 
-    # Readiness (overall %) from the term readiness matrix.
+    session = _current_session(db, school_id)
+    term = resolve_term(db, school_id, term_id)
+
+    # Readiness (overall %) from the term readiness matrix. The resolved term
+    # is used even when the caller passed no ``term_id``, so the readiness KPI
+    # never reads empty just because the request was term-less.
     readiness_overall: float | None = None
     submitted = 0
     pending = 0
-    if term_id:
-        rows = readiness_for_term(db, school_id, term_id)
+    if term is not None:
+        rows = readiness_for_term(db, school_id, term.id)
         if rows:
             readiness_overall = round(
                 sum(r["entered_pct"] for r in rows) / len(rows), 1
             )
             submitted = sum(r["submitted"] for r in rows)
             pending = sum(r["pending"] for r in rows)
-
-    session = _current_session(db, school_id)
-    term = _current_term(db, school_id, session.id if session else None)
 
     return {
         "students": students or 0,

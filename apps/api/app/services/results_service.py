@@ -557,17 +557,51 @@ def recompute_result(
 
 
 def _subjects_for_arm(db: Session, arm_id: uuid.UUID) -> list[Subject]:
-    """Subjects offered at the arm (drives grids + readiness)."""
+    """Subjects that count as a results cell at the arm (drives grids +
+    readiness).
+
+    A cell exists when the arm *offers* the subject or a teacher is *assigned*
+    to it. Critically, it also exists when the arm already carries *scores or
+    results* for the subject: a teacher can open a grid and save marks for any
+    subject in their arm, so readiness and the approval workbench must never
+    hide scores that were genuinely entered — otherwise an admin cannot see or
+    process them.
+    """
     arm = db.get(ClassArm, arm_id)
     if arm is None:
         return []
-    offering_ids = db.scalars(
-        select(SubjectOffering.subject_id).where(
-            SubjectOffering.class_arm_id == arm.id
-        )
-    ).all()
-    subjects = [db.get(Subject, sid) for sid in offering_ids]
-    return [s for s in subjects if s is not None]
+
+    subject_ids: set[uuid.UUID] = set()
+    subject_ids.update(
+        db.scalars(
+            select(SubjectOffering.subject_id).where(
+                SubjectOffering.class_arm_id == arm.id
+            )
+        ).all()
+    )
+    subject_ids.update(
+        db.scalars(
+            select(SubjectAssignment.subject_id).where(
+                SubjectAssignment.class_arm_id == arm.id
+            )
+        ).all()
+    )
+    subject_ids.update(
+        db.scalars(
+            select(Result.subject_id).where(Result.class_arm_id == arm.id)
+        ).all()
+    )
+    subject_ids.update(
+        db.scalars(
+            select(Score.subject_id).where(Score.class_arm_id == arm.id)
+        ).all()
+    )
+
+    subjects = [db.get(Subject, sid) for sid in subject_ids]
+    return sorted(
+        (s for s in subjects if s is not None and s.school_id == arm.school_id),
+        key=lambda s: s.name,
+    )
 
 
 def _recompute_arm_subject(
