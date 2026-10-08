@@ -149,6 +149,25 @@ _PERFORMANCE_WORDS = {
     "rank", "ranking", "grade", "grades", "result", "results",
 }
 
+# A marks word that must keep a question on the results intents even when it
+# also says "show"/"list" — "list the top students" is a ranking, not a roster.
+# "grade" is excluded: "list the grade 1 students" is a class, not a mark.
+_MARKS_EXCLUSIONS = _PERFORMANCE_WORDS - {"grade", "grades"}
+
+# "show me the students", "list the pupils": a people noun next to a verb that
+# asks for a list. A bare people noun is deliberately not enough — "how many
+# students are enrolled?" is a count, not a roster.
+_ENUMERATION_VERBS = {"show", "list", "give", "display", "see", "tell", "print"}
+_STUDENT_NOUNS = {"student", "students", "pupil", "pupils", "enrolled"}
+
+# Fragments describing "the class in general" rather than naming one. A clause
+# like "in the class" is not a failed class lookup, so it must not block the
+# school-wide roster fallback.
+_GENERIC_CLASS_WORDS = {
+    "class", "classes", "arm", "arms", "section", "sections", "stream",
+    "streams", "school", "students", "pupils", "everyone", "registered",
+}
+
 
 # ----------------------------------------------------------------------------
 # Slot resolvers — everything resolved against the school's real rows
@@ -170,6 +189,21 @@ def _resolve_arm(db: Session, school_id: uuid.UUID, tokens: set[str]) -> ClassAr
         if _name_in(tokens, arm.full_name):
             return arm
     return None
+
+
+def _names_a_class(phrase: str) -> bool:
+    """True when a sentence fragment names a specific class.
+
+    "in the class" / "of the students" point at the class in general; "in JSS
+    1A" names one. Only the latter must block the school-wide roster fallback
+    when it fails to match a real arm — otherwise every "show me the students"
+    would be answered as a miss.
+    """
+    significant = _tokens(phrase) - {
+        "the", "a", "an", "our", "this", "that", "these", "those", "some",
+        "new", "my", "all", "list", "show", "give", "me",
+    }
+    return bool(significant) and not significant <= _GENERIC_CLASS_WORDS
 
 
 def _resolve_student(
@@ -403,6 +437,77 @@ def _h_class_subjects(
     return text, payload, ctx
 
 
+def _school_roster(
+    db: Session, school_id: uuid.UUID, *, context: dict
+) -> tuple[str, dict, dict]:
+    """Every enrolled student in the school, grouped by class.
+
+    The answer when a names question names no class and the school runs more
+    than one: the whole roll, not a guess at a single arm. One joined query
+    (not one per class) and a text budget, the same way the single-class roster
+    bounds itself.
+    """
+    stmt = (
+        select(Student, ClassArm)
+        .join(StudentEnrollment, StudentEnrollment.student_id == Student.id)
+        .join(ClassArm, ClassArm.id == StudentEnrollment.class_arm_id)
+        .where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.is_current.is_(True),
+            StudentEnrollment.status == "active",
+            Student.is_deleted.is_(False),
+        )
+        .order_by(ClassArm.full_name, Student.last_name, Student.first_name)
+    )
+    rows: list[dict] = []
+    by_arm: dict[str, list[str]] = {}
+    for student, arm in db.execute(stmt):
+        rows.append(
+            {
+                "student_id": str(student.id),
+                "admission_no": student.admission_no,
+                "full_name": student.full_name,
+                "gender": student.gender,
+                "class": arm.full_name,
+            }
+        )
+        by_arm.setdefault(arm.full_name, []).append(
+            f"{student.full_name} ({student.admission_no})"
+        )
+    if not rows:
+        return (
+            "No students are enrolled in this school yet.",
+            {"intent": "class_roster", "class": "the school", "count": 0, "students": []},
+            context,
+        )
+    lines: list[str] = []
+    budget = 40
+    for arm_name, names in by_arm.items():
+        if budget <= 0:
+            lines.append(f"{arm_name} and other classes")
+            break
+        shown = names[:budget]
+        budget -= len(shown)
+        extra = "" if len(shown) == len(names) else f" and {len(names) - len(shown)} more"
+        lines.append(f"{arm_name}: {_join_names(shown)}{extra}")
+    text = (
+        f"The school has {len(rows)} enrolled student"
+        f"{'s' if len(rows) != 1 else ''} in {len(by_arm)} "
+        f"class{'es' if len(by_arm) != 1 else ''} — " + "; ".join(lines) + "."
+    )
+    return (
+        text,
+        {
+            "intent": "class_roster",
+            "class": "the school",
+            "count": len(rows),
+            "students": rows[:_MAX_ROSTER_ROWS],
+            "truncated": len(rows) > _MAX_ROSTER_ROWS,
+        },
+        context,
+    )
+
+
 def _h_class_roster(
     db: Session,
     school_id: uuid.UUID,
@@ -418,26 +523,48 @@ def _h_class_roster(
     "in/of/for <class>" clause wins, then the longest class name in the
     question, then the arm already pinned on the conversation — so a bare
     "give me the names" right after "how many students are in Nursery 1"
-    lists that class.
+    lists that class. When the question names no class at all, a one-class
+    school lists its only class and a larger one lists the whole roll.
     """
+    # A marks question that also happens to say "show"/"list" belongs to the
+    # results intents, not here.
+    if tokens & _MARKS_EXCLUSIONS:
+        return None
     # "all" is deliberately not a cue: it is far too common in count questions.
     wants_names = _has(
-        tokens, "name", "names", "roster", "register", "list", "everyone"
+        tokens, "name", "names", "roster", "register", "everyone"
     )
-    asks_who = "who" in tokens and not (tokens & _PERFORMANCE_WORDS)
-    if not (wants_names or asks_who):
+    enumerates = bool(tokens & _ENUMERATION_VERBS) and bool(tokens & _STUDENT_NOUNS)
+    asks_who = "who" in tokens
+    if not (wants_names or enumerates or asks_who):
         return None
 
     arm = None
+    names_a_class = False
     clause = re.search(
         r"\b(?:in|of|for|from)\s+(?:class\s+)?(?P<arm>.+?)\s*$", question, re.IGNORECASE
     )
     if clause:
+        names_a_class = _names_a_class(clause.group("arm"))
         arm = copilot_actions.resolve_arm_by_phrase(db, school_id, clause.group("arm"))
     arm = arm or copilot_actions.find_arm_in_text(db, school_id, question)
     arm = arm or _ctx_arm(db, school_id, context)
     if arm is None:
-        return None
+        if names_a_class:
+            # They named a class this school does not have: answer honestly
+            # rather than quietly listing whichever class happens to exist.
+            return None
+        arms = sorted(
+            db.scalars(select(ClassArm).where(ClassArm.school_id == school_id)),
+            key=lambda a: a.full_name,
+        )
+        if len(arms) == 1:
+            # One class is "the class" — there is nothing to disambiguate.
+            arm = arms[0]
+        elif arms:
+            return _school_roster(db, school_id, context=context)
+        else:
+            return None
 
     rows = list_enrollments(db, school_id, arm.id)
     students = sorted(
@@ -1684,7 +1811,11 @@ def intents_catalog() -> list[dict]:
         {
             "id": "class_roster",
             "name": "Class list",
-            "examples": ["Give me the names in JSS 1A", "Who is in Nursery 1?"],
+            "examples": [
+                "Give me the names in JSS 1A",
+                "Who is in Nursery 1?",
+                "Show me the students in the class",
+            ],
         },
         {
             "id": "class_subjects",

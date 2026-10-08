@@ -332,6 +332,60 @@ def test_roster_does_not_shadow_performance_questions(client, db):
     assert msg["intent"] == "top_performers"
 
 
+def test_roster_lists_the_class_when_none_is_named(client, db):
+    """The reported bug: "give me the names of the students" with no class
+    named answered with an apology instead of the roll."""
+    sid, _w = _world(client, db)  # one class, three students
+
+    msg = _ask(client, sid, "give me the names of the students")["message"]
+    assert msg["intent"] == "class_roster"
+    payload = msg["answer_payload"]
+    assert payload["class"] == "JSS 1 A"  # the school's only class
+    assert payload["count"] == 3
+    assert {s["full_name"] for s in payload["students"]} == {
+        "Aisha Bello",
+        "David Okafor",
+        "Tolu Coker",
+    }
+    assert "Aisha Bello" in msg["content"]
+
+
+def test_roster_recognizes_show_and_list_phrasings(client, db):
+    """"show me the students in the class" names the students, not a miss."""
+    sid, _w = _world(client, db)
+
+    for question in (
+        "show me the students in the class",
+        "List the students in the class",
+    ):
+        msg = _ask(client, sid, question)["message"]
+        assert msg["intent"] == "class_roster", question
+        assert msg["answer_payload"]["count"] == 3, question
+        assert "Aisha Bello" in msg["content"], question
+
+
+def test_roster_spans_classes_when_several_exist(client, db):
+    """No class named and more than one class on file: the whole roll, each
+    student tagged with their class."""
+    sid, _w = _world(client, db, with_nursery=True)  # JSS 1 A + empty Nursery 1
+
+    msg = _ask(client, sid, "list all the students")["message"]
+    assert msg["intent"] == "class_roster"
+    payload = msg["answer_payload"]
+    assert payload["class"] == "the school"
+    assert payload["count"] == 3
+    assert {s["class"] for s in payload["students"]} == {"JSS 1 A"}
+    assert "JSS 1 A" in msg["content"]
+
+
+def test_count_question_is_not_a_roster(client, db):
+    """A people noun alone is a count, not a request to enumerate."""
+    sid, _w = _world(client, db)
+    msg = _ask(client, sid, "how many students are enrolled?")["message"]
+    assert msg["intent"] == "school_overview"
+    assert msg["answer_payload"]["students"] == 3
+
+
 # --- Academic structure --------------------------------------------------------
 
 def test_create_subject_via_chat(client, db):
