@@ -96,6 +96,10 @@ export interface NavItem {
 
 export interface NavSection {
   label: string;
+  // Marks a section whose features are still being perfected. The nav renders a
+  // small "Beta" chip beside the label so the caveat is visible before opening
+  // any of the pages it groups.
+  beta?: boolean;
   items: NavItem[];
 }
 
@@ -161,6 +165,7 @@ export const PANEL_SECTIONS: NavSection[] = [
   },
   {
     label: "AI Tools",
+    beta: true,
     items: [
       { href: "/copilot", label: "Clearis AI", icon: Bot, perm: "ai.copilot" },
       { href: "/lesson-plans", label: "AI Lesson Plans", icon: NotebookPen, perm: "results.comment" },

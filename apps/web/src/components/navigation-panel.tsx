@@ -105,8 +105,13 @@ export function NavigationPanel({ open, onNavigate, isTablet = false }: Navigati
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: 0.08 + sectionIndex * 0.06, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <p className="mb-2 px-3 font-semibold uppercase tracking-wider text-panel-muted/60 text-[9.5px] md:text-[10.5px]">
-              {section.label}
+            <p className="mb-2 flex items-center gap-1.5 px-3 font-semibold uppercase tracking-wider text-panel-muted/60 text-[9.5px] md:text-[10.5px]">
+              <span>{section.label}</span>
+              {section.beta && (
+                <span className="inline-flex items-center rounded-full bg-violet-500/15 px-1.5 py-px text-[8.5px] font-bold tracking-wider text-violet-600 dark:text-violet-300">
+                  Beta
+                </span>
+              )}
             </p>
             <div className="space-y-0.5">
               {section.items.map(({ href, label, icon: Icon }) => {

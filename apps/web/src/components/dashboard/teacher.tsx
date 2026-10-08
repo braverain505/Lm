@@ -328,6 +328,9 @@ export function TeacherDashboard() {
                   <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-violet-500 to-primary px-2 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                     <Sparkles className="h-2.5 w-2.5" /> AI
                   </span>
+                  <span className="inline-flex items-center rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-300">
+                    Beta
+                  </span>
                 </div>
               </div>
               <div className="divide-y divide-border/30">
