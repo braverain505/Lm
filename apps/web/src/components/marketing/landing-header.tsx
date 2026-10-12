@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, LayoutDashboard, Menu, X } from "lucide-react";
+import { ArrowRight, Download, LayoutDashboard, Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
+import { APP_DOWNLOAD_NAME, APP_DOWNLOAD_URL } from "@/lib/app-download";
 import { cn } from "@/lib/utils";
 
 import { EASE } from "./landing-shared";
@@ -97,6 +98,15 @@ export function LandingHeader() {
             <ThemeSwitch />
           </div>
 
+          <a
+            href={APP_DOWNLOAD_URL}
+            download={APP_DOWNLOAD_NAME}
+            className="hidden items-center gap-1.5 rounded-lg border border-primary/35 bg-primary/[0.07] px-3 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/12 lg:inline-flex"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download app
+          </a>
+
           {signedIn ? (
             <Button asChild size="sm" className="h-9 px-4">
               <Link href="/dashboard">
@@ -157,6 +167,15 @@ export function LandingHeader() {
                   </a>
                 ))}
               </nav>
+
+              <a
+                href={APP_DOWNLOAD_URL}
+                download={APP_DOWNLOAD_NAME}
+                className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-primary/[0.07] px-3 py-2.5 text-[13px] font-semibold text-primary"
+              >
+                <Download className="h-4 w-4" />
+                Download the mobile app
+              </a>
 
               <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
                 <ThemeSwitch />

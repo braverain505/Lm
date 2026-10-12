@@ -17,6 +17,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   DatabaseBackup,
+  Download,
   FileSpreadsheet,
   FileText,
   GraduationCap,
@@ -38,15 +39,32 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { APP_DOWNLOAD_NAME, APP_DOWNLOAD_URL } from "@/lib/app-download";
 import { cn } from "@/lib/utils";
 
 import { AuroraBackdrop, EASE, Reveal, SectionHeading, SectionLabel } from "./landing-shared";
 
+/** One shared "get the app" affordance so every placement stays identical. */
+function AppDownloadButton({ className, label = "Download the app" }: { className?: string; label?: string }) {
+  return (
+    <Button
+      asChild
+      variant="outline"
+      className={cn("border-primary/40 bg-primary/[0.07] text-primary hover:bg-primary/12 hover:text-primary", className)}
+    >
+      <a href={APP_DOWNLOAD_URL} download={APP_DOWNLOAD_NAME}>
+        <Download className="mr-1.5 h-4 w-4" />
+        {label}
+      </a>
+    </Button>
+  );
+}
+
 /* ───────────────────────────── Trust strip ───────────────────────────── */
 
 const TRUST = [
-  { icon: ShieldCheck, label: "Tenant-isolated by design" },
-  { icon: Lock, label: "Role-based access on every request" },
+  { icon: ShieldCheck, label: "Tenant-isolated" },
+  { icon: Lock, label: "Role-based access" },
   { icon: History, label: "Append-only audit journal" },
   { icon: GraduationCap, label: "WAEC-aligned grading" },
   { icon: DatabaseBackup, label: "Automated backups" },
@@ -55,11 +73,8 @@ const TRUST = [
 function TrustStrip() {
   return (
     <section className="border-y border-border/70 bg-muted/25">
-      <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6">
-        <p className="text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/80">
-          Built like school records should be
-        </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
           {TRUST.map(({ icon: Icon, label }) => (
             <span
               key={label}
@@ -81,22 +96,22 @@ const PAINS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: FileSpreadsheet,
     title: "Marks in spreadsheets",
-    body: "Term averages recalculated by hand, one broken formula away from a report card nobody can defend.",
+    body: "Term averages by hand, one broken formula from a card nobody can defend.",
   },
   {
     icon: BookOpen,
     title: "Fees in a ledger book",
-    body: "Balances, discounts and debtors in a book only one person can read — and only when they are in the office.",
+    body: "Balances only one person can read, and only when they are in the office.",
   },
   {
     icon: ClipboardList,
     title: "Attendance on paper",
-    body: "No monthly summary, and no way to answer a parent asking about last term without digging through a box.",
+    body: "No monthly summary, no answer for a parent asking about last term.",
   },
   {
     icon: MessageSquare,
     title: "Results over WhatsApp",
-    body: "Parents messaging for results, teachers sending screenshots, nobody certain which version is the final one.",
+    body: "Screenshots flying about, nobody sure which version is final.",
   },
 ];
 
@@ -109,7 +124,7 @@ function ProblemSection() {
           <SectionHeading
             className="mt-5"
             title="Six tools and a group chat is not a system."
-            description="Every school ends up assembling its own software out of whatever is closest: a spreadsheet here, a ledger book there, a phone full of screenshots. It works — until the term gets busy and the numbers stop agreeing with each other."
+            description="Every school assembles its own software out of whatever is closest. It works — until the term gets busy and the numbers stop agreeing."
           />
         </Reveal>
 
@@ -121,7 +136,7 @@ function ProblemSection() {
                   <Icon className="h-4 w-4 text-destructive" />
                 </span>
                 <p className="mt-4 text-[14px] font-semibold text-foreground">{title}</p>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
                   {body}
                 </p>
               </div>
@@ -130,18 +145,14 @@ function ProblemSection() {
         </div>
 
         <Reveal delay={0.1}>
-          <div className="mt-8 overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.06] p-6 sm:p-7">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
-                <CheckCircle2 className="h-5 w-5" />
-              </span>
-              <p className="text-[15px] leading-relaxed text-foreground sm:text-[16px]">
-                Clearis replaces the patchwork with{" "}
-                <span className="font-semibold">one system of record</span> — one
-                login, one permission model, one audit trail, and one place where
-                the term&apos;s numbers finally agree.
-              </p>
-            </div>
+          <div className="mt-8 flex flex-col items-start gap-4 rounded-2xl border border-primary/25 bg-primary/[0.06] p-5 sm:flex-row sm:items-center sm:p-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30">
+              <CheckCircle2 className="h-5 w-5" />
+            </span>
+            <p className="text-[15px] text-foreground">
+              Clearis replaces it with <span className="font-semibold">one system of record</span> —
+              one login, one permission model, one audit trail.
+            </p>
           </div>
         </Reveal>
       </div>
@@ -151,58 +162,49 @@ function ProblemSection() {
 
 /* ────────────────────────── One platform, all seats ───────────────────────── */
 
-const SEATS: {
-  icon: LucideIcon;
-  title: string;
-  who: string;
-  items: string[];
-}[] = [
+const SEATS: { icon: LucideIcon; title: string; items: string[] }[] = [
   {
     icon: Building2,
     title: "The school office",
-    who: "Owner, director, principal, admin",
     items: [
-      "A school-wide dashboard for the term",
-      "Admissions and full student records",
+      "School-wide term dashboard",
+      "Admissions and student records",
       "Classes, subjects and timetables",
-      "Fee structures, invoices and balances",
-      "Report card designer and school branding",
+      "Fee structures and balances",
+      "Report card designer and branding",
     ],
   },
   {
     icon: GraduationCap,
     title: "Teachers",
-    who: "Subject and homeroom teachers",
     items: [
-      "Score entry for their own classes only",
-      "The attendance register for their register",
+      "Score entry for their own classes",
+      "Attendance for their register",
       "Psychomotor and affective notes",
       "AI lesson plans and question banks",
-      "A timetable that tells them where to be",
+      "Their own timetable",
     ],
   },
   {
     icon: Wallet,
     title: "Bursary and accounts",
-    who: "Accountant and finance staff",
     items: [
-      "Fees, invoices, payments and balances",
+      "Fees, invoices and payments",
       "Expenses, cashbook and debtors",
-      "Discounts, refunds and concessions",
-      "Staff salary structures and pay runs",
-      "Financial reports for the term",
+      "Discounts and refunds",
+      "Salary structures and pay runs",
+      "Financial reports",
     ],
   },
   {
     icon: Users,
     title: "Parents and students",
-    who: "No account required",
     items: [
-      "A result code printed on the card",
+      "A result code, no account needed",
       "Opens the published result only",
-      "Rendered in the school's own card design",
-      "No staff data ever exposed",
+      "The school's own card design",
       "Works from any phone",
+      "No staff data exposed",
     ],
   },
 ];
@@ -216,24 +218,19 @@ function PlatformSection() {
           <SectionHeading
             className="mt-5"
             title="One platform, every seat covered."
-            description="Clearis gives each person who touches the school day their own front door — and each one sees exactly what their role allows, decided on the server on every request, never in the browser."
+            description="A front door for each person who touches the school day — and each one sees only what their role allows, decided on the server."
           />
         </Reveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SEATS.map(({ icon: Icon, title, who, items }, index) => (
+          {SEATS.map(({ icon: Icon, title, items }, index) => (
             <Reveal key={title} delay={index * 0.06}>
-              <div className="flex h-full flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12">
                   <Icon className="h-4 w-4 text-primary" />
                 </span>
-                <p className="mt-4 text-[15px] font-bold tracking-tight text-foreground">
-                  {title}
-                </p>
-                <p className="mt-0.5 text-[11.5px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                  {who}
-                </p>
-                <ul className="mt-4 space-y-2">
+                <p className="mt-4 text-[15px] font-bold tracking-tight text-foreground">{title}</p>
+                <ul className="mt-3.5 space-y-2">
                   {items.map((item) => (
                     <li key={item} className="flex gap-2 text-[12.5px] leading-relaxed text-muted-foreground">
                       <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
@@ -256,89 +253,37 @@ const DESKS: {
   icon: LucideIcon;
   desk: string;
   beta?: boolean;
-  features: { icon: LucideIcon; name: string; body: string }[];
+  features: { icon: LucideIcon; name: string }[];
 }[] = [
   {
     icon: ClipboardCheck,
     desk: "Academics",
     features: [
-      {
-        icon: ClipboardCheck,
-        name: "Results and grading",
-        body: "Score entry, validation and grade boundaries computed against your school's own scale.",
-      },
-      {
-        icon: FileText,
-        name: "Report cards",
-        body: "Cards generated from the approved snapshot, printed or exported.",
-      },
-      {
-        icon: LayoutTemplate,
-        name: "Card designer",
-        body: "Lay out your own report card once; every class prints in that design.",
-      },
-      {
-        icon: CalendarCheck,
-        name: "Attendance",
-        body: "Student and staff registers with monthly summaries built as you mark.",
-      },
-      {
-        icon: BookOpen,
-        name: "Classes, subjects, timetable",
-        body: "Your academic structure, plus a weekly timetable generated from it.",
-      },
+      { icon: ClipboardCheck, name: "Results and grading" },
+      { icon: FileText, name: "Report cards" },
+      { icon: LayoutTemplate, name: "Card designer" },
+      { icon: CalendarCheck, name: "Attendance" },
+      { icon: BookOpen, name: "Classes, subjects, timetable" },
     ],
   },
   {
     icon: Users,
     desk: "Administration",
     features: [
-      {
-        icon: Users,
-        name: "Students and admissions",
-        body: "One record per student: guardians, class, history and docs.",
-      },
-      {
-        icon: GraduationCap,
-        name: "Teachers and staff",
-        body: "Roles, responsibilities and assignments, readable at a glance.",
-      },
-      {
-        icon: Package,
-        name: "Inventory",
-        body: "Stock levels, issues and restocking for the school's supplies.",
-      },
-      {
-        icon: BookCopy,
-        name: "Library",
-        body: "Titles, copies and lending, tracked against borrowers.",
-      },
+      { icon: Users, name: "Students and admissions" },
+      { icon: GraduationCap, name: "Teachers and staff" },
+      { icon: Package, name: "Inventory" },
+      { icon: BookCopy, name: "Library" },
     ],
   },
   {
     icon: Wallet,
     desk: "Finance",
     features: [
-      {
-        icon: Wallet,
-        name: "Fees and billing",
-        body: "Fee structures, invoices, payments and each student's running balance.",
-      },
-      {
-        icon: Banknote,
-        name: "Payroll",
-        body: "Salary structures, per-staff assignment and monthly pay runs.",
-      },
-      {
-        icon: Calculator,
-        name: "Accounting desk",
-        body: "Expenses, cashbook, debtors, concessions and financial reports.",
-      },
-      {
-        icon: Receipt,
-        name: "Receipts",
-        body: "Every payment acknowledged with a printable receipt.",
-      },
+      { icon: Wallet, name: "Fees and billing" },
+      { icon: Banknote, name: "Payroll" },
+      { icon: Calculator, name: "Accounting desk" },
+      { icon: Receipt, name: "Receipts" },
     ],
   },
   {
@@ -346,21 +291,9 @@ const DESKS: {
     desk: "AI tools",
     beta: true,
     features: [
-      {
-        icon: Bot,
-        name: "Clearis AI copilot",
-        body: "Ask your school's own records a question in plain English.",
-      },
-      {
-        icon: NotebookPen,
-        name: "AI lesson plans",
-        body: "Draft a topic or a scheme of work, grounded in your curriculum data.",
-      },
-      {
-        icon: MonitorPlay,
-        name: "AI question banks",
-        body: "Generate questions for a subject and class, then edit them.",
-      },
+      { icon: Bot, name: "Clearis AI copilot" },
+      { icon: NotebookPen, name: "AI lesson plans" },
+      { icon: MonitorPlay, name: "AI question banks" },
     ],
   },
 ];
@@ -373,15 +306,15 @@ function FeaturesSection() {
           <SectionLabel>Features</SectionLabel>
           <SectionHeading
             className="mt-5"
-            title="Everything a term needs, grouped into four desks."
-            description="Not a feature list bolted together — the same structure you will see the moment you sign in. The office, the classroom, the bursary and the AI desk, each with its own tools."
+            title="Four desks, everything a term needs."
+            description="The same structure you see the moment you sign in. The office, the classroom, the bursary and the AI desk."
           />
         </Reveal>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {DESKS.map(({ icon: DeskIcon, desk, beta, features }, index) => (
             <Reveal key={desk} delay={index * 0.06}>
-              <div className="flex h-full flex-col rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
                 <div className="flex items-center gap-2">
                   <DeskIcon className="h-4 w-4 text-primary" />
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-foreground">
@@ -394,18 +327,11 @@ function FeaturesSection() {
                   )}
                 </div>
 
-                <div className="mt-4 space-y-3.5">
-                  {features.map(({ icon: Icon, name, body }) => (
-                    <div key={name} className="flex gap-2.5">
-                      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                      <div>
-                        <p className="text-[13px] font-semibold leading-tight text-foreground">
-                          {name}
-                        </p>
-                        <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">
-                          {body}
-                        </p>
-                      </div>
+                <div className="mt-4 space-y-2.5">
+                  {features.map(({ icon: Icon, name }) => (
+                    <div key={name} className="flex items-center gap-2.5">
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+                      <p className="text-[12.5px] font-medium text-foreground">{name}</p>
                     </div>
                   ))}
                 </div>
@@ -416,16 +342,18 @@ function FeaturesSection() {
 
         <Reveal delay={0.1}>
           <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/70 bg-muted/30 p-5 sm:flex-row sm:items-center">
-            <p className="text-[13.5px] leading-relaxed text-muted-foreground">
-              Every screen is scoped to your school and re-checked against your
-              role on each request — the browser never decides what you can see.
+            <p className="text-[13.5px] text-muted-foreground">
+              Every screen is scoped to your school and re-checked against your role on each request.
             </p>
-            <Button asChild className="h-10 shrink-0 px-5 text-[13.5px]">
-              <Link href="/register">
-                Create your workspace
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button asChild className="h-10 px-5 text-[13.5px]">
+                <Link href="/register">
+                  Create your workspace
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+              <AppDownloadButton className="h-10 px-5 text-[13.5px]" />
+            </div>
           </div>
         </Reveal>
       </div>
@@ -436,39 +364,36 @@ function FeaturesSection() {
 /* ──────────────────────────── Results spotlight ──────────────────────────── */
 
 const GUARANTEES = [
-  "Marks are clamped and validated at entry, so a typo cannot be published.",
-  "Grade boundaries are computed against your school's own scale — WAEC-aligned by default.",
-  "Every stage — submit, verify, approve, publish — lands in an append-only audit journal.",
-  "A published card is a snapshot: later roster edits can never silently rewrite it.",
+  "Marks are validated at entry, so a typo cannot be published.",
+  "Grades compute against your school's own scale — WAEC-aligned by default.",
+  "Every stage lands in an append-only audit journal.",
+  "A published card is a snapshot; later edits cannot rewrite it.",
 ];
 
 const PIPELINE = [
-  { title: "Enter scores", body: "Teachers enter marks for their own subjects and classes only." },
-  { title: "Read readiness", body: "The exam office sees exactly which classes are complete and which are not." },
-  { title: "Process", body: "Verify, approve or reject with a reason. The journal keeps who did what, and when." },
-  { title: "Publish", body: "Report cards are generated from the approved snapshot, in your school's design." },
-  { title: "Parents check", body: "A result code opens the published card from any phone — no account needed." },
+  { title: "Enter scores", body: "Teachers enter marks for their own subjects only." },
+  { title: "Read readiness", body: "The exam office sees which classes are complete." },
+  { title: "Process", body: "Verify, approve or reject, with a reason on record." },
+  { title: "Publish", body: "Cards generated from the approved snapshot." },
+  { title: "Parents check", body: "A result code opens the published card." },
 ];
 
 function ResultsSection() {
   return (
-    <section
-      id="results"
-      className="scroll-mt-20 border-y border-border/70 bg-muted/20 py-20 sm:py-24"
-    >
+    <section id="results" className="scroll-mt-20 border-y border-border/70 bg-muted/20 py-20 sm:py-24">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
           <Reveal>
             <SectionLabel>Results, end to end</SectionLabel>
             <SectionHeading
               className="mt-5"
-              title="From a mark sheet to a report card a parent can trust."
-              description="Results are the document a school is judged by. Clearis runs the whole pipeline in one place, and keeps a permanent record of how each one was arrived at."
+              title="A report card a parent can trust."
+              description="Results are the document a school is judged by. Clearis runs the whole pipeline and keeps a record of how each one was reached."
             />
 
-            <ul className="mt-8 space-y-3.5">
+            <ul className="mt-8 space-y-3">
               {GUARANTEES.map((line) => (
-                <li key={line} className="flex gap-3 text-[13.5px] leading-relaxed text-muted-foreground">
+                <li key={line} className="flex gap-3 text-[13px] leading-relaxed text-muted-foreground">
                   <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-success/15">
                     <Check className="h-3 w-3 text-success" />
                   </span>
@@ -509,7 +434,7 @@ function ResultsSection() {
                     <p className="text-[14px] font-semibold tracking-tight text-foreground">
                       {step.title}
                     </p>
-                    <p className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+                    <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">
                       {step.body}
                     </p>
                   </div>
@@ -529,28 +454,28 @@ const AI_CARDS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: Bot,
     title: "School copilot",
-    body: "“How many students are in JSS 2B?” — answered from your roster, enrolments and published results, not from the internet.",
+    body: "Ask about enrolments, results, attendance or fees — answered from your rows.",
   },
   {
     icon: NotebookPen,
     title: "Lesson plans",
-    body: "Draft a plan for a topic, then edit it. Written against your own subjects and classes.",
+    body: "Draft a topic plan, then edit it.",
   },
   {
     icon: MonitorPlay,
     title: "Question banks",
-    body: "Generate questions for a subject and class, then keep the ones worth keeping.",
+    body: "Generate questions for a subject and class.",
   },
 ];
 
-const AI_NOTES = ["Grounded in your records", "Metered per request", "Permission-gated", "Beta — improving"];
+const AI_NOTES = ["Grounded in your records", "Metered per request", "Permission-gated", "Beta"];
 
 function AiSection() {
   return (
     <section id="ai" className="scroll-mt-20 py-20 sm:py-24">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <Reveal>
-          <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary via-primary to-accent p-7 shadow-xl shadow-primary/20 sm:p-11">
+          <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary via-primary to-chart-5 p-7 shadow-xl shadow-primary/20 sm:p-11">
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 opacity-[0.14]"
@@ -570,13 +495,11 @@ function AiSection() {
                   AI tools
                 </span>
                 <h2 className="mt-5 text-[26px] font-bold leading-[1.15] tracking-tight text-white sm:text-[32px] lg:text-[38px]">
-                  Meet Clearis AI — grounded in your school&apos;s own records.
+                  Clearis AI, grounded in your school&apos;s own records.
                 </h2>
-                <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-white/85 sm:text-[15.5px]">
-                  Ask in plain English and get an answer built from your rows:
-                  enrolments, results, attendance, fees. Every turn is metered
-                  and gated behind a permission, so it is never a black box on
-                  your data.
+                <p className="mt-4 max-w-lg text-[14.5px] leading-relaxed text-white/85">
+                  Ask in plain English, get an answer built from your data — never a
+                  black box on it.
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-2">
@@ -590,7 +513,6 @@ function AiSection() {
                   ))}
                 </div>
 
-                {/* A short exchange, to show the shape of the answer. */}
                 <div className="mt-7 space-y-2.5">
                   <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-white/95 px-4 py-2.5 text-[12.5px] text-slate-900 shadow-sm">
                     Who has not paid this term?
@@ -599,9 +521,9 @@ function AiSection() {
                     <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide text-white/70">
                       <Bot className="h-3 w-3" /> Clearis AI
                     </span>
-                    <p className="mt-1.5">
-                      I can pull that from active invoices — it opens the debtor
-                      list with balances you can share with the bursary.
+                    <p className="mt-1">
+                      Two classes are outstanding for First Term. I can open the
+                      debtor list with balances for the bursary.
                     </p>
                   </div>
                 </div>
@@ -632,18 +554,9 @@ function AiSection() {
 /* ────────────────────────────── How it works ────────────────────────────── */
 
 const STEPS = [
-  {
-    title: "Create your workspace",
-    body: "Register the school and name the workspace. You become its first administrator, with full settings and staff access.",
-  },
-  {
-    title: "Add your school",
-    body: "Set up classes and subjects, invite staff with the right roles, and load students and fee structures.",
-  },
-  {
-    title: "Run the term",
-    body: "Enter scores, mark attendance, invoice fees and publish results — with the audit trail writing itself as you go.",
-  },
+  { title: "Create your workspace", body: "Register the school; you become its first administrator." },
+  { title: "Add your school", body: "Classes, subjects, staff roles, students and fee structures." },
+  { title: "Run the term", body: "Scores, attendance, invoices and results — the audit trail writes itself." },
 ];
 
 function HowItWorksSection() {
@@ -655,27 +568,46 @@ function HowItWorksSection() {
           <SectionHeading
             className="mt-5"
             title="Three steps to a calmer term."
-            description="You do not need to migrate everything on day one. Set the workspace up, bring in one class, and grow it from there."
+            description="No migration needed on day one. Bring in one class and grow from there."
           />
         </Reveal>
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {STEPS.map((step, index) => (
             <Reveal key={step.title} delay={index * 0.07}>
-              <div className="relative h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
                 <span className="text-[40px] font-bold leading-none text-primary/15">
                   0{index + 1}
                 </span>
                 <p className="mt-2 text-[15px] font-bold tracking-tight text-foreground">
                   {step.title}
                 </p>
-                <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
                   {step.body}
                 </p>
               </div>
             </Reveal>
           ))}
         </div>
+
+        <Reveal delay={0.1}>
+          <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border border-border/70 bg-card p-6 sm:flex-row sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12">
+                <Download className="h-4 w-4 text-primary" />
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-foreground">
+                  Take Clearis with you
+                </p>
+                <p className="text-[12.5px] text-muted-foreground">
+                  The same workspace from a phone — marks, fees and results.
+                </p>
+              </div>
+            </div>
+            <AppDownloadButton className="h-11 w-full shrink-0 px-5 text-[13.5px] sm:w-auto" label="Download the app" />
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -686,27 +618,27 @@ function HowItWorksSection() {
 const FAQS = [
   {
     q: "Who is Clearis built for?",
-    a: "Schools that run on a term structure — primary and secondary. It assumes the shape of a real school: sessions and terms, classes and arms, subjects, staff roles, guardians and report cards.",
+    a: "Primary and secondary schools that run on a term structure — sessions, classes and arms, subjects, staff roles, guardians and report cards.",
   },
   {
     q: "How long does setup take?",
-    a: "Creating the workspace takes a few minutes. From there you add your classes, subjects and staff, then load students. You can start with one class and grow into the rest of the school.",
+    a: "Creating the workspace takes minutes. Then add your classes and staff, load students, and grow from one class.",
   },
   {
     q: "Can parents see results without an account?",
-    a: "Yes. Each published result gets a code — an admission number plus a PIN the school issues. A parent opens the check-result page, enters the code, and sees that student's published card, rendered in the school's own design. No staff data is exposed.",
+    a: "Yes. Each published result gets a code an admin issues. The parent enters it and sees that student's card in the school's own design — no staff data exposed.",
   },
   {
-    q: "Is our data separate from other schools on the platform?",
-    a: "Every tenant request carries the school it is acting on, and the server resolves whether the caller is actually a member before anything is read or written. A school that is not a member gets the same neutral 'not found' as a school that does not exist, so the API never confirms another school's data is there.",
+    q: "Is our data separate from other schools?",
+    a: "Every request carries the school it acts on, and the server confirms the caller is a member before anything is read or written. A non-member gets the same not-found as a school that does not exist.",
   },
   {
     q: "How is access controlled?",
-    a: "With roles and permissions checked on the server for every request — never in the browser. A teacher enters scores for their own classes, the exam office processes results, the accountant sees the books, and the owner sees the whole school.",
+    a: "Roles and permissions checked server-side on every request, never in the browser. Teachers see their classes, the exam office processes results, the accountant sees the books.",
   },
   {
-    q: "What should I know about the AI features?",
-    a: "They are marked beta while they improve. Answers are built from your school's own records rather than general knowledge, each generation is metered so you can see what was used, and every AI feature sits behind its own permission.",
+    q: "What about the AI features?",
+    a: "They are beta while improving. Answers come from your school's records, every generation is metered, and each AI feature sits behind its own permission.",
   },
 ];
 
@@ -738,9 +670,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             transition={{ duration: 0.22, ease: EASE }}
             className="overflow-hidden"
           >
-            <p className="pb-4 pr-6 text-[13.5px] leading-relaxed text-muted-foreground">
-              {a}
-            </p>
+            <p className="pb-4 pr-6 text-[13px] leading-relaxed text-muted-foreground">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -756,7 +686,7 @@ function FaqSection() {
           <SectionHeading
             align="center"
             title="Questions schools ask before switching."
-            description="Straight answers about setup, access and where the data lives."
+            description="Setup, access, and where the data lives."
           />
         </Reveal>
         <Reveal delay={0.08}>
@@ -784,10 +714,13 @@ function FinalCta() {
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
             Start with the workspace, add your first class, and let the term run
-            itself. Sign in if your school is already here.
+            itself.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild className="h-12 w-full px-6 text-[14.5px] font-semibold shadow-md shadow-primary/25 sm:w-auto">
+            <Button
+              asChild
+              className="h-12 w-full px-6 text-[14.5px] font-semibold shadow-md shadow-primary/25 sm:w-auto"
+            >
               <Link href="/register">
                 Get started free
                 <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -796,13 +729,11 @@ function FinalCta() {
             <Button asChild variant="outline" className="h-12 w-full px-6 text-[14.5px] sm:w-auto">
               <Link href="/login">Sign in</Link>
             </Button>
+            <AppDownloadButton className="h-12 w-full px-6 text-[14.5px] sm:w-auto" />
           </div>
           <p className="mt-5 text-[12.5px] text-muted-foreground/85">
             Parent or student?{" "}
-            <Link
-              href="/check-result"
-              className="font-semibold text-primary hover:text-primary/90"
-            >
+            <Link href="/check-result" className="font-semibold text-primary hover:text-primary/90">
               Check a published result
             </Link>
           </p>

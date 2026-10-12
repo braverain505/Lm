@@ -102,8 +102,8 @@ export function AuroraBackdrop({ className }: { className?: string }) {
       aria-hidden
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
-      <div className="absolute -left-[18%] -top-[28%] h-[620px] w-[620px] rounded-full bg-primary/[0.08] blur-[130px]" />
-      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-accent/[0.07] blur-[120px]" />
+      <div className="absolute -left-[18%] -top-[28%] h-[620px] w-[620px] rounded-full bg-primary/[0.09] blur-[130px]" />
+      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-chart-5/[0.09] blur-[120px]" />
       <div
         className="absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_70%)]"
         style={{

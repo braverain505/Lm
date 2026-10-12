@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { APP_DOWNLOAD_NAME, APP_DOWNLOAD_URL } from "@/lib/app-download";
 import { FlintwireCredit } from "@/components/flintwire-credit";
 
 /**
@@ -9,7 +10,7 @@ import { FlintwireCredit } from "@/components/flintwire-credit";
  * route in the app, or the Flintwire site. A marketing footer full of dead
  * links is the fastest way to make a product feel unfinished.
  */
-const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
+const COLUMNS: { title: string; links: { label: string; href: string; download?: boolean }[] }[] = [
   {
     title: "Platform",
     links: [
@@ -26,7 +27,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Create a workspace", href: "/register" },
       { label: "Sign in", href: "/login" },
       { label: "Check a result", href: "/check-result" },
-      { label: "Reset password", href: "/reset-password" },
+      { label: "Download the mobile app", href: APP_DOWNLOAD_URL, download: true },
     ],
   },
   {
@@ -79,12 +80,22 @@ export function LandingFooter() {
               <ul className="mt-4 space-y-2.5">
                 {column.links.map((link) => (
                   <li key={`${column.title}-${link.label}`}>
-                    <Link
-                      href={link.href}
-                      className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.download ? (
+                      <a
+                        href={link.href}
+                        download={APP_DOWNLOAD_NAME}
+                        className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
