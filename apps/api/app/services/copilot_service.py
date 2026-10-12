@@ -160,12 +160,27 @@ _MARKS_EXCLUSIONS = _PERFORMANCE_WORDS - {"grade", "grades"}
 _ENUMERATION_VERBS = {"show", "list", "give", "display", "see", "tell", "print"}
 _STUDENT_NOUNS = {"student", "students", "pupil", "pupils", "enrolled"}
 
+# A question about *people* rather than marks: "who is in the school?" is about
+# pupils even without the word "student".
+_PEOPLE_CONTEXT = _STUDENT_NOUNS | {
+    "class", "classes", "arm", "arms", "section", "sections", "stream",
+    "streams", "form", "forms", "school",
+}
+# Words that say "a class" without naming one ("the class", "this arm").
+_CLASS_REFERENCE_WORDS = {
+    "class", "classes", "arm", "arms", "section", "sections", "stream",
+    "streams", "form", "forms",
+}
+# "who are the teachers?" is a staff question, never a pupil roster.
+_STAFF_WORDS = {"teacher", "teachers", "staff", "employee", "employees"}
+
 # Fragments describing "the class in general" rather than naming one. A clause
 # like "in the class" is not a failed class lookup, so it must not block the
 # school-wide roster fallback.
 _GENERIC_CLASS_WORDS = {
     "class", "classes", "arm", "arms", "section", "sections", "stream",
-    "streams", "school", "students", "pupils", "everyone", "registered",
+    "streams", "form", "forms", "school", "students", "pupils", "everyone",
+    "registered",
 }
 
 
@@ -201,9 +216,74 @@ def _names_a_class(phrase: str) -> bool:
     """
     significant = _tokens(phrase) - {
         "the", "a", "an", "our", "this", "that", "these", "those", "some",
-        "new", "my", "all", "list", "show", "give", "me",
+        "new", "my", "all", "list", "show", "give", "me", "it", "its",
+        "they", "them", "there", "their", "which", "same", "one", "ones",
+        "you", "your", "we", "us",
     }
     return bool(significant) and not significant <= _GENERIC_CLASS_WORDS
+
+
+def _all_arms(db: Session, school_id: uuid.UUID) -> list[ClassArm]:
+    """Every class arm in the school, alphabetical."""
+    return sorted(
+        db.scalars(select(ClassArm).where(ClassArm.school_id == school_id)),
+        key=lambda a: a.full_name,
+    )
+
+
+def _class_reference(tokens: set[str]) -> bool:
+    """True when the question points at "a class" without naming one."""
+    return bool(tokens & _CLASS_REFERENCE_WORDS)
+
+
+def _class_scope(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    context: dict,
+) -> tuple[ClassArm | None, str]:
+    """Resolve *which class* a question means — and say why.
+
+    Returns ``(arm, state)`` where state is one of:
+
+    * ``"named"``     — the question names a class ("in JSS 1A", "the Nursery 1
+      pupils")
+    * ``"context"``   — the conversation already pinned one ("...and the boys?")
+    * ``"only"``      — the school runs exactly one class, so "the class" is it
+    * ``"ambiguous"`` — a class is referred to but several exist
+    * ``"unknown"``   — a class *is* named and this school does not have it
+    * ``"none"``      — no class is in play at all
+
+    One resolver, shared by every class-scoped intent, is what lets the
+    conversation flow: a roster lists the whole school on ``"none"``/``"ambiguous"``,
+    a count asks which class, and a bare "how many students are enrolled?"
+    ignores ``"only"`` so it stays the school overview.
+    """
+    clause = re.search(
+        r"\b(?:in|of|for|from)\s+(?:class\s+)?(?P<arm>.+?)\s*$",
+        question,
+        re.IGNORECASE,
+    )
+    if clause:
+        arm = copilot_actions.resolve_arm_by_phrase(db, school_id, clause.group("arm"))
+        if arm is not None:
+            return arm, "named"
+        if _names_a_class(clause.group("arm")):
+            return None, "unknown"
+    arm = copilot_actions.find_arm_in_text(db, school_id, question)
+    if arm is not None:
+        return arm, "named"
+    pinned = _ctx_arm(db, school_id, context)
+    if pinned is not None:
+        return pinned, "context"
+    arms = _all_arms(db, school_id)
+    if len(arms) == 1:
+        return arms[0], "only"
+    if arms and _class_reference(tokens):
+        return None, "ambiguous"
+    return None, "none"
 
 
 def _resolve_student(
@@ -412,12 +492,29 @@ def _h_help(
 
 
 def _h_class_subjects(
-    db: Session, school_id: uuid.UUID, *, tokens: set[str], context: dict, **_
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    context: dict,
+    **_,
 ) -> tuple[str, dict, dict] | None:
+    """The subjects a class offers — "what does JSS 1A offer?".
+
+    The class comes from the shared scope resolver, so "what subjects does the
+    class offer?" works in a one-class school and can follow a class question.
+    """
     if not _has(tokens, "subject", "subjects", "offer", "offers", "taught"):
         return None
-    arm = _resolve_arm(db, school_id, tokens) or _ctx_arm(db, school_id, context)
-    if arm is None:
+    arm, state = _class_scope(
+        db, school_id, question=question, tokens=tokens, context=context
+    )
+    if arm is None or state == "unknown":
+        return None
+    # A one-class school is only "the class" when the question said so;
+    # "what subjects do we offer?" is the school's list (the overview's job).
+    if state == "only" and not _class_reference(tokens):
         return None
     offerings = list_offerings(db, school_id, arm.id)
     names = sorted({o.subject.name for o in offerings})
@@ -437,16 +534,12 @@ def _h_class_subjects(
     return text, payload, ctx
 
 
-def _school_roster(
-    db: Session, school_id: uuid.UUID, *, context: dict
-) -> tuple[str, dict, dict]:
-    """Every enrolled student in the school, grouped by class.
-
-    The answer when a names question names no class and the school runs more
-    than one: the whole roll, not a guess at a single arm. One joined query
-    (not one per class) and a text budget, the same way the single-class roster
-    bounds itself.
-    """
+def _enrolled_rows(
+    db: Session, school_id: uuid.UUID
+) -> list[tuple[Student, ClassArm]]:
+    """Every current, active enrollment with its student and class, ordered by
+    class and then name. One joined query, shared by the roster answers and the
+    LLM brief — never one query per class."""
     stmt = (
         select(Student, ClassArm)
         .join(StudentEnrollment, StudentEnrollment.student_id == Student.id)
@@ -459,9 +552,44 @@ def _school_roster(
         )
         .order_by(ClassArm.full_name, Student.last_name, Student.first_name)
     )
+    return list(db.execute(stmt))
+
+
+def _class_count_breakdown(
+    db: Session, school_id: uuid.UUID, *, context: dict
+) -> tuple[str, dict, dict]:
+    """A class-scoped count with no class named and several on file: say which
+    classes exist and their sizes rather than guessing at one."""
+    pairs = _class_arms_for_brief(db, school_id)
+    counts = [{"class": arm.full_name, "students": count} for arm, count in pairs]
+    if not counts:
+        return (
+            "This school has no classes set up yet.",
+            {"intent": "class_counts", "classes": []},
+            context,
+        )
+    shown = counts[:12]
+    listed = _join_names([f"{c['class']} ({c['students']})" for c in shown])
+    more = "" if len(counts) <= len(shown) else f", and {len(counts) - len(shown)} more"
+    return (
+        f"Which class do you mean? Enrolled by class: {listed}{more}.",
+        {"intent": "class_counts", "classes": counts, "needs_class": True},
+        context,
+    )
+
+
+def _school_roster(
+    db: Session, school_id: uuid.UUID, *, context: dict
+) -> tuple[str, dict, dict]:
+    """Every enrolled student in the school, grouped by class.
+
+    The answer when a names question names no class and the school runs more
+    than one: the whole roll, not a guess at a single arm. The names are
+    bounded, the same way the single-class roster bounds itself.
+    """
     rows: list[dict] = []
     by_arm: dict[str, list[str]] = {}
-    for student, arm in db.execute(stmt):
+    for student, arm in _enrolled_rows(db, school_id):
         rows.append(
             {
                 "student_id": str(student.id),
@@ -523,12 +651,14 @@ def _h_class_roster(
     "in/of/for <class>" clause wins, then the longest class name in the
     question, then the arm already pinned on the conversation — so a bare
     "give me the names" right after "how many students are in Nursery 1"
-    lists that class. When the question names no class at all, a one-class
-    school lists its only class and a larger one lists the whole roll.
+    lists that class. When the question names no class at all, the shared
+    scope resolver gives the only class, or the whole roll, so "give me the
+    names of the students" and "show me the students in the class" both
+    answer with real pupils whatever the phrasing.
     """
     # A marks question that also happens to say "show"/"list" belongs to the
-    # results intents, not here.
-    if tokens & _MARKS_EXCLUSIONS:
+    # results intents, not here. Nor is a staff question a pupil roster.
+    if tokens & _MARKS_EXCLUSIONS or _has(tokens, *_STAFF_WORDS):
         return None
     # "all" is deliberately not a cue: it is far too common in count questions.
     wants_names = _has(
@@ -538,33 +668,25 @@ def _h_class_roster(
     asks_who = "who" in tokens
     if not (wants_names or enumerates or asks_who):
         return None
+    # Only a question that is actually about people — a class, the students, an
+    # explicit "names" — falls back to the only/whole school. "Who is the
+    # principal?" must not become a class list.
+    about_people = wants_names or bool(tokens & _PEOPLE_CONTEXT)
 
-    arm = None
-    names_a_class = False
-    clause = re.search(
-        r"\b(?:in|of|for|from)\s+(?:class\s+)?(?P<arm>.+?)\s*$", question, re.IGNORECASE
+    arm, state = _class_scope(
+        db, school_id, question=question, tokens=tokens, context=context
     )
-    if clause:
-        names_a_class = _names_a_class(clause.group("arm"))
-        arm = copilot_actions.resolve_arm_by_phrase(db, school_id, clause.group("arm"))
-    arm = arm or copilot_actions.find_arm_in_text(db, school_id, question)
-    arm = arm or _ctx_arm(db, school_id, context)
+    if state == "unknown":
+        # A class was named that this school does not have: answer honestly
+        # rather than quietly listing whichever class happens to exist.
+        return None
     if arm is None:
-        if names_a_class:
-            # They named a class this school does not have: answer honestly
-            # rather than quietly listing whichever class happens to exist.
+        if not about_people or not _all_arms(db, school_id):
             return None
-        arms = sorted(
-            db.scalars(select(ClassArm).where(ClassArm.school_id == school_id)),
-            key=lambda a: a.full_name,
-        )
-        if len(arms) == 1:
-            # One class is "the class" — there is nothing to disambiguate.
-            arm = arms[0]
-        elif arms:
-            return _school_roster(db, school_id, context=context)
-        else:
-            return None
+        return _school_roster(db, school_id, context=context)
+    if state == "only" and not about_people:
+        # The school has one class, but the question was about someone else.
+        return None
 
     rows = list_enrollments(db, school_id, arm.id)
     students = sorted(
@@ -612,22 +734,47 @@ def _h_class_roster(
 
 
 def _h_class_snapshot(
-    db: Session, school_id: uuid.UUID, *, tokens: set[str], context: dict, **_
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    question: str,
+    tokens: set[str],
+    context: dict,
+    **_,
 ) -> tuple[str, dict, dict] | None:
+    """How many pupils are in a class — "how many boys are in JSS 1A?".
+
+    The class comes from the shared scope resolver: a question that refers to
+    "the class" takes the school's only class, one that refers to a class when
+    several exist is answered with the per-class counts instead of a guess, and
+    "how many girls?" follows the class the conversation pinned. A plain "how
+    many students are enrolled?" refers to no class and stays the overview.
+    """
     if not _has(
         tokens, "student", "students", "boy", "boys", "girl", "girls", "enrolled"
     ):
         return None
-    arm = _resolve_arm(db, school_id, tokens) or _ctx_arm(db, school_id, context)
+    arm, state = _class_scope(
+        db, school_id, question=question, tokens=tokens, context=context
+    )
+    # An implicitly scoped class (the school's only one, or the one the thread
+    # pinned) counts only when the question actually pointed at a class or asked
+    # about a gender. "how many students are enrolled?" is the school total
+    # however the conversation is scoped, so it stays the overview.
+    if arm is not None and state in ("only", "context") and not (
+        _class_reference(tokens) or _has(tokens, "boy", "boys", "girl", "girls")
+    ):
+        arm = None
     if arm is None:
+        if state == "ambiguous" and _class_reference(tokens):
+            return _class_count_breakdown(db, school_id, context=context)
         return None
     gender = (
         "male" if _has(tokens, "boy", "boys") else ("female" if _has(tokens, "girl", "girls") else None)
     )
-    if arm is not None:
-        rows = list_enrollments(db, school_id, arm.id)
-        label = arm.full_name
-        ctx = {**context, "arm_id": str(arm.id)}
+    rows = list_enrollments(db, school_id, arm.id)
+    label = arm.full_name
+    ctx = {**context, "arm_id": str(arm.id)}
     boys = sum(1 for env in rows if env.student.gender == "male")
     girls = sum(1 for env in rows if env.student.gender == "female")
     total = len(rows)
@@ -1054,6 +1201,10 @@ def _answer(
 # 90 subjects must not turn one question into a 200 KB request (and a bill).
 _MAX_ARMS_IN_BRIEF = 30
 _MAX_SUBJECTS_IN_BRIEF = 40
+# Pupil names are what make the model able to answer questions the rules
+# catalogue has no handler for ("who is in year one?"). The budget keeps that
+# power bounded: a 2,000-pupil school still sends one prompt, not a roll call.
+_MAX_ROSTER_IN_BRIEF = 40
 _MAX_HISTORY_TURNS = 6
 _MAX_HISTORY_CHARS = 300
 _MAX_ANSWER_CHARS = 2000
@@ -1108,6 +1259,34 @@ def _class_arms_for_brief(
     return [(arm, int(counts.get(arm.id, 0))) for arm in arms[:_MAX_ARMS_IN_BRIEF]]
 
 
+def _roster_lines_for_brief(db: Session, school_id: uuid.UUID) -> list[str]:
+    """The school's pupils by class, as prompt lines for the grounding brief.
+
+    Bounded to ``_MAX_ROSTER_IN_BRIEF`` names in total. Classes past the budget
+    are still named, with their size only, so the model knows they exist and
+    that it was not given their names.
+    """
+    rows = _enrolled_rows(db, school_id)
+    if not rows:
+        return []
+    by_arm: dict[str, list[str]] = {}
+    for student, arm in rows:
+        by_arm.setdefault(arm.full_name, []).append(
+            f"{student.full_name} ({student.admission_no})"
+        )
+    budget = _MAX_ROSTER_IN_BRIEF
+    parts: list[str] = []
+    for arm_name, names in by_arm.items():
+        if budget <= 0:
+            parts.append(f"{arm_name} ({len(names)} pupils)")
+            continue
+        shown = names[:budget]
+        budget -= len(shown)
+        extra = "" if len(shown) == len(names) else f", +{len(names) - len(shown)} more"
+        parts.append(f"{arm_name}: {', '.join(shown)}{extra}")
+    return ["Enrolled pupils by class: " + "; ".join(parts)]
+
+
 def _grounding_brief(
     db: Session,
     school_id: uuid.UUID,
@@ -1154,6 +1333,8 @@ def _grounding_brief(
         lines.append(f"Class arms: {joined}")
     else:
         lines.append("Class arms: none set up")
+
+    lines.extend(_roster_lines_for_brief(db, school_id))
 
     if subjects:
         shown = [s.name for s in subjects[:_MAX_SUBJECTS_IN_BRIEF]]
@@ -1806,7 +1987,11 @@ def intents_catalog() -> list[dict]:
         {
             "id": "class_snapshot",
             "name": "Class snapshot",
-            "examples": ["How many students are in JSS 1A?", "How many boys are in JSS 1B?"],
+            "examples": [
+                "How many students are in JSS 1A?",
+                "How many boys are in JSS 1B?",
+                "How many students are in the class?",
+            ],
         },
         {
             "id": "class_roster",

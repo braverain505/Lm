@@ -386,6 +386,130 @@ def test_count_question_is_not_a_roster(client, db):
     assert msg["answer_payload"]["students"] == 3
 
 
+def test_count_takes_the_only_class_when_no_class_is_named(client, db):
+    """"how many students are in the class?" in a one-class school counts that
+    class, while "how many students are enrolled?" stays the school total."""
+    sid, _w = _world(client, db)
+
+    msg = _ask(client, sid, "how many students are in the class?")["message"]
+    assert msg["intent"] == "class_snapshot"
+    assert msg["answer_payload"]["class"] == "JSS 1 A"
+    assert msg["answer_payload"]["enrolled"] == 3
+
+
+def test_count_with_several_classes_asks_which(client, db):
+    """A class-scoped count in a school with several classes answers with the
+    per-class sizes instead of guessing at one."""
+    sid, _w = _world(client, db, with_nursery=True)  # JSS 1 A + empty Nursery 1
+
+    msg = _ask(client, sid, "how many students are in the class?")["message"]
+    payload = msg["answer_payload"]
+    assert payload["intent"] == "class_counts"
+    assert payload["needs_class"] is True
+    assert {c["class"]: c["students"] for c in payload["classes"]} == {
+        "JSS 1 A": 3,
+        "Nursery 1": 0,
+    }
+    assert "Which class" in msg["content"]
+
+
+def test_subjects_follow_the_only_class(client, db):
+    """"what subjects does the class offer?" resolves "the class" like a
+    roster does, while a school-wide subject question is left to the overview."""
+    sid, _w = _world(client, db)
+
+    msg = _ask(client, sid, "what subjects does the class offer?")["message"]
+    assert msg["intent"] == "class_subjects"
+    assert msg["answer_payload"]["class"] == "JSS 1 A"
+    assert msg["answer_payload"]["subject_names"] == ["Mathematics"]
+
+    msg = _ask(client, sid, "how many subjects do we offer?")["message"]
+    assert msg["intent"] == "school_overview"
+
+
+def test_follow_up_pronouns_reuse_the_class(client, db):
+    """"how many boys are in it?" carries the class from the previous turn."""
+    sid, _w = _world(client, db)
+    conv = _ask(client, sid, "who is in the class?")["conversation"]["id"]
+
+    msg = _ask(client, sid, "how many boys are in it?", conversation_id=conv)["message"]
+    assert msg["intent"] == "class_snapshot"
+    assert msg["answer_payload"]["class"] == "JSS 1 A"
+    assert msg["answer_payload"]["boys"] == 2
+
+
+def test_school_wide_count_is_not_scoped_by_the_thread(client, db):
+    """After a class question pins the thread, "how many students are
+    enrolled?" is still the school total, not that one class."""
+    sid, _w = _world(client, db)
+    conv = _ask(client, sid, "who is in the class?")["conversation"]["id"]
+
+    msg = _ask(client, sid, "how many students are enrolled?", conversation_id=conv)[
+        "message"
+    ]
+    assert msg["intent"] == "school_overview"
+    assert msg["answer_payload"]["students"] == 3
+
+
+def test_staff_question_is_not_a_pupil_roster(client, db):
+    """A one-class school must not turn "who are the teachers?" into a class
+    list just because it has a class."""
+    sid, _w = _world(client, db)
+    msg = _ask(client, sid, "who are the teachers?")["message"]
+    assert msg["intent"] != "class_roster"
+
+
+def test_the_reported_conversation_flows(client, db):
+    """The exact transcript that was reported: counts, then names, then the
+    class — every turn answers from the school's real rows in one thread."""
+    sid, _w = _world(client, db)  # one class, three pupils
+    conv = None
+    turns: dict[str, dict] = {}
+    for question in (
+        "How many students have been enrolled?",
+        "Give me the names of the students",
+        "How many classes do we have",
+        "show me the students in the class",
+        "List the students in the class",
+    ):
+        result = _ask(client, sid, question, conversation_id=conv)
+        conv = result["conversation"]["id"]
+        turns[question] = result["message"]
+
+    assert turns["How many students have been enrolled?"]["intent"] == "school_overview"
+    assert turns["How many classes do we have"]["answer_payload"]["arms"] == 1
+    for question in (
+        "Give me the names of the students",
+        "show me the students in the class",
+        "List the students in the class",
+    ):
+        message = turns[question]
+        assert message["intent"] == "class_roster", question
+        assert {s["full_name"] for s in message["answer_payload"]["students"]} == {
+            "Aisha Bello",
+            "David Okafor",
+            "Tolu Coker",
+        }, question
+
+
+def test_brief_carries_pupil_names(client, db):
+    """The grounding brief names the pupils, which is what lets the model
+    answer phrasings the rules catalogue has no handler for."""
+    from app.services.copilot_service import _grounding_brief
+
+    sid, _w = _world(client, db)
+    brief = _grounding_brief(
+        db,
+        uuid.UUID(sid),
+        term=None,
+        deterministic_text="I could not match that.",
+        deterministic_payload={"intent": "unknown"},
+    )
+    assert "Enrolled pupils by class:" in brief
+    assert "Aisha Bello (STU-001)" in brief
+    assert "JSS 1 A:" in brief
+
+
 # --- Academic structure --------------------------------------------------------
 
 def test_create_subject_via_chat(client, db):
