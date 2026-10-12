@@ -4,53 +4,53 @@
 
 @layer base {
   :root {
-    /* ─── Premium Light Mode — Sophisticated Neutrals ─── */
+    /* ─── Premium Light Mode — Soft Chrome ─── */
     --background: 0 0% 100%;
-    --background-subtle: 240 10% 98%;
-    --background-muted: 240 10% 96%;
-    --foreground: 240 12% 12%;
-    --foreground-secondary: 240 8% 30%;
-    --foreground-tertiary: 240 6% 42%;
-    --foreground-muted: 240 5% 56%;
+    --background-subtle: 218 24% 98%;
+    --background-muted: 218 22% 96%;
+    --foreground: 224 24% 11%;
+    --foreground-secondary: 224 14% 30%;
+    --foreground-tertiary: 224 10% 43%;
+    --foreground-muted: 222 9% 56%;
 
     /* ─── Surfaces ─── */
     --card: 0 0% 100%;
-    --card-foreground: 240 12% 12%;
+    --card-foreground: 224 24% 11%;
 
-    /* ─── Brand — Strategic Clearis Blue ─── */
-    --primary: 221 83% 50%;
+    /* ─── Brand — Toxic Violet ─── */
+    --primary: 262 84% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 221 83% 45%;
-    --primary-subtle: 221 83% 96%;
-    --primary-border: 221 83% 88%;
+    --primary-hover: 262 84% 46%;
+    --primary-subtle: 262 90% 96%;
+    --primary-border: 262 84% 88%;
 
-    /* ─── Secondary ─── */
-    --secondary: 240 8% 94%;
-    --secondary-foreground: 240 12% 12%;
-    --secondary-hover: 240 8% 90%;
-    --secondary-border: 240 8% 80%;
+    /* ─── Secondary — Chrome ─── */
+    --secondary: 218 20% 94%;
+    --secondary-foreground: 224 24% 11%;
+    --secondary-hover: 218 20% 90%;
+    --secondary-border: 218 18% 80%;
 
     /* ─── Muted ─── */
-    --muted: 240 8% 94%;
-    --muted-foreground: 240 8% 32%;
-    --muted-hover: 240 8% 90%;
+    --muted: 218 20% 95%;
+    --muted-foreground: 224 12% 34%;
+    --muted-hover: 218 20% 91%;
 
-    /* ─── Accent ─── */
-    --accent: 270 70% 60%;
-    --accent-foreground: 0 0% 100%;
-    --accent-hover: 270 70% 55%;
-    --accent-subtle: 270 70% 96%;
+    /* ─── Accent — Soft Chrome highlight (hover surfaces) ─── */
+    --accent: 218 22% 90%;
+    --accent-foreground: 224 24% 20%;
+    --accent-hover: 218 22% 85%;
+    --accent-subtle: 218 24% 96%;
 
     /* ─── Destructive ─── */
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 58%;
     --destructive-foreground: 0 0% 100%;
-    --destructive-hover: 0 84% 55%;
+    --destructive-hover: 0 84% 52%;
 
     /* ─── Semantic ─── */
-    --success: 142 71% 45%;
+    --success: 152 62% 40%;
     --success-foreground: 0 0% 100%;
-    --success-subtle: 142 71% 96%;
-    --success-border: 142 71% 88%;
+    --success-subtle: 152 62% 96%;
+    --success-border: 152 62% 87%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
@@ -62,42 +62,42 @@
     --error-subtle: 0 84% 96%;
     --error-border: 0 84% 88%;
 
-    --info: 217 91% 60%;
+    --info: 210 90% 52%;
 
-    /* ─── Borders & Inputs ─── */
-    --border: 240 10% 84%;
-    --border-strong: 240 10% 70%;
-    --border-subtle: 240 10% 90%;
-    --input: 240 10% 80%;
-    --ring: 221 83% 53%;
+    /* ─── Borders & Inputs — Chrome edge ─── */
+    --border: 218 18% 85%;
+    --border-strong: 218 16% 70%;
+    --border-subtle: 218 20% 91%;
+    --input: 218 18% 80%;
+    --ring: 262 84% 55%;
 
     /* ─── Radius — Restrained ─── */
     --radius: 0.5rem;
 
     /* ─── Rail — Elegant Slim Bar ─── */
-    --rail: 240 10% 98%;
-    --rail-foreground: 240 12% 12%;
-    --rail-muted: 240 8% 32%;
-    --rail-active-bg: 221 83% 53%;
+    --rail: 218 24% 98%;
+    --rail-foreground: 224 24% 11%;
+    --rail-muted: 224 12% 34%;
+    --rail-active-bg: 262 84% 52%;
     --rail-active-fg: 0 0% 100%;
-    --rail-border: 240 10% 84%;
+    --rail-border: 218 18% 85%;
 
     /* ─── Panel — Clean Expandable Nav ─── */
     --panel: 0 0% 100%;
-    --panel-foreground: 240 12% 12%;
-    --panel-muted: 240 8% 32%;
-    --panel-border: 240 10% 84%;
-    --panel-hover: 240 10% 94%;
-    --panel-active-bg: 221 83% 53%;
+    --panel-foreground: 224 24% 11%;
+    --panel-muted: 224 12% 34%;
+    --panel-border: 218 18% 85%;
+    --panel-hover: 218 22% 94%;
+    --panel-active-bg: 262 84% 52%;
     --panel-active-fg: 0 0% 100%;
 
-    /* ─── Charts — Premium Palette ─── */
-    --chart-1: 221 83% 53%;
-    --chart-2: 142 71% 45%;
+    /* ─── Charts — Violet anchor, chrome cool-down ─── */
+    --chart-1: 262 84% 55%;
+    --chart-2: 152 62% 42%;
     --chart-3: 38 92% 50%;
-    --chart-4: 346 77% 50%;
-    --chart-5: 280 65% 60%;
-    --chart-6: 199 89% 48%;
+    --chart-4: 330 78% 55%;
+    --chart-5: 285 78% 60%;
+    --chart-6: 200 82% 48%;
 
     /* ─── Light Mode Shadows — Subtle for elevation ─── */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.08);
@@ -114,15 +114,15 @@
   }
 
   .dark {
-    /* ─── Premium Dark Mode — Deep & Elegant ─── */
-    --background: 240 10% 7%;
-    --background-subtle: 240 10% 9%;
-    --background-muted: 240 10% 11%;
-    --background-elevated: 240 10% 13%;
-    --foreground: 240 10% 98%;
-    --foreground-secondary: 240 8% 82%;
-    --foreground-tertiary: 240 6% 68%;
-    --foreground-muted: 240 5% 50%;
+    /* ─── Premium Dark Mode — Deep Chrome ─── */
+    --background: 224 24% 7%;
+    --background-subtle: 224 24% 9%;
+    --background-muted: 224 22% 11%;
+    --background-elevated: 224 20% 13%;
+    --foreground: 220 24% 98%;
+    --foreground-secondary: 220 14% 84%;
+    --foreground-tertiary: 220 10% 68%;
+    --foreground-muted: 220 9% 54%;
 
     /* ─── Dark Mode Shadows — Stronger for same elevation perception ─── */
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
@@ -137,32 +137,32 @@
     --shadow-elevated: 0 12px 36px -6px rgba(0, 0, 0, 0.45), 0 4px 8px -4px rgba(0, 0, 0, 0.25);
     --shadow-panel: 4px 0 32px -4px rgba(0, 0, 0, 0.4);
 
-    --card: 240 10% 13%;
-    --card-foreground: 240 10% 98%;
+    --card: 224 20% 13%;
+    --card-foreground: 220 24% 98%;
 
-    /* ─── Brand — Brighter in Dark ─── */
-    --primary: 221 83% 58%;
+    /* ─── Brand — Brighter Toxic Violet in Dark ─── */
+    --primary: 262 88% 60%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 221 83% 63%;
-    --primary-subtle: 221 83% 15%;
-    --primary-border: 221 83% 25%;
+    --primary-hover: 262 88% 66%;
+    --primary-subtle: 262 55% 16%;
+    --primary-border: 262 55% 26%;
 
     /* ─── Secondary ─── */
-    --secondary: 240 8% 20%;
-    --secondary-foreground: 240 10% 98%;
-    --secondary-hover: 240 8% 25%;
-    --secondary-border: 240 8% 34%;
+    --secondary: 224 18% 20%;
+    --secondary-foreground: 220 24% 98%;
+    --secondary-hover: 224 18% 25%;
+    --secondary-border: 224 16% 34%;
 
     /* ─── Muted ─── */
-    --muted: 240 8% 20%;
-    --muted-foreground: 240 8% 80%;
-    --muted-hover: 240 8% 25%;
+    --muted: 224 18% 21%;
+    --muted-foreground: 220 12% 80%;
+    --muted-hover: 224 18% 26%;
 
-    /* ─── Accent ─── */
-    --accent: 270 70% 65%;
-    --accent-foreground: 0 0% 100%;
-    --accent-hover: 270 70% 70%;
-    --accent-subtle: 270 70% 15%;
+    /* ─── Accent — Soft Chrome highlight ─── */
+    --accent: 224 16% 24%;
+    --accent-foreground: 220 24% 96%;
+    --accent-hover: 224 16% 29%;
+    --accent-subtle: 224 18% 16%;
 
     /* ─── Destructive ─── */
     --destructive: 0 84% 65%;
@@ -170,13 +170,13 @@
     --destructive-hover: 0 84% 70%;
 
     /* ─── Semantic ─── */
-    --success: 142 71% 50%;
-    --success-foreground: 240 10% 7%;
-    --success-subtle: 142 71% 15%;
-    --success-border: 142 71% 25%;
+    --success: 152 62% 48%;
+    --success-foreground: 224 24% 7%;
+    --success-subtle: 152 62% 15%;
+    --success-border: 152 62% 25%;
 
     --warning: 38 92% 55%;
-    --warning-foreground: 240 10% 7%;
+    --warning-foreground: 224 24% 7%;
     --warning-subtle: 38 92% 15%;
     --warning-border: 38 92% 25%;
 
@@ -185,39 +185,39 @@
     --error-subtle: 0 84% 15%;
     --error-border: 0 84% 25%;
 
-    --info: 217 91% 60%;
+    --info: 210 90% 58%;
 
-    /* ─── Borders & Inputs — Subtle ─── */
-    --border: 240 10% 26%;
-    --border-strong: 240 10% 36%;
-    --border-subtle: 240 10% 20%;
-    --input: 240 10% 30%;
-    --ring: 221 83% 58%;
+    /* ─── Borders & Inputs — Chrome edge ─── */
+    --border: 224 16% 26%;
+    --border-strong: 224 14% 36%;
+    --border-subtle: 224 18% 20%;
+    --input: 224 16% 30%;
+    --ring: 262 88% 62%;
 
     /* ─── Rail — Dark Elegant ─── */
-    --rail: 240 10% 9%;
-    --rail-foreground: 240 10% 98%;
-    --rail-muted: 240 8% 80%;
-    --rail-active-bg: 221 83% 58%;
+    --rail: 224 24% 9%;
+    --rail-foreground: 220 24% 98%;
+    --rail-muted: 220 12% 80%;
+    --rail-active-bg: 262 88% 60%;
     --rail-active-fg: 0 0% 100%;
-    --rail-border: 240 10% 26%;
+    --rail-border: 224 16% 26%;
 
     /* ─── Panel — Dark Sophisticated ─── */
-    --panel: 240 10% 11%;
-    --panel-foreground: 240 10% 98%;
-    --panel-muted: 240 8% 80%;
-    --panel-border: 240 10% 26%;
-    --panel-hover: 240 10% 18%;
-    --panel-active-bg: 221 83% 58%;
+    --panel: 224 22% 12%;
+    --panel-foreground: 220 24% 98%;
+    --panel-muted: 220 12% 80%;
+    --panel-border: 224 16% 26%;
+    --panel-hover: 224 18% 19%;
+    --panel-active-bg: 262 88% 60%;
     --panel-active-fg: 0 0% 100%;
 
     /* ─── Charts ─── */
-    --chart-1: 221 83% 58%;
-    --chart-2: 142 71% 50%;
+    --chart-1: 262 88% 62%;
+    --chart-2: 152 62% 50%;
     --chart-3: 38 92% 55%;
-    --chart-4: 346 77% 55%;
-    --chart-5: 280 65% 65%;
-    --chart-6: 199 89% 53%;
+    --chart-4: 330 78% 60%;
+    --chart-5: 285 78% 65%;
+    --chart-6: 200 82% 53%;
   }
 }
 
