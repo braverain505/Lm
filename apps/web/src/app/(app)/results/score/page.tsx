@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, Lock } from "lucide-react";
+import { Download, Eye, Lock } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -25,6 +25,8 @@ import {
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/components/toast";
+import { downloadCsv, slug } from "@/lib/csv";
+import { scoresheetRows } from "@/lib/exports";
 
 function ScoreContextPicker() {
   const router = useRouter();
@@ -349,6 +351,32 @@ function ScoreGrid() {
     [draft],
   );
 
+  /**
+   * Download the grid as a spreadsheet.
+   *
+   * Exports what the teacher can see rather than what was last saved: the
+   * columns are the assessment components, and unsaved edits are included, so
+   * the file always matches the screen it was taken from. The admission number
+   * rides along so the sheet can be re-joined to the register later.
+   */
+  const downloadScoresheet = () => {
+    if (!card) return;
+    downloadCsv(
+      `scores-${slug(card.arm.full_name)}-${slug(card.subject.name)}-${slug(card.term.name)}.csv`,
+      scoresheetRows(
+        card,
+        cellValue,
+        liveTotal,
+        (enrollmentId) =>
+          liveGrade(enrollmentId) ??
+          card.students.find((s) => s.enrollment_id === enrollmentId)?.grade_letter ??
+          null,
+        componentLabel,
+      ),
+    );
+    toast("Scoresheet downloaded");
+  };
+
   if (!armId || !subjectId || !termId) return <ScoreContextPicker />;
 
   if (isLoading) {
@@ -479,6 +507,14 @@ function ScoreGrid() {
           <p className="text-sm text-muted-foreground">{card.term.name}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={downloadScoresheet}
+            disabled={card.students.length === 0}
+          >
+            <Download className="h-4 w-4" />
+            Download spreadsheet
+          </Button>
           {canEnter && (
             <>
               <Button

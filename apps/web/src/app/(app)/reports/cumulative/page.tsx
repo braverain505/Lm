@@ -2,8 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@clearis/shared";
+import { Download } from "lucide-react";
 import { useState } from "react";
 
+import { downloadCsv, slug } from "@/lib/csv";
+import { cumulativeRows } from "@/lib/exports";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NoAccess } from "@/components/access-denied";
 import { REPORT_CARD_PERM } from "@/components/nav-config";
@@ -42,9 +46,24 @@ function CumulativeReportWorkspace() {
     queryFn: () => api.schoolFetch<Cumulative>(schoolId!, `/results/cumulative?student_id=${studentId}&session_id=${sessionId}`),
   });
 
+  const student = students.find((item) => item.id === studentId);
+
+  /**
+   * The cumulative sheet as a spreadsheet: one row per subject, one column per
+   * term, ending in the session average — the shape a parent or an inspector
+   * can read a whole year from.
+   */
+  const downloadSpreadsheet = () => {
+    if (!data) return;
+    downloadCsv(
+      `cumulative-${slug(student?.full_name ?? "student")}-${slug(data.session.name)}.csv`,
+      cumulativeRows(data),
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div><h1 className="text-2xl font-semibold">Cumulative Broadsheet</h1><p className="text-sm text-muted-foreground">Review published subject averages across an academic session.</p></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Cumulative Broadsheet</h1><p className="text-sm text-muted-foreground">Review published subject averages across an academic session.</p></div><Button variant="outline" onClick={downloadSpreadsheet} disabled={!data}><Download className="h-4 w-4" /> Download spreadsheet</Button></div>
       <Card><CardHeader><CardTitle>Choose student and session</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2">
         <select className="h-9 rounded-md border px-3 text-sm" value={studentId} onChange={(event) => setStudentId(event.target.value)}><option value="">Choose student...</option>{students.map((student) => <option key={student.id} value={student.id}>{student.full_name} · {student.admission_no}</option>)}</select>
         <select className="h-9 rounded-md border px-3 text-sm" value={sessionId} onChange={(event) => setSessionId(event.target.value)}><option value="">Choose session...</option>{sessions.map((session) => <option key={session.id} value={session.id}>{session.name}</option>)}</select>

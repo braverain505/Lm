@@ -2,9 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api, type ReportCard } from "@clearis/shared";
-import { Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { useState } from "react";
 
+import { downloadCsv, slug } from "@/lib/csv";
+import { broadsheetRows } from "@/lib/exports";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NoAccess } from "@/components/access-denied";
@@ -42,9 +44,22 @@ function BroadsheetWorkspace() {
   });
   const subjects = cards[0]?.subjects ?? [];
 
+  /**
+   * The broadsheet as a spreadsheet, one row per student and one column per
+   * subject, with each student's average on the end — the same grid the exam
+   * office sees, ready for a moderation meeting or the school's own analysis.
+   */
+  const downloadSpreadsheet = () => {
+    if (!cards.length) return;
+    downloadCsv(
+      `broadsheet-${slug(cards[0].class_arm.full_name)}-${slug(cards[0].term.name)}.csv`,
+      broadsheetRows(cards),
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Broadsheet</h1><p className="text-sm text-muted-foreground">Review published results for a whole class.</p></div><Button variant="outline" onClick={() => window.print()} disabled={!cards.length}><Printer className="h-4 w-4" /> Print</Button></div>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-semibold">Broadsheet</h1><p className="text-sm text-muted-foreground">Review published results for a whole class.</p></div><div className="flex items-center gap-2"><Button variant="outline" onClick={downloadSpreadsheet} disabled={!cards.length}><Download className="h-4 w-4" /> Download spreadsheet</Button><Button variant="outline" onClick={() => window.print()} disabled={!cards.length}><Printer className="h-4 w-4" /> Print</Button></div></div>
       <Card><CardHeader><CardTitle>Choose term and class</CardTitle></CardHeader><CardContent className="grid gap-4 sm:grid-cols-2"><select className="h-9 rounded-md border px-3 text-sm" value={termId} onChange={(event) => setTermId(event.target.value)}><option value="">Choose term...</option>{terms.map((term) => <option key={term.id} value={term.id}>{term.name}</option>)}</select><select className="h-9 rounded-md border px-3 text-sm" value={armId} onChange={(event) => setArmId(event.target.value)}><option value="">Choose class...</option>{arms.map((arm) => <option key={arm.id} value={arm.id}>{arm.full_name}</option>)}</select></CardContent></Card>
       {isLoading && <p className="text-sm text-muted-foreground">Loading broadsheet...</p>}
       {error && <p className="text-sm text-destructive">Could not load the broadsheet.</p>}

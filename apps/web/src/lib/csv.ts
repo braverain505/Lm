@@ -24,3 +24,19 @@ export function downloadCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Make a label safe to sit inside a download filename.
+ *
+ * Class, subject and term names come from the school — "JSS 2B", "Basic
+ * Science", "First Term" — and may contain spaces, slashes or punctuation that
+ * browsers turn into underscores or, worse, truncate at. "JSS 2B · First Term"
+ * becomes "jss-2b-first-term".
+ */
+export function slug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "export";
+}
