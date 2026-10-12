@@ -10,6 +10,8 @@ import {
   Download,
   FileText,
   LayoutDashboard,
+  Pause,
+  Play,
   Search,
   Sparkles,
   Users,
@@ -22,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 import { EASE } from "./landing-shared";
 
-const ROTATE_MS = 6500;
+const ROTATE_MS = 5500;
 
 const FRAME_NAV: { icon: LucideIcon; label: string }[] = [
   { icon: LayoutDashboard, label: "Overview" },
@@ -409,24 +411,24 @@ export function LandingProductSlider() {
     [total],
   );
 
-  // Auto-advance, but never over the top of someone reading — hovering or
-  // focusing the frame stops it, and reduced-motion users get a static frame.
+  // Advance on its own — this is the whole point of the slider, so nothing
+  // incidental stops it. A timeout rather than an interval, keyed on the index,
+  // means the full delay is granted after every change including a manual one,
+  // so picking a screen never gets yanked away a moment later.
+  //
+  // Reduced motion does not switch the rotation off (the content would then
+  // never change); it removes the movement, leaving a plain cross-fade. The
+  // explicit pause button is the control WCAG 2.2.2 asks for.
   useEffect(() => {
-    if (paused || reduceMotion) return;
-    const timer = setInterval(() => setIndex((current) => (current + 1) % total), ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [paused, reduceMotion, total]);
+    if (paused) return;
+    const timer = setTimeout(() => setIndex((current) => (current + 1) % total), ROTATE_MS);
+    return () => clearTimeout(timer);
+  }, [paused, total, index]);
 
   const active = SLIDES[index];
 
   return (
-    <div
-      className="relative"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-    >
+    <div className="relative">
       {/* Browser frame */}
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_40px_120px_-40px_rgba(124,58,237,0.45)]">
         <div className="flex items-center gap-3 border-b border-border/60 bg-muted/40 px-4 py-2.5">
@@ -486,8 +488,8 @@ export function LandingProductSlider() {
                   className="col-start-1 row-start-1"
                   animate={{
                     opacity: isActive ? 1 : 0,
-                    x: isActive ? 0 : slideIndex < index ? -28 : 28,
-                    filter: isActive ? "blur(0px)" : "blur(6px)",
+                    x: reduceMotion ? 0 : isActive ? 0 : slideIndex < index ? -28 : 28,
+                    filter: reduceMotion ? "none" : isActive ? "blur(0px)" : "blur(6px)",
                   }}
                   transition={{ duration: 0.5, ease: EASE }}
                   style={{ pointerEvents: isActive ? "auto" : "none" }}
@@ -521,6 +523,15 @@ export function LandingProductSlider() {
               <span className="hidden sm:inline">{slide.label}</span>
             </button>
           ))}
+
+          <button
+            type="button"
+            onClick={() => setPaused((value) => !value)}
+            aria-label={paused ? "Resume the rotating screens" : "Pause the rotating screens"}
+            className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-full border border-border/70 bg-card/60 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {paused ? <Play className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
+          </button>
         </div>
 
         <p className="text-center text-[12.5px] text-muted-foreground" aria-live="polite">
