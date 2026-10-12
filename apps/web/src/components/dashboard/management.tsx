@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { ResultSheetsPanel } from "@/components/dashboard/result-sheets";
 import { KpiCard } from "@/components/dashboard/shared";
 import {
   ActivityPanel,
@@ -220,6 +221,9 @@ export function ManagementDashboard({ variant }: { variant: "admin" | "academic"
           <TasksPanel tasks={data?.tasks} loading={isLoading} error={isError} onRetry={retry} />
         </div>
       )}
+
+      {/* ── Result sheets: the broadsheet and the cumulative record ─── */}
+      {can("results.report_card") && <ResultSheetsPanel />}
 
       {/* ── Result work (academic roles only) ───────────────────────── */}
       {variant === "academic" && canApprove && (

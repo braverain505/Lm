@@ -21,6 +21,8 @@ import {
   Package,
   PieChart,
   Receipt,
+  Table2,
+  TrendingUp,
   Settings,
   Shield,
   Sparkles,
@@ -152,6 +154,11 @@ export const PANEL_SECTIONS: NavSection[] = [
       // decides, with no role list to drift out of sync.
       { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.enter" },
       { href: "/reports", label: "Report Cards", icon: FileText, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
+      // The broadsheet and the cumulative sheet are the exam office's reading
+      // views of the same published results, so they carry the same permission
+      // as the cards themselves and the API enforces it on both endpoints.
+      { href: "/reports/broadsheet", label: "Broadsheet", icon: Table2, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
+      { href: "/reports/cumulative", label: "Cumulative Results", icon: TrendingUp, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       // Designing the card is `school.manage`, so this link is the admin's half
       // of the same feature. The API enforces it on every write.
       {
@@ -269,6 +276,8 @@ const PAGE_META: Record<string, PageMeta> = {
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
   "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
+  "/reports/broadsheet": { title: "Broadsheet", breadcrumb: "Result Generation" },
+  "/reports/cumulative": { title: "Cumulative Results", breadcrumb: "Result Generation" },
   "/reports/designer": { title: "Report Card Designer", breadcrumb: "Result Generation" },
   "/attendance": { title: "Attendance", breadcrumb: "Academics" },
   "/timetable": { title: "Timetable", breadcrumb: "Academics" },
