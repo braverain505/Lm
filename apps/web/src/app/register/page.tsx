@@ -58,6 +58,17 @@ type RegisterForm = z.infer<typeof schema>;
 
 const STEPS = ["School profile", "Administrator", "Review"];
 
+// Shown while the workspace is being created. The request can take a few
+// seconds (register, then the optional logo upload), so the screen reports
+// progress instead of leaving the form frozen behind a disabled button.
+const CREATING_MESSAGES = [
+  "Creating your workspace",
+  "Setting up your school profile",
+  "Preparing your dashboard",
+  "Loading modules and tools",
+  "Almost there",
+];
+
 export default function RegisterPage() {
   const [step, setStep] = useState(0);
   const [logo, setLogo] = useState<File | null>(null);
@@ -65,6 +76,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [logoNotice, setLogoNotice] = useState<string | null>(null);
   const [complete, setComplete] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState(0);
   const {
     register,
     handleSubmit,
@@ -82,6 +95,18 @@ export default function RegisterPage() {
       if (logoPreview) URL.revokeObjectURL(logoPreview);
     };
   }, [logoPreview]);
+
+  // Advance the creating-workspace messages while the request is in flight.
+  useEffect(() => {
+    if (!creating) return;
+    setCreateStep(0);
+    const timer = setInterval(() => {
+      setCreateStep((current) =>
+        Math.min(current + 1, CREATING_MESSAGES.length - 1),
+      );
+    }, 900);
+    return () => clearInterval(timer);
+  }, [creating]);
 
   async function nextStep() {
     const fields: (keyof RegisterForm)[][] = [
@@ -118,6 +143,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setError(null);
     setLogoNotice(null);
+    setCreating(true);
     try {
       await api.registerSchool({
         school_name: data.school_name,
@@ -148,8 +174,22 @@ export default function RegisterPage() {
       setComplete(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Registration failed");
+    } finally {
+      setCreating(false);
     }
   };
+
+  // --- Creating the workspace (request in flight) ---
+  if (creating) {
+    return (
+      <CreatingWorkspace
+        schoolName={values.school_name}
+        message={CREATING_MESSAGES[createStep]}
+        step={createStep}
+        total={CREATING_MESSAGES.length}
+      />
+    );
+  }
 
   // --- Success state ---
   if (complete) {
@@ -252,6 +292,19 @@ export default function RegisterPage() {
                 className="mt-1 text-[14px] text-muted-foreground"
               >
                 Your workspace is ready to go
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.85 }}
+                className="mx-auto mt-3 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground"
+              >
+                We&apos;ve emailed your sign-in details and a getting-started
+                guide to{" "}
+                <span className="font-medium text-foreground">
+                  {values.admin_email}
+                </span>
+                . Check your inbox (and spam) if you don&apos;t see it.
               </motion.p>
             </div>
 
@@ -748,6 +801,87 @@ export default function RegisterPage() {
         <div className="mt-5">
           <FlintwireCredit />
         </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function CreatingWorkspace({
+  schoolName,
+  message,
+  step,
+  total,
+}: {
+  schoolName?: string;
+  message: string;
+  step: number;
+  total: number;
+}) {
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], opacity: [0.04, 0.06, 0.04] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -left-[20%] -top-[20%] h-[600px] w-[600px] rounded-full bg-primary/[0.06] blur-[120px]"
+        />
+        <motion.div
+          animate={{ scale: [1, 1.15, 1], opacity: [0.03, 0.05, 0.03] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute -bottom-[20%] -right-[20%] h-[500px] w-[500px] rounded-full bg-primary/[0.05] blur-[100px]"
+        />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="relative z-10 w-full max-w-[420px] text-center"
+      >
+        <Image
+          src="/clearisbg.png"
+          alt="Clearis"
+          width={1536}
+          height={1024}
+          priority
+          className="mx-auto mb-8 h-20 w-auto object-contain"
+        />
+
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/20">
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+        </div>
+
+        <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+          {schoolName || "Your workspace"}
+        </h1>
+
+        <div className="mt-2 h-6">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={message}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.3 }}
+              className="text-[14px] text-muted-foreground"
+            >
+              {message}…
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        <div className="mx-auto mt-6 h-1.5 w-full max-w-[260px] overflow-hidden rounded-full bg-muted">
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            initial={{ width: "8%" }}
+            animate={{ width: `${Math.round(((step + 1) / total) * 100)}%` }}
+            transition={{ ease: "easeOut", duration: 0.5 }}
+          />
+        </div>
+
+        <p className="mt-5 text-[12px] text-muted-foreground/80">
+          This usually takes a few seconds. Please keep this page open.
+        </p>
       </motion.div>
     </div>
   );
