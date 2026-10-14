@@ -76,6 +76,24 @@ async def lifespan(app: FastAPI):
             logger.error(f"Production configuration validation failed: {e}")
             raise
 
+    # Report the effective mail transport at boot. Registration deliberately
+    # swallows mail errors so a provider outage cannot fail a signup, which
+    # also means a misconfigured or blocked transport fails silently everywhere
+    # else. A host that blocks outbound SMTP (Render's free tier) then looks
+    # identical to one that sent the mail. This line makes the difference
+    # visible in the logs without sending anything.
+    try:
+        from .services import email_service
+
+        logger.info(
+            "Outbound email: transport=%s configured=%s from=%s",
+            settings.email_transport,
+            email_service.is_configured(),
+            settings.email_from,
+        )
+    except Exception:  # never take the API down over one log line
+        logger.exception("Could not report the outbound email configuration")
+
     # Bring the schema up to head before anything queries it. Render starts
     # Uvicorn directly and a free instance has no shell, pre-deploy command or
     # one-off jobs, so a pending migration has no other way to reach the

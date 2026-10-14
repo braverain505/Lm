@@ -457,12 +457,26 @@ MUTED = "#64748b"
 BORDER = "#e2e8f0"
 
 
-def _email_shell(*, eyebrow: str, heading: str, body_html: str, footer: str) -> str:
-    """One card, one column — inline styles because clients strip stylesheets."""
+def _email_shell(
+    *, eyebrow: str, heading: str, body_html: str, footer: str, preheader: str = ""
+) -> str:
+    """One card, one column — inline styles because clients strip stylesheets.
+
+    ``preheader`` is the snippet an inbox shows next to the subject line. It is
+    rendered hidden at the top of the body, because clients would otherwise
+    print it as a visible line above the card.
+    """
+    preheader_html = (
+        '<div style="display:none;max-height:0;overflow:hidden;opacity:0;'
+        f'color:transparent;">{escape(preheader)}</div>'
+        if preheader
+        else ""
+    )
     return f"""\
 <!doctype html>
 <html>
   <body style="margin:0;padding:24px;background:#f1f5f9;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    {preheader_html}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid {BORDER};">
       <tr>
         <td style="padding:22px 28px;border-bottom:1px solid {BORDER};">
@@ -792,6 +806,11 @@ def build_welcome_email(
                 "change this password from Settings once you have signed in. "
                 "Nobody at Clearis will ever ask you for it.</span>"
             ),
+            _paragraph(
+                f'<span style="color:{MUTED};font-size:12.5px;">Save these details '
+                "in your password manager. If you get stuck on any step, just reply "
+                "to this email — it reaches a person.</span>"
+            ),
         ]
     )
 
@@ -799,6 +818,10 @@ def build_welcome_email(
         eyebrow="Welcome aboard",
         heading=f"{school_name} is ready",
         body_html=body_html,
+        preheader=(
+            f"Your sign-in details and getting-started guide for {school_name} "
+            "are inside."
+        ),
         footer=(
             "You are receiving this because a Clearis workspace was registered "
             f"with this address.<br />Sign in at {escape(sign_in_url)}"
@@ -820,6 +843,7 @@ def build_welcome_email(
             "",
             f"We have attached {guide_name} with the full setup guide.",
             "Change your password from Settings once you have signed in.",
+            "Save these details in your password manager. Stuck? Reply to this email.",
         ]
     )
 
@@ -959,6 +983,7 @@ def build_new_school_alert(
         eyebrow="New registration",
         heading=school_name,
         body_html=body_html,
+        preheader=f"{admin_email} just registered {school_name}.",
         footer="An internal notice from Clearis. Not sent to the school.",
     )
 
@@ -1062,6 +1087,7 @@ def build_password_reset_email(full_name: str | None, reset_url: str) -> tuple[s
         eyebrow="Password reset",
         heading="Choose a new password",
         body_html=body_html,
+        preheader="Choose a new Clearis password — this link expires in one hour.",
         footer="Clearis never emails you a password. Reset links are single-use.",
     )
 
