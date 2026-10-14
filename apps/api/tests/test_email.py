@@ -11,7 +11,9 @@ transport would put on the wire.
 from __future__ import annotations
 
 import base64
+import re
 import smtplib
+import zlib
 
 import pytest
 
@@ -423,3 +425,203 @@ def test_pinning_a_transport_without_credentials_is_not_configured(monkeypatch):
         email_service.send_email(
             to="jane@school.edu", subject="Test", html="<p>Hello</p>"
         )
+
+
+# --- Brand mark, contact details and the watermark -----------------------------
+
+
+class _FakeProviderResponse:
+    """A 200 from the provider, carrying nothing but its message id."""
+
+    status_code = 200
+    text = "{}"
+
+    @staticmethod
+    def json() -> dict:
+        return {"id": "msg_test"}
+
+
+class _FakeHTTPClient:
+    """Stands in for ``httpx.Client``: records the JSON payload, opens no socket."""
+
+    payloads: list[dict] = []
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def post(self, url, *, headers=None, json=None):
+        _FakeHTTPClient.payloads.append(json)
+        return _FakeProviderResponse()
+
+
+def _decoded_streams(pdf: bytes) -> list[bytes]:
+    """Decompress the guide's content streams so its text can be asserted on
+    (reportlab Flate-compresses them, so a raw ``in pdf`` would never match)."""
+    out: list[bytes] = []
+    for match in re.finditer(rb"stream\r?\n(.*?)endstream", pdf, re.S):
+        raw = match.group(1).strip()
+        try:  # ASCII85, then Flate — reportlab writes both
+            stage = base64.a85decode(raw[:-2] if raw.endswith(b"~>") else raw)
+        except Exception:
+            stage = raw
+        try:
+            out.append(zlib.decompress(stage))
+        except Exception:
+            out.append(raw)
+    return out
+
+
+def test_messages_carry_the_brand_mark_and_the_platform_contact():
+    """Every message a school receives should look like it came from Clearis
+    and should say how to reach a person, without depending on the website
+    being up or on the client allowing remote images."""
+    _, html, _, _ = email_service.build_welcome_email(
+        school_name="Brightfield Academy",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        password="Str0ng!Pass",
+    )
+    assert 'src="cid:clearis-logo"' in html
+    assert 'alt="Clearis"' in html
+    assert email_service.CONTACT_EMAIL in html
+    assert email_service.CONTACT_PHONE in html
+
+    # The asset behind the cid has to exist: a missing file would leave the
+    # header empty and ship a message referencing an image nothing supplies.
+    logo = email_service.brand_logo_png()
+    assert logo.startswith(b"\x89PNG")
+    assert len(logo) > 1000
+
+    _, reset_html, _ = email_service.build_password_reset_email(
+        "Jane Doe", "https://app.clearis.test/reset-password?token=abc"
+    )
+    assert 'src="cid:clearis-logo"' in reset_html
+    assert email_service.CONTACT_EMAIL in reset_html
+    assert email_service.CONTACT_PHONE in reset_html
+
+    _, alert_html, _ = email_service.build_new_school_alert(
+        school_name="Brightfield Academy",
+        school_type="secondary",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+    )
+    assert 'src="cid:clearis-logo"' in alert_html
+
+
+def test_send_email_inlines_the_brand_mark_for_the_http_transport(monkeypatch):
+    """Resend needs the image as an attachment whose content_id matches the
+    cid used in the HTML — an <img src="cid:..."> with nothing behind it is a
+    blank space in the header."""
+    _FakeHTTPClient.payloads = []
+    monkeypatch.setattr(settings, "email_transport", "resend")
+    monkeypatch.setattr(settings, "resend_api_key", "re_test_key")
+    monkeypatch.setattr(email_service.httpx, "Client", _FakeHTTPClient)
+
+    _, html, text, attachments = email_service.build_welcome_email(
+        school_name="Brightfield Academy",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        password="Str0ng!Pass",
+    )
+    result = email_service.send_email(
+        to="jane@school.edu",
+        subject="Welcome",
+        html=html,
+        text=text,
+        attachments=attachments,
+    )
+
+    assert result.delivered is True
+    payload = _FakeHTTPClient.payloads[0]
+    filenames = [a["filename"] for a in payload["attachments"]]
+    # The guide stays first — callers and tests read attachments[0] as the PDF.
+    assert filenames[0] == "Clearis-Getting-Started.pdf"
+    logo = next(
+        a for a in payload["attachments"] if a["filename"] == "clearis-logo.png"
+    )
+    assert logo["content_id"] == email_service.LOGO_CID
+    assert base64.b64decode(logo["content"]).startswith(b"\x89PNG")
+
+
+def test_smtp_message_carries_the_brand_mark_inline(smtp):
+    """The same image has to land as a multipart/related part of the HTML
+    alternative, with the RFC 2392 angle brackets the client matches on."""
+    _, html, text, attachments = email_service.build_welcome_email(
+        school_name="Brightfield Academy",
+        admin_full_name="Jane Doe",
+        admin_email="jane@school.edu",
+        password="Str0ng!Pass",
+    )
+    email_service.send_email(
+        to="jane@school.edu",
+        subject="Welcome",
+        html=html,
+        text=text,
+        attachments=attachments,
+    )
+
+    message = smtp[0].message
+    kinds = {part.get_content_type() for part in message.walk()}
+    assert {"text/plain", "text/html", "application/pdf", "image/png"} <= kinds
+
+    image = next(p for p in message.walk() if p.get_content_type() == "image/png")
+    assert image.get("Content-ID") == "<clearis-logo>"
+    assert image.get_content_disposition() == "inline"
+
+    html_part = next(
+        p for p in message.walk() if p.get_content_type() == "text/html"
+    )
+    assert "cid:clearis-logo" in html_part.get_content()
+    # ...and the image is a sibling of that HTML part inside multipart/related,
+    # which is what makes the cid resolve without a network fetch.
+    related = next(
+        p for p in message.walk() if p.get_content_type() == "multipart/related"
+    )
+    siblings = list(related.iter_parts())
+    assert image in siblings
+    assert any(part.get_content_type() == "text/html" for part in siblings)
+
+
+def test_setup_guide_watermarks_every_page(monkeypatch):
+    """The guide is the document a school keeps; it should carry the mark on
+    every page, faintly and underneath the text rather than over it."""
+    stamped: list[int] = []
+    real_watermark = email_service._watermark_page
+
+    def spy(canvas, doc):
+        stamped.append(doc.page)
+        return real_watermark(canvas, doc)
+
+    monkeypatch.setattr(email_service, "_watermark_page", spy)
+
+    pdf = email_service.build_setup_guide_pdf(
+        school_name="Brightfield Academy",
+        admin_email="jane@school.edu",
+        sign_in_url="https://app.clearis.test/login",
+    )
+
+    pages = int(re.search(rb"/Count\s+(\d+)", pdf).group(1))
+    assert pages >= 2, "the guide spans more than one page"
+    assert stamped == list(range(1, pages + 1)), "one stamp per page, in order"
+
+    # reportlab writes fill alpha as "/ca .1"; the mark is embedded as an image
+    # XObject and drawn at that alpha, so the text stays readable over it.
+    assert re.search(rb"/ca\s*\.1\b", pdf), "watermark must be translucent"
+    assert len(re.findall(rb"/Subtype\s*/Image", pdf)) >= pages
+
+
+def test_setup_guide_still_reports_where_to_get_help():
+    pdf = email_service.build_setup_guide_pdf(
+        school_name="Brightfield Academy",
+        admin_email="jane@school.edu",
+        sign_in_url="https://app.clearis.test/login",
+    )
+    text = b"".join(_decoded_streams(pdf))
+    assert email_service.CONTACT_EMAIL.encode() in text
+    assert email_service.CONTACT_PHONE.encode() in text

@@ -43,8 +43,10 @@ import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
 from email.utils import make_msgid
+from functools import lru_cache
 from html import escape
 from io import BytesIO
+from pathlib import Path
 from urllib.parse import quote
 
 import httpx
@@ -52,6 +54,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
     HRFlowable,
     ListFlowable,
@@ -123,6 +126,91 @@ def money(amount: float | None, currency: str = "NGN") -> str:
     return f"{symbol}{value:,.2f}"
 
 
+# ──────────────────────────────────────────────────────────────────────
+# Brand mark and platform contact — inlined into every message we render
+# ──────────────────────────────────────────────────────────────────────
+
+# Where "reply to this email" actually lands, and the number printed beside it.
+CONTACT_EMAIL = "clearisinfo@gmail.com"
+CONTACT_PHONE = "09168118497"
+
+# Content-ID behind ``src="cid:clearis-logo"`` in the HTML. Resend inlines an
+# attachment carrying the same ``content_id``; the SMTP transport keys off the
+# same marker to build a multipart/related body. One description serves both.
+LOGO_CID = "clearis-logo"
+# This module lives in app/services/, so the shipped asset sits one level up
+# beside the rest of the package.
+LOGO_FILE = Path(__file__).resolve().parents[1] / "assets" / "clearis-logo.png"
+# The asset's natural size, kept in step with assets/clearis-logo.png. Used for
+# both the email header and the PDF watermark so neither ever skews.
+LOGO_NATURAL_SIZE = (256, 240)
+LOGO_WIDTH = 72  # rendered width of the header mark, in px
+
+
+@lru_cache(maxsize=1)
+def brand_logo_png() -> bytes:
+    """The Clearis mark as PNG bytes, or ``b""`` if the asset went missing.
+
+    Inlined into the message rather than fetched from the site: a client that
+    blocks remote images, or a site that happens to be down, still shows the
+    brand — and the PDF can reuse the same bytes for its watermark.
+    """
+    try:
+        return LOGO_FILE.read_bytes()
+    except OSError:  # pragma: no cover - only if the package lost its data file
+        logger.warning("Brand logo asset is missing: %s", LOGO_FILE)
+        return b""
+
+
+def _logo_tag(width: int = LOGO_WIDTH, *, center: bool = False) -> str:
+    """The mark as an ``<img>``. Empty when the asset is unavailable, so the
+    HTML never references a ``cid:`` nothing will supply."""
+    if not brand_logo_png():
+        return ""
+    height = round(width * LOGO_NATURAL_SIZE[1] / LOGO_NATURAL_SIZE[0])
+    margin = "margin:0 auto 6px;" if center else ""
+    css = (
+        f"display:block;width:{width}px;height:auto;border:0;outline:none;"
+        f"text-decoration:none;-ms-interpolation-mode:bicubic;{margin}"
+    )
+    return (
+        f'<img src="cid:{LOGO_CID}" width="{width}" height="{height}" '
+        f'alt="Clearis" style="{css}" />'
+    )
+
+
+def _contact_block() -> str:
+    """The contact line every message carries under its footer."""
+    link = "color:#1659e9;text-decoration:none;font-weight:600;"
+    return (
+        '<div style="margin-top:8px;font-size:11.5px;color:#64748b;">'
+        "Need help? "
+        f'<a href="mailto:{CONTACT_EMAIL}" style="{link}">{CONTACT_EMAIL}</a>'
+        '<span style="color:#cbd5e1;">&nbsp;&middot;&nbsp;</span>'
+        f'<a href="tel:{CONTACT_PHONE}" style="{link}">{CONTACT_PHONE}</a>'
+        "</div>"
+    )
+
+
+def _with_inline_images(html: str, attachments: list[dict] | None) -> list[dict]:
+    """Append the brand mark when the HTML asks for it by ``cid:``."""
+    outgoing = list(attachments or [])
+    if f"cid:{LOGO_CID}" not in (html or ""):
+        return outgoing
+    png = brand_logo_png()
+    if not png:  # pragma: no cover - _logo_tag would not have emitted the cid
+        logger.warning("HTML references %s but the logo asset is missing", LOGO_CID)
+        return outgoing
+    outgoing.append(
+        {
+            "filename": "clearis-logo.png",
+            "content": base64.b64encode(png).decode("ascii"),
+            "content_id": LOGO_CID,
+        }
+    )
+    return outgoing
+
+
 def send_email(
     *,
     to: str,
@@ -154,6 +242,10 @@ def send_email(
             return EmailResult(delivered=False, dev_skipped=True)
         raise EmailNotConfiguredError()
 
+    # Resolve the inline brand mark once, then hand the same list to whichever
+    # transport is about to send the message.
+    outgoing = _with_inline_images(html, attachments)
+
     if transport == "smtp":
         return _send_via_smtp(
             to=to,
@@ -161,7 +253,7 @@ def send_email(
             html=html,
             text=text,
             reply_to=reply_to,
-            attachments=attachments,
+            attachments=outgoing,
         )
 
     payload: dict = {
@@ -172,8 +264,8 @@ def send_email(
     }
     if text:
         payload["text"] = text
-    if attachments:
-        payload["attachments"] = attachments
+    if outgoing:
+        payload["attachments"] = outgoing
     reply = reply_to or settings.email_reply_to
     if reply:
         payload["reply_to"] = reply
@@ -247,7 +339,40 @@ def _send_via_smtp(
     message.set_content(text or "This message needs an HTML-capable email client.")
     message.add_alternative(html, subtype="html")
 
-    for attachment in attachments or []:
+    # Inline images ride inside the HTML alternative; everything else is a
+    # regular attachment on the mixed container.
+    inline = [a for a in attachments or [] if a.get("content_id")]
+    regular = [a for a in attachments or [] if not a.get("content_id")]
+
+    if inline:
+        html_part = next(
+            (
+                part
+                for part in message.iter_parts()
+                if part.get_content_type() == "text/html"
+            ),
+            None,
+        )
+        if html_part is None:  # pragma: no cover - callers always send HTML
+            logger.warning(
+                "No HTML part to inline %d image(s) into; dropping them", len(inline)
+            )
+        else:
+            for attachment in inline:
+                filename = attachment.get("filename") or "inline.png"
+                guessed, _ = mimetypes.guess_type(filename)
+                maintype, _, subtype = (guessed or "application/octet-stream").partition(
+                    "/"
+                )
+                html_part.add_related(
+                    base64.b64decode(attachment.get("content") or ""),
+                    maintype,
+                    subtype or "octet-stream",
+                    # RFC 2392: the angle brackets belong to the header value.
+                    cid=f'<{attachment["content_id"]}>',
+                )
+
+    for attachment in regular:
         filename = attachment.get("filename") or "attachment"
         # Resend payloads carry base64; SMTP wants the bytes themselves.
         content = base64.b64decode(attachment.get("content") or "")
@@ -423,7 +548,9 @@ def build_receipt_email(receipt: dict) -> tuple[str, str, str]:
       </tr>
       <tr>
         <td style="padding:18px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#94a3b8;text-align:center;">
+          {_logo_tag(width=44, center=True)}
           Generated by Clearis on behalf of {escape(str(school_name))}.
+          {_contact_block()}
         </td>
       </tr>
     </table>
@@ -479,8 +606,8 @@ def _email_shell(
     {preheader_html}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;border:1px solid {BORDER};">
       <tr>
-        <td style="padding:22px 28px;border-bottom:1px solid {BORDER};">
-          <span style="font-size:16px;font-weight:700;color:#0f172a;">Clearis</span>
+        <td style="padding:20px 28px;border-bottom:1px solid {BORDER};">
+          {_logo_tag()}
         </td>
       </tr>
       <tr>
@@ -493,6 +620,7 @@ def _email_shell(
       <tr>
         <td style="padding:18px 28px;border-top:1px solid {BORDER};font-size:11px;color:#94a3b8;text-align:center;">
           {footer}
+          {_contact_block()}
         </td>
       </tr>
     </table>
@@ -525,6 +653,12 @@ def _bullets(items: list[str]) -> str:
 # ──────────────────────────────────────────────────────────────────────
 # Onboarding guide (PDF attachment for the welcome email)
 # ──────────────────────────────────────────────────────────────────────
+
+# Watermark: the brand mark centred on every page, tilted off-axis and faint
+# enough to read straight through.
+WATERMARK_WIDTH = 118  # mm across
+WATERMARK_ALPHA = 0.10
+WATERMARK_ANGLE = 30  # degrees, counter-clockwise
 
 # (step title, what to do). Ordered: each step needs the previous one to exist.
 SETUP_STEPS: list[tuple[str, str]] = [
@@ -590,6 +724,38 @@ ROLE_GUIDE: list[tuple[str, str]] = [
     ("Parent", "Read-only result access through the school's result portal code."),
     ("Student", "Read-only access through the result portal."),
 ]
+
+
+def _watermark_page(canvas, doc) -> None:
+    """Stamp the brand mark under the content on every page of the guide.
+
+    Drawn from ``handle_pageBegin`` (reportlab calls ``onPage`` there), so it
+    lands before the text of the page: a watermark behind the words, not on top
+    of them. The mark ships with its own alpha channel, and the canvas fill
+    alpha takes it the rest of the way down to a hint you can read through.
+    """
+    png = brand_logo_png()
+    if not png:
+        return
+    image = ImageReader(BytesIO(png))
+    natural_w, natural_h = image.getSize()
+    width = WATERMARK_WIDTH * mm
+    height = width * natural_h / natural_w
+    canvas.saveState()
+    try:
+        canvas.setFillAlpha(WATERMARK_ALPHA)
+        canvas.translate(A4[0] / 2, A4[1] / 2)
+        canvas.rotate(WATERMARK_ANGLE)
+        canvas.drawImage(
+            image,
+            -width / 2,
+            -height / 2,
+            width=width,
+            height=height,
+            mask="auto",
+        )
+    finally:
+        canvas.restoreState()
 
 
 def build_setup_guide_pdf(
@@ -709,8 +875,9 @@ def build_setup_guide_pdf(
     story.append(Paragraph("Where to find help", heading))
     story.append(
         Paragraph(
-            "Reply to this email and it reaches a person. Inside the app, the "
-            "AI copilot answers questions about your own data, and every list "
+            "Reply to this email and it reaches a person. You can also reach us "
+            f"directly at {CONTACT_EMAIL} or call {CONTACT_PHONE}. Inside the app, "
+            "the AI copilot answers questions about your own data, and every list "
             "screen has an import option for bringing existing records across.",
             body,
         )
@@ -736,7 +903,7 @@ def build_setup_guide_pdf(
         title=f"Getting started with Clearis — {school_name}",
         author="Clearis",
     )
-    doc.build(story)
+    doc.build(story, onFirstPage=_watermark_page, onLaterPages=_watermark_page)
     return buffer.getvalue()
 
 
