@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -16,9 +16,11 @@ import {
   useChangeStudentClass,
   useDeleteStudent,
   useEnrollStudent,
+  useOfferings,
   useRoster,
   useSessions,
   useStudents,
+  useSubjects,
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -39,6 +41,11 @@ export default function ClassRosterPage() {
 
   const { data: roster = [], isLoading } = useRoster(armId);
   const { data: allStudents = [] } = useStudents({ enabled: canEnroll });
+  const { data: offerings = [] } = useOfferings(armId);
+  const { data: subjects = [] } = useSubjects();
+
+  // The offerings arrive in the order the class was set up; map them onto the
+  // subject rows for the names shown on the report.
 
   const changeClass = useChangeStudentClass();
   const deleteStudent = useDeleteStudent();
@@ -55,6 +62,14 @@ export default function ClassRosterPage() {
     () => arms.filter((a) => a.id !== armId),
     [arms, armId],
   );
+
+  const classSubjects = useMemo(() => {
+    const byId = new Map(subjects.map((s) => [s.id, s]));
+    return offerings.flatMap((o) => {
+      const subject = byId.get(o.subject_id);
+      return subject ? [subject] : [];
+    });
+  }, [offerings, subjects]);
 
   const notInClass = useMemo(() => {
     const rosterIds = new Set(roster.map((s) => s.id));
@@ -134,7 +149,8 @@ export default function ClassRosterPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">{arm?.full_name ?? "Class"}</h1>
             <p className="text-sm text-muted-foreground">
-              {roster.length} student{roster.length === 1 ? "" : "s"} · {currentSession?.name}
+              {roster.length} student{roster.length === 1 ? "" : "s"} · {classSubjects.length}{" "}
+              subject{classSubjects.length === 1 ? "" : "s"} · {currentSession?.name}
             </p>
           </div>
         </div>
@@ -155,6 +171,43 @@ export default function ClassRosterPage() {
           {error}
         </div>
       )}
+
+      {/* Subjects this class takes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Subjects</CardTitle>
+          <CardDescription>
+            {classSubjects.length > 0
+              ? `${classSubjects.length} subject${classSubjects.length === 1 ? "" : "s"} offered in ${arm?.full_name ?? "this class"}.`
+              : `No subjects offered in ${arm?.full_name ?? "this class"} yet.`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {classSubjects.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {classSubjects.map((s) => (
+                <span
+                  key={s.id}
+                  className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm"
+                >
+                  {s.name}
+                  <span className="font-mono text-[10px] uppercase text-muted-foreground">
+                    {s.code}
+                  </span>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground/75">
+              Add the subjects this class takes from the{" "}
+              <Link href="/classes?view=subjects" className="underline underline-offset-2">
+                Classes page
+              </Link>
+              .
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Roster */}
       <Card>
