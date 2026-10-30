@@ -125,8 +125,16 @@ import {
   ScheduleValidateInSchema,
   ScheduleValidateOut,
   ScheduleValidateOutSchema,
+  ResultsPolicy,
+  ResultsPolicySchema,
   SchoolBrief,
   SchoolBriefSchema,
+  TermArchive,
+  TermArchiveDetail,
+  TermArchiveDetailSchema,
+  TermArchiveSchema,
+  TermReopenResult,
+  TermReopenResultSchema,
   ScoreCard,
   ScoreCardSchema,
   StaffAttendanceIn,
@@ -441,7 +449,28 @@ export async function updateSchool(schoolId: string, body: Record<string, unknow
   return schoolFetch<SchoolProfile>(schoolId, "/schools/me", { method: "PATCH", body: JSON.stringify(body) });
 }
 
-export async function login(body: { email: string; password: string }): Promise<TokenResponse> {
+export async function fetchResultsPolicy(schoolId: string): Promise<ResultsPolicy> {
+  return schoolFetch<ResultsPolicy>(
+    schoolId,
+    "/schools/me/results-policy",
+    {},
+    ResultsPolicySchema.parse,
+  );
+}
+
+export async function updateResultsPolicy(
+  schoolId: string,
+  body: ResultsPolicy,
+): Promise<ResultsPolicy> {
+  return schoolFetch<ResultsPolicy>(
+    schoolId,
+    "/schools/me/results-policy",
+    { method: "PATCH", body: JSON.stringify(body) },
+    ResultsPolicySchema.parse,
+  );
+}
+
+export async function login(body: { identifier: string; password: string }): Promise<TokenResponse> {
   return request("/auth/login", { method: "POST", body: JSON.stringify(body), zod: TokenResponseSchema.parse });
 }
 
@@ -778,6 +807,31 @@ export const fetchReportCards = (schoolId: string, armId: string, termId: string
     `/results/report-cards?arm_id=${armId}&term_id=${termId}`,
     {},
     ReportCardSchema.array().parse,
+  );
+
+// --- Archived report cards (previous versions of a reopened term) -------------
+export const fetchTermArchives = (
+  schoolId: string,
+  opts: { termId?: string; sessionId?: string } = {},
+) => {
+  const params = new URLSearchParams();
+  if (opts.termId) params.set("term_id", opts.termId);
+  if (opts.sessionId) params.set("session_id", opts.sessionId);
+  const q = params.toString();
+  return schoolFetch<TermArchive[]>(
+    schoolId,
+    `/results/archives${q ? `?${q}` : ""}`,
+    {},
+    TermArchiveSchema.array().parse,
+  );
+};
+
+export const fetchTermArchive = (schoolId: string, archiveId: string) =>
+  schoolFetch<TermArchiveDetail>(
+    schoolId,
+    `/results/archives/${archiveId}`,
+    {},
+    TermArchiveDetailSchema.parse,
   );
 
 // --- Report card designs (the drag-and-drop builder) ----------------------------
@@ -1144,6 +1198,15 @@ export const activateTerm = (schoolId: string, termId: string) =>
 export const closeTerm = (schoolId: string, termId: string) =>
   schoolFetch<unknown>(schoolId, `/academics/terms/${termId}/close`, { method: "POST" });
 
+/** Reopen a closed term for a correction. Archives published cards first. */
+export const reopenTerm = (schoolId: string, termId: string, reason: string) =>
+  schoolFetch<TermReopenResult>(
+    schoolId,
+    `/academics/terms/${termId}/reopen`,
+    { method: "POST", body: JSON.stringify({ reason }) },
+    TermReopenResultSchema.parse,
+  );
+
 // Deletes undo a mistaken setup. The API refuses anything already in use (an
 // active term/session, results, enrolled students), so the UI can offer these
 // next to the create controls without risking live records.
@@ -1200,6 +1263,17 @@ export const changeStudentClass = (
     `/students/${studentId}/class-change`,
     { method: "POST", body: JSON.stringify(input) },
     (d) => d as { arm_id: string; arm_name: string },
+  );
+
+export const changeStudentsClass = (
+  schoolId: string,
+  input: { student_ids: string[]; session_id: string; target_arm_id: string },
+) =>
+  schoolFetch<{ moved: number; skipped: string[] }>(
+    schoolId,
+    "/students/class-change",
+    { method: "POST", body: JSON.stringify(input) },
+    (d) => d as { moved: number; skipped: string[] },
   );
 
 export const deleteStudent = (schoolId: string, studentId: string) =>
@@ -2236,6 +2310,10 @@ export const api = {
   fetchReportIndex,
   fetchReportCard,
   fetchReportCards,
+  fetchTermArchives,
+  fetchTermArchive,
+  fetchResultsPolicy,
+  updateResultsPolicy,
   fetchReportCardDesign,
   fetchReportCardTemplates,
   createReportCardTemplate,
@@ -2370,12 +2448,14 @@ export const api = {
   enrollStudent,
   promoteStudents,
   changeStudentClass,
+  changeStudentsClass,
   deleteStudent,
   uploadStudentPhoto,
   uploadSchoolLogo,
   activateSession,
   activateTerm,
   closeTerm,
+  reopenTerm,
   deleteSession,
   deleteTerm,
   deleteArm,

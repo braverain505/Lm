@@ -191,6 +191,38 @@ class BestInSubjectRow(BaseModel):
     co_leaders: list[str] = []
 
 
+class CumulativeTermRow(BaseModel):
+    term_id: uuid.UUID
+    term_name: str
+    term_no: int
+    average: float
+    subjects_published: int
+
+
+class CumulativeSubjectTerm(BaseModel):
+    term_id: uuid.UUID
+    term_name: str
+    term_no: int
+    total: float | None
+
+
+class CumulativeSubjectRow(BaseModel):
+    subject_id: uuid.UUID
+    subject_name: str
+    terms: list[CumulativeSubjectTerm] = []
+    average: float | None = None
+
+
+class CumulativeSummary(BaseModel):
+    """The opt-in final-term block: per-term averages and their mean."""
+
+    final_term_no: int
+    terms: list[CumulativeTermRow] = []
+    term_average: float | None = None
+    session_average: float | None = None
+    subjects: list[CumulativeSubjectRow] = []
+
+
 class ReportCard(BaseModel):
     school: ReportSchoolRef
     student: ReportStudent
@@ -212,6 +244,7 @@ class ReportCard(BaseModel):
     comments: ReportComments
     summary: ReportSummary
     best_in_subjects: list[BestInSubjectRow] = []
+    cumulative: CumulativeSummary | None = None
     can_comment: bool = False
     can_manage_psychomotor: bool = False
 
@@ -223,6 +256,29 @@ class ReportIndexRow(BaseModel):
     full_name: str
     subjects_published: int
     total: float | None
+
+
+class TermArchiveOut(BaseModel):
+    """Metadata for one archived version — the archive list row."""
+
+    id: uuid.UUID
+    term_id: uuid.UUID | None
+    term_name: str | None
+    term_no: int | None
+    session_id: uuid.UUID | None
+    session_name: str | None
+    version: int
+    reason: str
+    archived_at: datetime
+    archived_by_name: str | None = None
+    student_count: int
+    class_count: int
+
+
+class TermArchiveDetail(TermArchiveOut):
+    """An archived version with the frozen cards and the layout they used."""
+
+    payload: dict
 
 
 class ResultCommentOut(BaseModel):

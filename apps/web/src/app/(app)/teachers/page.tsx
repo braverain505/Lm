@@ -36,14 +36,27 @@ function ErrorNote({ message }: { message?: string | null }) {
   return <p className="text-[11px] text-destructive">{message}</p>;
 }
 
+// Sign-in name, optional. Empty means "derive one from the email" on create
+// and "leave it as it is" on update.
+const usernameField = z
+  .string()
+  .trim()
+  .max(40, "Usernames are up to 40 characters")
+  .refine(
+    (v) => v === "" || /^[a-z0-9][a-z0-9._-]{2,39}$/i.test(v),
+    "3-40 characters: letters, numbers, dot, dash or underscore",
+  );
+
 const accountCreateSchema = z.object({
   email: z.string().email("Enter a valid email address"),
+  username: usernameField,
   password: z.string().min(8, "Password must be at least 8 characters"),
   role_id: z.string().uuid("Choose a role"),
 });
 
 const accountUpdateSchema = z.object({
   email: z.string().email("Enter a valid email address"),
+  username: usernameField,
   password: z
     .string()
     .optional()
@@ -104,10 +117,11 @@ export default function TeachersPage() {
   const [accountFor, setAccountFor] = useState<string | null>(null);
   const [accountMode, setAccountMode] = useState<"create" | "change">("create");
   const [accountEmail, setAccountEmail] = useState("");
+  const [accountUsername, setAccountUsername] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
   const [accountRole, setAccountRole] = useState("");
   const [accountHomeroomArm, setAccountHomeroomArm] = useState("");
-  const [accountErrors, setAccountErrors] = useState<{ email?: string; password?: string; role?: string; homeroom?: string }>({});
+  const [accountErrors, setAccountErrors] = useState<{ email?: string; username?: string; password?: string; role?: string; homeroom?: string }>({});
   const createAccount = useCreateStaffAccount();
   const updateAccount = useUpdateStaffAccount();
   const { data: roles = [] } = useRoles();
@@ -176,6 +190,7 @@ export default function TeachersPage() {
     setAccountFor(s.id);
     setAccountMode(s.has_account ? "change" : "create");
     setAccountEmail(s.account_email ?? "");
+    setAccountUsername(s.account_username ?? "");
     setAccountRole(s.account_role_id ?? "");
     setAccountHomeroomArm(s.homeroom_arm_id ?? "");
     setAccountPassword("");
@@ -186,6 +201,7 @@ export default function TeachersPage() {
   const closeAccountForm = () => {
     setAccountFor(null);
     setAccountEmail("");
+    setAccountUsername("");
     setAccountPassword("");
     setAccountRole("");
     setAccountHomeroomArm("");
@@ -218,6 +234,7 @@ export default function TeachersPage() {
     if (accountMode === "change") {
       const parsed = accountUpdateSchema.safeParse({
         email: accountEmail,
+        username: accountUsername,
         password: accountPassword,
         role_id: accountRole,
       });
@@ -225,6 +242,7 @@ export default function TeachersPage() {
         const fe = parsed.success ? null : parsed.error.flatten().fieldErrors;
         setAccountErrors({
           email: fe?.email?.[0],
+          username: fe?.username?.[0],
           password: fe?.password?.[0],
           role: fe?.role_id?.[0],
           homeroom: homeroomError,
@@ -236,6 +254,7 @@ export default function TeachersPage() {
         staffId: accountFor,
         input: {
           email: accountEmail,
+          username: accountUsername.trim(),
           ...(accountPassword ? { password: accountPassword } : {}),
           role_id: accountRole,
           ...(accountHomeroomArm ? { arm_id: accountHomeroomArm } : {}),
@@ -244,6 +263,7 @@ export default function TeachersPage() {
     } else {
       const parsed = accountCreateSchema.safeParse({
         email: accountEmail,
+        username: accountUsername,
         password: accountPassword,
         role_id: accountRole,
       });
@@ -251,6 +271,7 @@ export default function TeachersPage() {
         const fe = parsed.success ? null : parsed.error.flatten().fieldErrors;
         setAccountErrors({
           email: fe?.email?.[0],
+          username: fe?.username?.[0],
           password: fe?.password?.[0],
           role: fe?.role_id?.[0],
           homeroom: homeroomError,
@@ -262,6 +283,7 @@ export default function TeachersPage() {
         staffId: accountFor,
         input: {
           email: accountEmail,
+          ...(accountUsername.trim() ? { username: accountUsername.trim() } : {}),
           password: accountPassword,
           role_id: accountRole,
           ...(accountHomeroomArm ? { arm_id: accountHomeroomArm } : {}),
@@ -432,6 +454,8 @@ export default function TeachersPage() {
                     accountMode={accountMode}
                     accountEmail={accountEmail}
                     setAccountEmail={setAccountEmail}
+                    accountUsername={accountUsername}
+                    setAccountUsername={setAccountUsername}
                     accountPassword={accountPassword}
                     setAccountPassword={setAccountPassword}
                     accountRole={accountRole}
@@ -498,14 +522,16 @@ interface TeacherRowProps {
   accountMode: "create" | "change";
   accountEmail: string;
   setAccountEmail: (v: string) => void;
+  accountUsername: string;
+  setAccountUsername: (v: string) => void;
   accountPassword: string;
   setAccountPassword: (v: string) => void;
   accountRole: string;
   setAccountRole: (v: string) => void;
   accountHomeroomArm: string;
   setAccountHomeroomArm: (v: string) => void;
-  accountErrors: { email?: string; password?: string; role?: string; homeroom?: string };
-  setAccountErrors: (e: { email?: string; password?: string; role?: string; homeroom?: string }) => void;
+  accountErrors: { email?: string; username?: string; password?: string; role?: string; homeroom?: string };
+  setAccountErrors: (e: { email?: string; username?: string; password?: string; role?: string; homeroom?: string }) => void;
   roles: { id: string; code: string; name: string }[];
   homeroomRoleId: string;
   onSubmitAccount: (e: React.FormEvent) => void;
@@ -551,7 +577,8 @@ function TeacherRow(props: TeacherRowProps) {
   const {
     staff,
     accountFor, openAccountForm, closeAccountForm, accountMode,
-    accountEmail, setAccountEmail, accountPassword, setAccountPassword, accountRole, setAccountRole,
+    accountEmail, setAccountEmail, accountUsername, setAccountUsername,
+    accountPassword, setAccountPassword, accountRole, setAccountRole,
     accountHomeroomArm, setAccountHomeroomArm,
     accountErrors, setAccountErrors,
     roles, homeroomRoleId, onSubmitAccount, accountError, accountPending,
@@ -609,7 +636,9 @@ function TeacherRow(props: TeacherRowProps) {
           {staff.has_account ? (
             <Badge variant="outline" className="gap-1.5">
               <Mail className="h-3 w-3 text-muted-foreground/85" />
-              <span className="max-w-[180px] truncate">{staff.account_email ?? "Has login"}</span>
+              <span className="max-w-[180px] truncate">
+                {staff.account_username ? `@${staff.account_username}` : staff.account_email ?? "Has login"}
+              </span>
             </Badge>
           ) : (
             <Badge variant="muted">No login</Badge>
@@ -757,6 +786,24 @@ function TeacherRow(props: TeacherRowProps) {
                   required
                 />
                 {accountErrors.email && <p className="text-[11px] text-destructive">{accountErrors.email}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  Username {accountMode === "create" ? "(optional)" : "(blank = clear)"}
+                </Label>
+                <Input
+                  type="text"
+                  placeholder={accountMode === "create" ? "Derived from the email if left blank" : "Sign-in name"}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={accountUsername}
+                  onChange={(e) => { setAccountUsername(e.target.value); setAccountErrors({}); }}
+                />
+                <p className="text-[11px] text-muted-foreground/85">
+                  Lets the teacher sign in with this instead of the email.
+                </p>
+                {accountErrors.username && <p className="text-[11px] text-destructive">{accountErrors.username}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Password {accountMode === "change" && "(blank = keep)"}</Label>

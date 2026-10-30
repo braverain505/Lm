@@ -1,7 +1,7 @@
 """Auth: registration, login, refresh, password reset, /me contracts."""
 import uuid
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class RegisterSchoolRequest(BaseModel):
@@ -22,8 +22,21 @@ class RegisterSchoolRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    """Sign in with either an email or a username.
+
+    ``identifier`` is the current field; ``email`` is still accepted so older
+    app builds (which post ``email``) keep working. One of the two is required.
+    """
+
+    identifier: str | None = Field(default=None, max_length=254)
+    email: str | None = Field(default=None, max_length=254)
     password: str
+
+    @model_validator(mode="after")
+    def _need_identifier(self):
+        if not (self.identifier or self.email):
+            raise ValueError("Enter your email or username")
+        return self
 
 
 class TokenResponse(BaseModel):
@@ -38,6 +51,7 @@ class UserSummary(BaseModel):
 
     id: uuid.UUID
     email: str
+    username: str | None = None
     full_name: str
     status: str
     is_superadmin: bool = False

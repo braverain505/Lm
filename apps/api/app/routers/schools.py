@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from ..core.deps import ActiveSchool, DbSession, require_permission
 from ..core.errors import ConflictError
-from ..core.permissions import CAMPUS_MANAGE, SCHOOL_MANAGE
+from ..core.permissions import ACADEMICS_VIEW, CAMPUS_MANAGE, SCHOOL_MANAGE
 from ..models import (
     AcademicSession,
     Campus,
@@ -17,6 +17,7 @@ from ..models import (
     Subject,
     Term,
 )
+from ..services import results_service
 
 router = APIRouter(prefix="/schools", tags=["schools"])
 
@@ -66,6 +67,18 @@ class SchoolPatch(BaseModel):
     logo_url: str | None = None
 
 
+class ResultsPolicy(BaseModel):
+    """How this school wants its final-term report cards computed.
+
+    ``combine_previous_terms`` adds the session average (the mean of the term
+    averages) to the final term's card; it is off by default because it is an
+    academic policy, not a platform rule.
+    """
+
+    combine_previous_terms: bool = False
+    final_term_no: int = Field(default=3, ge=1, le=6)
+
+
 class Overview(BaseModel):
     students: int
     staff: int
@@ -88,6 +101,32 @@ def update_school(payload: SchoolPatch, db: DbSession, ctx=Depends(require_permi
             setattr(ctx.school, key, value)
     db.commit()
     return SchoolOut.model_validate(ctx.school)
+
+
+@router.get("/me/results-policy", response_model=ResultsPolicy)
+def get_results_policy(
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_VIEW)),
+):
+    """The school's results policy (defaults when it has never been set)."""
+    return ResultsPolicy(**results_service.results_policy_for(db, ctx.school.id))
+
+
+@router.patch("/me/results-policy", response_model=ResultsPolicy)
+def update_results_policy(
+    payload: ResultsPolicy,
+    db: DbSession,
+    ctx=Depends(require_permission(SCHOOL_MANAGE)),
+):
+    """Turn the final-term cumulative average on/off, and choose the final term."""
+    stored = results_service.update_results_policy(
+        db,
+        ctx.school.id,
+        combine_previous_terms=payload.combine_previous_terms,
+        final_term_no=payload.final_term_no,
+    )
+    db.commit()
+    return ResultsPolicy(**stored)
 
 
 @router.get("/me/campuses", response_model=list[CampusOut])

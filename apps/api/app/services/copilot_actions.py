@@ -3111,7 +3111,9 @@ def _execute_close_term(
     db: Session, school_id: uuid.UUID, proposal: Proposal, *, actor_id: uuid.UUID
 ) -> DirectReply:
     p = proposal.params
-    term = academics_service.close_term(db, school_id, _as_uuid(p["term_id"]))
+    term = academics_service.close_term(
+        db, school_id, _as_uuid(p["term_id"]), actor_id=actor_id
+    )
     _audit(
         db, school_id, actor_id=actor_id,
         action=AuditAction.UPDATE.value, entity_type="term", entity_id=str(term.id),

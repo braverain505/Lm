@@ -154,6 +154,49 @@ class Result(TenantScopedBase, Base):
     published_snapshot: Mapped[dict | None] = mapped_column(JSONB)
 
 
+class TermResultArchive(TenantScopedBase, Base):
+    """A frozen copy of a term's published report cards.
+
+    A school can reopen a closed term to correct a result, which necessarily
+    rewrites the rows a report card was printed from. Before any of that
+    happens the published cards are copied here, one row per archive event
+    (``version`` counts up within a term), so the record a parent already holds
+    can always be reproduced. The payload carries the cards exactly as they
+    rendered — totals, grades, comments, psychomotor rows, and the card layout
+    that was live at the time — so an archive is a document, not a query.
+
+    ``term_id``/``academic_session_id`` are nullable and ``SET NULL`` on
+    delete: an archive outlives the structure it describes, and the payload
+    still names the term and session.
+    """
+
+    __tablename__ = "term_result_archives"
+    __table_args__ = (
+        UniqueConstraint(
+            "school_id", "term_id", "version", name="uq_term_archive_version"
+        ),
+        Index("ix_term_archive_lookup", "school_id", "term_id", "archived_at"),
+    )
+
+    term_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("terms.id", ondelete="SET NULL"), index=True
+    )
+    academic_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("academic_sessions.id", ondelete="SET NULL"), index=True
+    )
+    version: Mapped[int] = mapped_column(default=1, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    archived_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL")
+    )
+    archived_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, nullable=False
+    )
+    student_count: Mapped[int] = mapped_column(default=0, nullable=False)
+    class_count: Mapped[int] = mapped_column(default=0, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+
+
 class ResultEvent(TenantScopedBase, Base):
     """Append-only journal of every transition a result takes."""
 
@@ -282,6 +325,7 @@ __all__ = [
     "Result",
     "ResultComment",
     "ResultEvent",
+    "TermResultArchive",
     "PsychomotorAssessment",
     "CommentBankEntry",
 ]

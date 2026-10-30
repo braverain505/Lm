@@ -71,6 +71,7 @@ from .results import (  # noqa: F401
     ResultComment,
     ResultEvent,
     Score,
+    TermResultArchive,
 )
 from .portal import SchoolResultPin, StudentResultCode  # noqa: F401
 from .report_card import ReportCardTemplate  # noqa: F401
@@ -151,6 +152,7 @@ __all__ = [
     "Result",
     "ResultComment",
     "ResultEvent",
+    "TermResultArchive",
     "PsychomotorAssessment",
     "CommentBankEntry",
     "SchoolResultPin",

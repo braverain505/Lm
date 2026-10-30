@@ -14,7 +14,7 @@ import uuid
 from datetime import date, datetime, timezone
 
 from sqlalchemy import delete as sa_delete
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..core.errors import (
@@ -52,6 +52,8 @@ from ..models import (
     SubjectAssignment,
     SubjectOffering,
     Term,
+    TermResultArchive,
+    User,
 )
 from ..models.enums import ResultStatus
 from .academics_service import get_arm, get_subject, get_term
@@ -251,6 +253,71 @@ def validate_component_weights(components: list[AssessmentComponent]) -> None:
         )
 
 
+# --- Per-school results policy ------------------------------------------------
+# A school can ask for the final term's card to show the session average built
+# from every term's average, not just the current term. It is opt-in because it
+# is a school's academic policy, not a platform-wide rule: the default card is
+# unchanged, and the switch lives in the school's own settings bucket.
+DEFAULT_RESULTS_POLICY: dict = {
+    "combine_previous_terms": False,
+    "final_term_no": 3,
+}
+
+
+def results_policy_for(db: Session, school_id: uuid.UUID) -> dict:
+    """The school's results policy, with every missing key defaulted.
+
+    Stored in ``schools.settings["results_policy"]`` so it travels with the
+    tenant and needs no schema change per policy. Unknown/legacy values fall
+    back to the defaults rather than failing a report card render.
+    """
+    school = db.get(School, school_id)
+    raw = (school.settings or {}).get("results_policy") if school else None
+    policy = dict(DEFAULT_RESULTS_POLICY)
+    if isinstance(raw, dict):
+        if isinstance(raw.get("combine_previous_terms"), bool):
+            policy["combine_previous_terms"] = raw["combine_previous_terms"]
+        try:
+            final_term = int(raw.get("final_term_no", policy["final_term_no"]))
+        except (TypeError, ValueError):
+            final_term = policy["final_term_no"]
+        policy["final_term_no"] = min(6, max(1, final_term))
+    return policy
+
+
+def update_results_policy(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    combine_previous_terms: bool,
+    final_term_no: int,
+) -> dict:
+    """Persist the policy on the school, returning the stored shape."""
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+    settings = dict(school.settings or {})
+    settings["results_policy"] = {
+        "combine_previous_terms": bool(combine_previous_terms),
+        "final_term_no": min(6, max(1, int(final_term_no))),
+    }
+    school.settings = settings
+    db.flush()
+    return results_policy_for(db, school_id)
+
+
+def _result_enrollments(
+    db: Session, school_id: uuid.UUID, arm_id: uuid.UUID
+) -> list[StudentEnrollment]:
+    """Every enrollment in the arm — the population a term's results belong to.
+
+    Unlike the roster default, this includes completed enrollments: a term can
+    be reopened after promotion, and its score grid, workbench and report-card
+    index must still show the students who sat it.
+    """
+    return list_enrollments(db, school_id, arm_id, include_inactive=True)
+
+
 # --- Scorecard ----------------------------------------------------------------
 def scorecard(
     db: Session,
@@ -264,7 +331,7 @@ def scorecard(
     arm = get_arm(db, school_id, arm_id)
     subject = get_subject(db, school_id, subject_id)
     term = get_term(db, school_id, term_id)
-    enrollments = list_enrollments(db, school_id, arm_id)
+    enrollments = _result_enrollments(db, school_id, arm_id)
 
     components = ensure_default_components(db, school_id, term.id)
     components = effective_components(db, school_id, term.id, class_arm_id=arm.id)
@@ -619,7 +686,7 @@ def _recompute_arm_subject(
         db, school_id, term.id,
         class_arm_id=arm.id,
     )
-    for env in list_enrollments(db, school_id, arm_id):
+    for env in _result_enrollments(db, school_id, arm_id):
         recompute_result(
             db, school_id,
             enrollment_id=env.id, subject_id=subject_id, term_id=term.id,
@@ -955,7 +1022,7 @@ def ensure_results_exist(
     """Create draft Result rows for every enrollment x offered subject so the
     readiness dashboard can count the untouched cells."""
     subjects = _subjects_for_arm(db, arm_id)
-    enrollments = list_enrollments(db, school_id, arm_id)
+    enrollments = _result_enrollments(db, school_id, arm_id)
     created = 0
     for env in enrollments:
         for subject in subjects:
@@ -983,7 +1050,15 @@ def ensure_results_exist(
 
 # --- Readiness ----------------------------------------------------------------
 def readiness_for_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> list[dict]:
-    """Per-arm per-subject progress for the readiness dashboard."""
+    """Per-arm per-subject progress for the readiness dashboard.
+
+    This used to ask the database two questions per student per subject per
+    class (does a score exist? has their result been submitted?), which is
+    thousands of round trips on a real school and made the dashboard take
+    seconds. The work is now a fixed handful of grouped queries: one for the
+    classes, one for their current enrollments, one per source of subjects, and
+    one each for the score cells and result statuses.
+    """
     arms = list(
         db.scalars(
             select(ClassArm)
@@ -991,41 +1066,120 @@ def readiness_for_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) ->
             .order_by(ClassArm.full_name)
         )
     )
+    if not arms:
+        return []
+    arm_ids = [arm.id for arm in arms]
+
+    enrollments_by_arm: dict[uuid.UUID, list[uuid.UUID]] = {arm_id: [] for arm_id in arm_ids}
+    enrollment_ids: list[uuid.UUID] = []
+    # ``completed`` enrollments are part of the class for a term that has
+    # already been closed (and possibly promoted away). Without them a reopened
+    # past term would show an empty readiness board.
+    for enrollment_id, arm_id in db.execute(
+        select(StudentEnrollment.id, StudentEnrollment.class_arm_id).where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.class_arm_id.in_(arm_ids),
+            StudentEnrollment.status.in_(("active", "completed")),
+        )
+    ).all():
+        enrollments_by_arm[arm_id].append(enrollment_id)
+        enrollment_ids.append(enrollment_id)
+
+    # A subject counts for an arm when it is offered, assigned to a teacher, or
+    # already carries results/scores there — the same rule as _subjects_for_arm.
+    subject_ids_by_arm: dict[uuid.UUID, set[uuid.UUID]] = {arm_id: set() for arm_id in arm_ids}
+    subject_pairs = [
+        *db.execute(
+            select(SubjectOffering.class_arm_id, SubjectOffering.subject_id).where(
+                SubjectOffering.class_arm_id.in_(arm_ids)
+            )
+        ).all(),
+        *db.execute(
+            select(SubjectAssignment.class_arm_id, SubjectAssignment.subject_id).where(
+                SubjectAssignment.class_arm_id.in_(arm_ids)
+            )
+        ).all(),
+        *db.execute(
+            select(Result.class_arm_id, Result.subject_id)
+            .where(Result.class_arm_id.in_(arm_ids))
+            .distinct()
+        ).all(),
+        *db.execute(
+            select(Score.class_arm_id, Score.subject_id)
+            .where(Score.class_arm_id.in_(arm_ids))
+            .distinct()
+        ).all(),
+    ]
+    for arm_id, subject_id in subject_pairs:
+        subject_ids_by_arm[arm_id].add(subject_id)
+
+    subject_ids = {sid for ids in subject_ids_by_arm.values() for sid in ids}
+    subjects = (
+        {
+            subject.id: subject
+            for subject in db.scalars(
+                select(Subject).where(
+                    Subject.school_id == school_id, Subject.id.in_(subject_ids)
+                )
+            )
+        }
+        if subject_ids
+        else {}
+    )
+
+    entered_pairs: set[tuple[uuid.UUID, uuid.UUID]] = set()
+    result_status: dict[tuple[uuid.UUID, uuid.UUID], str] = {}
+    if enrollment_ids and subject_ids:
+        entered_pairs = {
+            (subject_id, enrollment_id)
+            for subject_id, enrollment_id in db.execute(
+                select(Score.subject_id, Score.student_enrollment_id)
+                .where(
+                    Score.student_enrollment_id.in_(enrollment_ids),
+                    Score.subject_id.in_(subject_ids),
+                )
+                .distinct()
+            ).all()
+        }
+        result_status = {
+            (subject_id, enrollment_id): status
+            for subject_id, enrollment_id, status in db.execute(
+                select(
+                    Result.subject_id, Result.student_enrollment_id, Result.status
+                ).where(
+                    Result.school_id == school_id,
+                    Result.term_id == term_id,
+                    Result.student_enrollment_id.in_(enrollment_ids),
+                    Result.subject_id.in_(subject_ids),
+                )
+            ).all()
+        }
+
+    submitted_statuses = {
+        ResultStatus.SUBMITTED.value,
+        ResultStatus.VERIFIED.value,
+        ResultStatus.APPROVED.value,
+        ResultStatus.PUBLISHED.value,
+    }
+
     rows: list[dict] = []
     for arm in arms:
-        subjects = _subjects_for_arm(db, arm.id)
-        enrollments = list_enrollments(db, school_id, arm.id)
-        total = len(enrollments)
-        for subject in subjects:
-            entered = 0
-            submitted = 0
-            for env in enrollments:
-                has_scores = bool(
-                    db.scalar(
-                        select(Score.id)
-                        .where(
-                            Score.student_enrollment_id == env.id,
-                            Score.subject_id == subject.id,
-                        )
-                        .limit(1)
-                    )
-                )
-                if has_scores:
-                    entered += 1
-                    result = db.scalar(
-                        select(Result).where(
-                            Result.student_enrollment_id == env.id,
-                            Result.subject_id == subject.id,
-                            Result.term_id == term_id,
-                        )
-                    )
-                    if result and result.status in (
-                        ResultStatus.SUBMITTED.value,
-                        ResultStatus.VERIFIED.value,
-                        ResultStatus.APPROVED.value,
-                        ResultStatus.PUBLISHED.value,
-                    ):
-                        submitted += 1
+        arm_subjects = sorted(
+            (subjects[sid] for sid in subject_ids_by_arm[arm.id] if sid in subjects),
+            key=lambda subject: subject.name,
+        )
+        arm_enrollments = enrollments_by_arm[arm.id]
+        total = len(arm_enrollments)
+        for subject in arm_subjects:
+            entered = sum(
+                1 for eid in arm_enrollments if (subject.id, eid) in entered_pairs
+            )
+            submitted = sum(
+                1
+                for eid in arm_enrollments
+                if (subject.id, eid) in entered_pairs
+                and result_status.get((subject.id, eid)) in submitted_statuses
+            )
             rows.append(
                 {
                     "arm_id": str(arm.id),
@@ -1056,7 +1210,7 @@ def workbench_for_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) ->
     rows: list[dict] = []
     for arm in arms:
         subjects = _subjects_for_arm(db, arm.id)
-        enrollments = list_enrollments(db, school_id, arm.id)
+        enrollments = _result_enrollments(db, school_id, arm.id)
         for subject in subjects:
             results = list(
                 db.scalars(
@@ -1115,7 +1269,19 @@ def _published_totals(
     """Published per-subject totals (from frozen snapshots), grouped by
     enrollment, for one arm x term."""
     tbl: dict[uuid.UUID, list[float]] = {}
-    env_ids = [e.id for e in list_enrollments(db, school_id, arm_id)]
+    # Deliberately not ``list_enrollments``: that only returns *current*
+    # enrollments, but a card from a closed (possibly promoted-away) session
+    # still needs its class standing. Every enrollment in this arm belongs to
+    # the arm's session, which is the population the published results came
+    # from.
+    env_ids = list(
+        db.scalars(
+            select(StudentEnrollment.id).where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.class_arm_id == arm_id,
+            )
+        )
+    )
     if not env_ids:
         return tbl
     for result in db.scalars(
@@ -1246,7 +1412,7 @@ def report_index(
     who is ready and who isn't."""
     get_arm(db, school_id, arm_id)
     get_term(db, school_id, term_id)
-    enrollments = list_enrollments(db, school_id, arm_id)
+    enrollments = _result_enrollments(db, school_id, arm_id)
     tally = _published_totals(db, school_id, arm_id=arm_id, term_id=term_id)
     rows = []
     for env in enrollments:
@@ -1549,6 +1715,121 @@ def grade_bands_for_term(
     ]
 
 
+def _published_subject_totals(
+    db: Session, school_id: uuid.UUID, *, enrollment_id: uuid.UUID, term_id: uuid.UUID
+) -> list[dict]:
+    """Published subject totals for one enrollment in one term, from snapshots."""
+    rows = db.execute(
+        select(Result, Subject)
+        .join(Subject, Subject.id == Result.subject_id)
+        .where(
+            Result.school_id == school_id,
+            Result.student_enrollment_id == enrollment_id,
+            Result.term_id == term_id,
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+        .order_by(Subject.name)
+    ).all()
+    out: list[dict] = []
+    for result, subject in rows:
+        snap = result.published_snapshot or {}
+        total = snap.get("total")
+        if total is None:
+            total = result.total
+        if total is None:
+            continue
+        out.append(
+            {
+                "subject_id": str(subject.id),
+                "subject_name": subject.name,
+                "total": float(total),
+            }
+        )
+    return out
+
+
+def cumulative_for_term(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    enrollment_id: uuid.UUID,
+    term: Term,
+) -> dict:
+    """Term-by-term averages and the session average for one student.
+
+    The school's rule is "the final term's card also shows the average of the
+    term averages": each term's average is the mean of that term's published
+    subject totals, and the session average is the mean of those term averages.
+    Only terms with published results count, so an incomplete session shows the
+    record that genuinely exists instead of a zero.
+
+    Published snapshots are the source, exactly like the card itself, so an
+    archived card and a live one agree.
+    """
+    terms = list(
+        db.scalars(
+            select(Term)
+            .where(
+                Term.school_id == school_id,
+                Term.academic_session_id == term.academic_session_id,
+            )
+            .order_by(Term.term_no)
+        )
+    )
+    per_term: list[dict] = []
+    subjects: dict[str, dict] = {}
+    for sibling in terms:
+        rows = _published_subject_totals(
+            db, school_id, enrollment_id=enrollment_id, term_id=sibling.id
+        )
+        if not rows:
+            continue
+        average = round(sum(row["total"] for row in rows) / len(rows), 2)
+        per_term.append(
+            {
+                "term_id": str(sibling.id),
+                "term_name": sibling.name,
+                "term_no": sibling.term_no,
+                "average": average,
+                "subjects_published": len(rows),
+            }
+        )
+        for row in rows:
+            item = subjects.setdefault(
+                row["subject_id"],
+                {
+                    "subject_id": row["subject_id"],
+                    "subject_name": row["subject_name"],
+                    "terms": [],
+                },
+            )
+            item["terms"].append(
+                {
+                    "term_id": str(sibling.id),
+                    "term_name": sibling.name,
+                    "term_no": sibling.term_no,
+                    "total": row["total"],
+                }
+            )
+
+    for item in subjects.values():
+        values = [row["total"] for row in item["terms"] if row["total"] is not None]
+        item["average"] = round(sum(values) / len(values), 2) if values else None
+
+    current = next((row for row in per_term if row["term_id"] == str(term.id)), None)
+    session_average = (
+        round(sum(row["average"] for row in per_term) / len(per_term), 2)
+        if per_term
+        else None
+    )
+    return {
+        "terms": per_term,
+        "term_average": current["average"] if current else None,
+        "session_average": session_average,
+        "subjects": sorted(subjects.values(), key=lambda row: row["subject_name"]),
+    }
+
+
 def report_card(
     db: Session, school_id: uuid.UUID, *, student_id: uuid.UUID, term_id: uuid.UUID
 ) -> dict:
@@ -1731,6 +2012,17 @@ def report_card(
         db, school_id, arm_id=arm.id, term_id=term_id, env_id=env.id
     )
 
+    # Opt-in cumulative block: only on the school's configured final term, and
+    # only when the school has turned the policy on. The default card carries
+    # no extra section.
+    policy = results_policy_for(db, school_id)
+    cumulative = None
+    if policy["combine_previous_terms"] and term.term_no == policy["final_term_no"]:
+        cumulative = cumulative_for_term(
+            db, school_id, enrollment_id=env.id, term=term
+        )
+        cumulative["final_term_no"] = policy["final_term_no"]
+
     return {
         "school": {
             "name": school.name if school else "School",
@@ -1777,4 +2069,231 @@ def report_card(
             "class_size": class_size,
         },
         "best_in_subjects": best_in_subjects,
+        "cumulative": cumulative,
     }
+
+
+# --- Reopening a term: archive the old cards, then unlock the rows -------------
+def archive_term_results(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID,
+    reason: str,
+    actor_id: uuid.UUID | None = None,
+) -> TermResultArchive | None:
+    """Freeze every published card of a term.
+
+    Called when a term closes (the archive is the record of every completed
+    term) and, for a term closed before archiving existed, before it is
+    reopened. Returns ``None`` when the term has no published results — there is
+    nothing a parent could be holding, so no archive row is written. The card
+    payload is the same document the report-card screen printed, including the
+    layout that was live at the time; restoring a card later therefore displays
+    the exact version, not today's template.
+    """
+    from fastapi.encoders import jsonable_encoder
+
+    from . import report_card_service  # local: keeps the module graph acyclic
+
+    term = get_term(db, school_id, term_id)
+    published = db.execute(
+        select(Result.student_enrollment_id, Result.class_arm_id)
+        .where(
+            Result.school_id == school_id,
+            Result.term_id == term_id,
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+        .distinct()
+    ).all()
+    if not published:
+        return None
+
+    cards: list[dict] = []
+    seen_students: set[uuid.UUID] = set()
+    class_ids: set[uuid.UUID] = set()
+    for enrollment_id, class_arm_id in published:
+        env = db.get(StudentEnrollment, enrollment_id)
+        if env is None or env.student_id in seen_students:
+            continue
+        try:
+            card = report_card(
+                db, school_id, student_id=env.student_id, term_id=term_id
+            )
+        except NotFoundError:
+            continue
+        cards.append(card)
+        seen_students.add(env.student_id)
+        class_ids.add(class_arm_id)
+
+    if not cards:
+        return None
+
+    cards.sort(
+        key=lambda card: (
+            card["class_arm"]["full_name"],
+            card["student"]["full_name"],
+        )
+    )
+    session = db.get(AcademicSession, term.academic_session_id)
+    actor = db.get(User, actor_id) if actor_id is not None else None
+    now = utcnow()
+    version = (
+        db.scalar(
+            select(func.max(TermResultArchive.version)).where(
+                TermResultArchive.school_id == school_id,
+                TermResultArchive.term_id == term.id,
+            )
+        )
+        or 0
+    ) + 1
+
+    archive = TermResultArchive(
+        school_id=school_id,
+        term_id=term.id,
+        academic_session_id=term.academic_session_id,
+        version=version,
+        reason=reason,
+        archived_by=actor_id,
+        archived_at=now,
+        student_count=len(cards),
+        class_count=len(class_ids),
+        payload={
+            "archived_at": now.isoformat(),
+            "archived_by_name": actor.full_name if actor is not None else None,
+            "reason": reason,
+            "term": {
+                "id": str(term.id),
+                "name": term.name,
+                "term_no": term.term_no,
+            },
+            "session": {
+                "id": str(term.academic_session_id),
+                "name": session.name if session is not None else None,
+            },
+            "layout": report_card_service.default_layout(db, school_id),
+            # Dates (report_date, next_term_date) are Python ``date`` objects on
+            # the card dict; normalise them the same way the HTTP response does
+            # so the JSONB column accepts the payload.
+            "students": jsonable_encoder(cards),
+        },
+    )
+    db.add(archive)
+    db.flush()
+    return archive
+
+
+def latest_term_archive(
+    db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID
+) -> TermResultArchive | None:
+    """The most recent archive version of one term, if it has one."""
+    return db.scalar(
+        select(TermResultArchive)
+        .where(
+            TermResultArchive.school_id == school_id,
+            TermResultArchive.term_id == term_id,
+        )
+        .order_by(TermResultArchive.version.desc())
+        .limit(1)
+    )
+
+
+def list_term_archives(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID | None = None,
+    session_id: uuid.UUID | None = None,
+) -> list[TermResultArchive]:
+    """The school's archive, newest first, optionally narrowed to a term/session."""
+    query = select(TermResultArchive).where(TermResultArchive.school_id == school_id)
+    if term_id is not None:
+        query = query.where(TermResultArchive.term_id == term_id)
+    if session_id is not None:
+        query = query.where(TermResultArchive.academic_session_id == session_id)
+    return list(db.scalars(query.order_by(TermResultArchive.archived_at.desc())))
+
+
+def get_term_archive(
+    db: Session, school_id: uuid.UUID, archive_id: uuid.UUID
+) -> TermResultArchive:
+    """One archive row, scoped to the school so another tenant's id is a 404."""
+    row = db.scalar(
+        select(TermResultArchive).where(
+            TermResultArchive.id == archive_id,
+            TermResultArchive.school_id == school_id,
+        )
+    )
+    if row is None:
+        raise NotFoundError("Result archive not found")
+    return row
+
+
+def archive_summary(row: TermResultArchive) -> dict:
+    """The list-row shape: metadata only, never the whole card payload."""
+    payload = row.payload or {}
+    term = payload.get("term") or {}
+    session = payload.get("session") or {}
+    return {
+        "id": row.id,
+        "term_id": row.term_id,
+        "term_name": term.get("name"),
+        "term_no": term.get("term_no"),
+        "session_id": row.academic_session_id,
+        "session_name": session.get("name"),
+        "version": row.version,
+        "reason": row.reason,
+        "archived_at": row.archived_at,
+        "archived_by_name": payload.get("archived_by_name"),
+        "student_count": row.student_count,
+        "class_count": row.class_count,
+    }
+
+
+def reset_term_for_reopen(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    reason: str,
+) -> int:
+    """Send a term's in-flight/published results back to draft.
+
+    Called only after the cards have been archived. Score cells are untouched,
+    so the grid still opens on the values the school entered; what changes is
+    that the rows may be edited and re-compiled through the normal pipeline.
+    Every reset is journaled with the reopen reason.
+    """
+    rows = list(
+        db.scalars(
+            select(Result).where(
+                Result.school_id == school_id,
+                Result.term_id == term_id,
+                Result.status != ResultStatus.DRAFT.value,
+            )
+        )
+    )
+    now = utcnow()
+    for result in rows:
+        previous = result.status
+        result.status = ResultStatus.DRAFT.value
+        result.submitted_at = None
+        result.approved_at = None
+        result.approved_by = None
+        result.published_at = None
+        result.published_snapshot = None
+        db.add(
+            ResultEvent(
+                school_id=school_id,
+                result_id=result.id,
+                actor_id=actor_id,
+                action="reopen",
+                from_status=previous,
+                to_status=ResultStatus.DRAFT.value,
+                note=reason,
+                created_at=now,
+            )
+        )
+    db.flush()
+    return len(rows)

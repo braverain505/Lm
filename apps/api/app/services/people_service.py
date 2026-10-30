@@ -1,6 +1,7 @@
 """People: staff, students, enrollments, guardians."""
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import date
 
@@ -127,6 +128,7 @@ def serialize_staff_list(
                 employment_status=s.employment_status,
                 has_account=s.user_id is not None,
                 account_email=user.email if user is not None else None,
+                account_username=user.username if user is not None else None,
                 account_role_id=membership.role_id if membership is not None else None,
                 account_role_name=role.name if role is not None else None,
                 homeroom_arm_id=arm.id if arm is not None else None,
@@ -217,6 +219,51 @@ def _assign_homeroom_arm(
     return arm
 
 
+# A sign-in name: 3-40 characters, starting with a letter or digit. Emails
+# contain '@' and can never match, so the two login namespaces stay separate.
+_USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{2,39}$")
+
+
+def _clean_username(value: str) -> str:
+    return value.strip().lower()
+
+
+def _slug(text: str, limit: int = 36) -> str:
+    slug = re.sub(r"[^a-z0-9._-]+", "", text.strip().lower()).strip("._-'")
+    return slug[:limit]
+
+
+def _ensure_username_free(
+    db: Session, username: str, *, exclude_user_id: uuid.UUID | None = None
+) -> None:
+    if not _USERNAME_RE.match(username):
+        raise ValidationError(
+            "Usernames are 3-40 characters: letters, numbers, dot, dash or underscore",
+            {"username": "invalid"},
+        )
+    stmt = select(User.id).where(User.username == username)
+    if exclude_user_id is not None:
+        stmt = stmt.where(User.id != exclude_user_id)
+    if db.scalar(stmt):
+        raise ConflictError("That username is already taken")
+
+
+def _suggest_username(db: Session, email: str, full_name: str) -> str:
+    """Derive a free username for a new staff login.
+
+    The email's local part is the natural choice; the staff name is the fallback
+    when it is too short or has nothing usable. A numeric suffix keeps it unique.
+    """
+    base = _slug(email.split("@", 1)[0]) or _slug(full_name) or "user"
+    if len(base) < 3:
+        base = (_slug(f"{base}{full_name}") or "user")[:36]
+    candidate, suffix = base, 2
+    while db.scalar(select(User.id).where(User.username == candidate)):
+        candidate = f"{base[:34]}-{suffix}"
+        suffix += 1
+    return candidate
+
+
 def create_staff_account(
     db: Session,
     school_id: uuid.UUID,
@@ -226,12 +273,15 @@ def create_staff_account(
     password: str,
     role_id: uuid.UUID,
     arm_id: uuid.UUID | None = None,
+    username: str | None = None,
 ) -> tuple[Staff, Role]:
     """Create a login account (global user + school membership) for a staff
     member and link it to their Staff record so they can sign in.
 
     When ``arm_id`` is given, the staff member also becomes the homeroom (class)
-    teacher of that class arm.
+    teacher of that class arm. ``username`` is optional: when it is not given,
+    one is derived from the email so the teacher can sign in without typing an
+    email.
 
     Returns the staff record and the school-scoped role that was assigned."""
     staff = get_staff(db, school_id, staff_id)
@@ -246,8 +296,15 @@ def create_staff_account(
     if role is None or role.school_id != school_id:
         raise NotFoundError("Role not found")
 
+    if username is not None and username.strip():
+        username = _clean_username(username)
+        _ensure_username_free(db, username)
+    else:
+        username = _suggest_username(db, email, staff.full_name)
+
     user = User(
         email=email,
+        username=username,
         password_hash=security.hash_password(password),
         full_name=staff.full_name,
     )
@@ -272,8 +329,10 @@ def update_staff_account(
     password: str | None = None,
     role_id: uuid.UUID | None = None,
     arm_id: uuid.UUID | None = None,
+    username: str | None = None,
 ) -> tuple[Staff, Role]:
-    """Change a staff member's login: email, password, role and/or homeroom class.
+    """Change a staff member's login: email, username, password, role and/or
+    homeroom class.
 
     At least one field must be provided. Raises if the staff member has no
     login yet (use create_staff_account instead)."""
@@ -292,6 +351,15 @@ def update_staff_account(
         ):
             raise ConflictError("An account with this email already exists")
         user.email = email
+
+    if username is not None:
+        # An empty string clears the sign-in name; the email still works.
+        clean = _clean_username(username)
+        if clean:
+            _ensure_username_free(db, clean, exclude_user_id=staff.user_id)
+            user.username = clean
+        else:
+            user.username = None
 
     if password is not None:
         if len(password) < 8:
@@ -557,21 +625,31 @@ def enroll_student(
 
 
 def list_enrollments(
-    db: Session, school_id: uuid.UUID, arm_id: uuid.UUID
+    db: Session,
+    school_id: uuid.UUID,
+    arm_id: uuid.UUID,
+    *,
+    include_inactive: bool = False,
 ) -> list[StudentEnrollment]:
+    """Enrollments in one arm, current/active by default.
+
+    ``include_inactive=True`` returns every enrollment in the arm. Results work
+    needs that: an arm belongs to exactly one session, and a term can be
+    reopened after its students were promoted away (``is_current=False``,
+    ``status='completed'``). Filtering those out would show an empty score grid
+    and an empty report-card index for the very term being corrected.
+    """
     get_arm(db, school_id, arm_id)
-    return list(
-        db.scalars(
-            select(StudentEnrollment)
-            .where(
-                StudentEnrollment.school_id == school_id,
-                StudentEnrollment.class_arm_id == arm_id,
-                StudentEnrollment.is_current.is_(True),
-                StudentEnrollment.status == "active",
-            )
-            .order_by(StudentEnrollment.student_id)
-        )
+    query = select(StudentEnrollment).where(
+        StudentEnrollment.school_id == school_id,
+        StudentEnrollment.class_arm_id == arm_id,
     )
+    if not include_inactive:
+        query = query.where(
+            StudentEnrollment.is_current.is_(True),
+            StudentEnrollment.status == "active",
+        )
+    return list(db.scalars(query.order_by(StudentEnrollment.student_id)))
 
 
 def set_enrollment_status(
@@ -705,6 +783,53 @@ def change_student_class(
         "arm_id": str(target_arm.id),
         "arm_name": target_arm.full_name,
     }
+
+
+def change_students_class(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    student_ids: list[uuid.UUID],
+    session_id: uuid.UUID,
+    target_arm_id: uuid.UUID,
+) -> dict:
+    """Move several students into one class within a session.
+
+    The bulk form of ``change_student_class``: the admin picks the destination
+    class once (a promote or a demote) and every selected pupil actively
+    enrolled in the session moves there. Pupils with no active enrollment, or
+    already in that class, are reported in ``skipped`` instead of failing the
+    whole batch. Returns ``{"moved": int, "skipped": list[str]}``.
+    """
+    get_session(db, school_id, session_id)
+    target_arm = get_arm(db, school_id, target_arm_id)
+    if target_arm.academic_session_id != session_id:
+        raise ValidationError("The target class must belong to the selected session")
+
+    moved = 0
+    skipped: list[str] = []
+    for student_id in dict.fromkeys(student_ids):
+        get_student(db, school_id, student_id)
+        enrollment = db.scalar(
+            select(StudentEnrollment).where(
+                StudentEnrollment.school_id == school_id,
+                StudentEnrollment.student_id == student_id,
+                StudentEnrollment.academic_session_id == session_id,
+                StudentEnrollment.is_current.is_(True),
+                StudentEnrollment.status == "active",
+            )
+        )
+        if enrollment is None or enrollment.class_arm_id == target_arm.id:
+            skipped.append(str(student_id))
+            continue
+        enroll_student(
+            db, school_id,
+            student_id=student_id, arm_id=target_arm.id, session_id=session_id,
+        )
+        moved += 1
+
+    db.flush()
+    return {"moved": moved, "skipped": skipped}
 
 
 def enrollment_summary(

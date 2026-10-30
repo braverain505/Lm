@@ -42,6 +42,7 @@ import type {
   PromotionRequest,
   ReadyRow,
   ReportCard,
+  ResultsPolicy,
   ReportCardDesign,
   ReportCardTemplate,
   ReportCardTemplateIn,
@@ -75,6 +76,9 @@ import type {
   StudentFeeBalance,
   Subject,
   Term,
+  TermArchive,
+  TermArchiveDetail,
+  TermReopenResult,
   TimeSlot,
   WeekScheduleOut,
   WorkbenchRow,
@@ -148,6 +152,22 @@ export function usePromoteStudents() {
   });
 }
 
+export function useChangeStudentsClass() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { student_ids: string[]; session_id: string; target_arm_id: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.changeStudentsClass(schoolId, input);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["enrollment-history", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["arm-classes", schoolId] });
+    },
+  });
+}
+
 export function useEnrollStudent() {
   const schoolId = useActiveSchoolId();
   const queryClient = useQueryClient();
@@ -213,6 +233,66 @@ export function useCloseTerm() {
       queryClient.invalidateQueries({ queryKey: ["terms", schoolId] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary", schoolId] });
     },
+  });
+}
+
+export function useReopenTerm() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ termId, reason }: { termId: string; reason: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.reopenTerm(schoolId, termId, reason);
+    },
+    onSuccess: () => {
+      // Reopening touches the term, its session, every result in the term, and
+      // writes an archive row — refresh all four views.
+      queryClient.invalidateQueries({ queryKey: ["terms", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["sessions", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["archives", schoolId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary", schoolId] });
+    },
+  });
+}
+
+export function useResultsPolicy() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["results-policy", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchResultsPolicy(schoolId!),
+  });
+}
+
+export function useUpdateResultsPolicy() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ResultsPolicy) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateResultsPolicy(schoolId, body);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["results-policy", schoolId] });
+    },
+  });
+}
+
+export function useTermArchives(opts: { termId?: string; sessionId?: string } = {}) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["archives", schoolId, opts.termId ?? "", opts.sessionId ?? ""],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchTermArchives(schoolId!, opts),
+  });
+}
+
+export function useTermArchive(archiveId: string | null) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["archive", schoolId, archiveId],
+    enabled: !!schoolId && !!archiveId,
+    queryFn: async () => api.fetchTermArchive(schoolId!, archiveId!),
   });
 }
 

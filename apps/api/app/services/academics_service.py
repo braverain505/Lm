@@ -203,9 +203,22 @@ def reconcile_stale_current_terms(db: Session) -> int:
     )
 
 
-def close_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
+def close_term(
+    db: Session,
+    school_id: uuid.UUID,
+    term_id: uuid.UUID,
+    *,
+    actor_id: uuid.UUID | None = None,
+) -> Term:
     """Admin closes a term: marks it closed and unsets is_current. Once closed,
-    no result mutations are allowed for this term."""
+    no result mutations are allowed for this term.
+
+    Closing also freezes the term's published report cards into the school's
+    archive (``term_result_archives``). That makes the archive the record of
+    every completed term, not only of terms that were later reopened, and it
+    means the cards a parent holds are preserved even if the term is corrected
+    much later.
+    """
     term = get_term(db, school_id, term_id)
     get_session(db, school_id, term.academic_session_id)  # validate ownership
     if term.status == TermStatus.CLOSED.value:
@@ -213,7 +226,86 @@ def close_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> Term:
     term.status = TermStatus.CLOSED.value
     term.is_current = False
     db.flush()
+
+    from . import results_service  # local import: results depends on academics
+
+    results_service.archive_term_results(
+        db,
+        school_id,
+        term_id=term.id,
+        actor_id=actor_id,
+        reason=f"{term.name} closed",
+    )
+    db.flush()
     return term
+
+
+def reopen_term(
+    db: Session,
+    school_id: uuid.UUID,
+    term_id: uuid.UUID,
+    *,
+    actor_id: uuid.UUID,
+    reason: str,
+) -> dict:
+    """Reopen a closed term so a wrong result can be corrected.
+
+    This is deliberately a second, explicit action rather than a side effect of
+    ``activate_term``: closing is the school's sign-off, and reopening unwinds
+    it. Before anything is touched, every published report card in the term is
+    archived (``term_result_archives``), then the term's results return to
+    draft so the score grid and the normal compile pipeline work again.
+
+    The parent session is brought back to open/current too — results writes
+    require both, exactly as when the term was first activated — and the app is
+    pointed at that academic year until the admin switches back.
+    """
+    term = get_term(db, school_id, term_id)
+    session = get_session(db, school_id, term.academic_session_id)
+    if term.status != TermStatus.CLOSED.value:
+        raise ValidationError(
+            f"The {term.name} term is not closed — only a closed term can be reopened"
+        )
+
+    from . import results_service  # local import: results depends on academics
+
+    # Closing already archived the cards. A term closed before archiving
+    # existed (or a term whose cards were never published) has no row yet, so
+    # take one now before the live rows are reset. Reusing the latest archive
+    # avoids storing the same cards twice on every correction cycle.
+    archive = results_service.latest_term_archive(db, school_id, term_id=term.id)
+    if archive is None:
+        archive = results_service.archive_term_results(
+            db,
+            school_id,
+            term_id=term.id,
+            actor_id=actor_id,
+            reason=reason,
+        )
+    results_reset = results_service.reset_term_for_reopen(
+        db,
+        school_id,
+        term_id=term.id,
+        actor_id=actor_id,
+        reason=reason,
+    )
+
+    siblings = db.query(Term).filter(
+        Term.academic_session_id == term.academic_session_id,
+        Term.id != term.id,
+    )
+    siblings.filter(Term.is_current.is_(True)).update({Term.is_current: False})
+    siblings.filter(Term.status == TermStatus.OPEN.value).update(
+        {Term.status: TermStatus.PLANNED.value}
+    )
+    term.status = TermStatus.OPEN.value
+    term.is_current = True
+
+    _clear_current_session(db, school_id)
+    session.is_current = True
+    session.status = SessionStatus.OPEN.value
+    db.flush()
+    return {"term": term, "archive": archive, "results_reset": results_reset}
 
 
 def delete_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) -> None:

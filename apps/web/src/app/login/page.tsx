@@ -13,8 +13,8 @@ import {
   Loader2,
   Lock,
   LogIn,
-  Mail,
   Ticket,
+  UserRound,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,13 +30,14 @@ import { Label } from "@/components/ui/label";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { savePortalSession } from "@/lib/portal-session";
 
+// One field for both sign-in names: an email or the account's username.
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
+  identifier: z.string().trim().min(1, "Enter your email or username"),
   password: z.string().min(1, "Password is required"),
 });
 type LoginForm = z.infer<typeof schema>;
 
-const EMAIL_KEY = "clearis.login.email";
+const EMAIL_KEY = "clearis.login.identifier";
 
 /**
  * The login screen is the front door for three different people: a parent with a
@@ -94,18 +95,21 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(schema),
-    defaultValues: { email: savedEmail },
+    defaultValues: { identifier: savedEmail },
   });
 
   const onSubmit = async (values: LoginForm) => {
     setError(null);
     try {
       try {
-        localStorage.setItem(EMAIL_KEY, values.email);
+        localStorage.setItem(EMAIL_KEY, values.identifier);
       } catch {
         /* ignore */
       }
-      await api.login(values);
+      await api.login({
+        identifier: values.identifier,
+        password: values.password,
+      });
       const me = await api.me();
       // Hard navigation on purpose. A route-only change would keep this tab's
       // client alive, and with it any data cached while somebody else was
@@ -324,24 +328,27 @@ export default function LoginPage() {
                 >
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-[13px] font-medium">
-                        Email address
+                      <Label htmlFor="identifier" className="text-[13px] font-medium">
+                        Email or username
                       </Label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/85" />
+                        <UserRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/85" />
                         <Input
-                          id="email"
-                          type="email"
-                          autoComplete="email"
+                          id="identifier"
+                          type="text"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           autoFocus
-                          placeholder="you@school.edu"
+                          placeholder="you@school.edu or your username"
                           className="h-11 pl-10 text-[14px]"
-                          {...register("email")}
+                          {...register("identifier")}
                         />
                       </div>
-                      {errors.email && (
+                      {errors.identifier && (
                         <p className="text-[12px] text-destructive">
-                          {errors.email.message}
+                          {errors.identifier.message}
                         </p>
                       )}
                     </div>
@@ -357,7 +364,13 @@ export default function LoginPage() {
                             setShowForgot(true);
                             setForgotMessage(null);
                             setForgotToken(null);
-                            setForgotEmail(getValues("email") || savedEmail);
+                            setForgotEmail(
+                              getValues("identifier").includes("@")
+                                ? getValues("identifier")
+                                : savedEmail.includes("@")
+                                  ? savedEmail
+                                  : "",
+                            );
                           }}
                           className="text-[12px] font-medium text-primary hover:text-primary/90 transition-colors"
                         >
@@ -403,7 +416,8 @@ export default function LoginPage() {
                         className="space-y-3 rounded-xl border border-border/80 bg-muted/55 p-4"
                       >
                         <p className="text-[12px] leading-relaxed text-muted-foreground">
-                          Enter your email and we&apos;ll send a reset link.
+                          Resets go to the email on your account — enter it here and we&apos;ll
+                          send a link.
                         </p>
                         <div className="flex gap-2">
                           <Input

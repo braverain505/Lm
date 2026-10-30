@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import uuid
 from datetime import date, datetime, timedelta
-from statistics import mean
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from ..models import (
@@ -32,6 +31,9 @@ from ..models import (
 )
 from ..models.crosscut import AiUsage
 from .results_service import readiness_for_term
+
+# Result statuses that count as real work in the performance averages.
+_RESULT_STATUSES = ("submitted", "verified", "approved", "published")
 
 
 def _current_session(db: Session, school_id: uuid.UUID) -> AcademicSession | None:
@@ -67,27 +69,13 @@ def resolve_term(
     return _current_term(db, school_id, session.id if session else None)
 
 
-def _avg_score(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID) -> tuple[float | None, float | None, int]:
-    """Overall average score, pass rate (>=50) and count for a term."""
-    totals = list(
-        db.scalars(
-            select(Result.total).where(
-                Result.school_id == school_id,
-                Result.term_id == term_id,
-                Result.total.is_not(None),
-                Result.status.in_(["submitted", "verified", "approved", "published"]),
-            )
-        )
-    )
-    if not totals:
-        return None, None, 0
-    vals = [float(t) for t in totals]
-    avg = round(mean(vals), 1)
-    passed = sum(1 for v in vals if v >= 50)
-    return avg, round(passed / len(vals) * 100, 1), len(vals)
-
-
-def kpis(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) -> dict:
+def kpis(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID | None,
+    readiness_rows: list[dict] | None = None,
+) -> dict:
     students = db.scalar(
         select(func.count()).select_from(Student).where(
             Student.school_id == school_id, Student.is_deleted.is_(False)
@@ -135,12 +123,18 @@ def kpis(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) -> dic
 
     # Readiness (overall %) from the term readiness matrix. The resolved term
     # is used even when the caller passed no ``term_id``, so the readiness KPI
-    # never reads empty just because the request was term-less.
+    # never reads empty just because the request was term-less. The dashboard
+    # computes the rows once per request and passes them in, so this does not
+    # walk every class x subject x student three separate times.
     readiness_overall: float | None = None
     submitted = 0
     pending = 0
     if term is not None:
-        rows = readiness_for_term(db, school_id, term.id)
+        rows = (
+            readiness_rows
+            if readiness_rows is not None
+            else readiness_for_term(db, school_id, term.id)
+        )
         if rows:
             readiness_overall = round(
                 sum(r["entered_pct"] for r in rows) / len(rows), 1
@@ -176,74 +170,92 @@ def performance(
             .order_by(Term.term_no)
         )
     )
-    by_term = []
-    for t in terms:
-        avg, pr, cnt = _avg_score(db, school_id, term_id=t.id)
+    by_term: list[dict] = []
+    by_class: list[dict] = []
+    term_ids = [t.id for t in terms]
+    if not term_ids:
+        return {"by_term": by_term, "by_class": by_class}
+
+    # One grouped query for every term instead of one query per term.
+    term_rows = db.execute(
+        select(
+            Result.term_id,
+            func.avg(Result.total),
+            func.count(Result.total),
+            func.sum(case((Result.total >= 50, 1), else_=0)),
+        )
+        .where(
+            Result.school_id == school_id,
+            Result.total.is_not(None),
+            Result.status.in_(_RESULT_STATUSES),
+        )
+        .group_by(Result.term_id)
+    ).all()
+    term_stats = {
+        row[0]: (row[1], int(row[2] or 0), int(row[3] or 0)) for row in term_rows
+    }
+    for term in terms:
+        avg, count, passed = term_stats.get(term.id, (None, 0, 0))
         by_term.append(
             {
-                "term_name": t.name,
-                "avg_score": avg,
-                "pass_rate": pr,
-                "count": cnt,
+                "term_name": term.name,
+                "avg_score": round(float(avg), 1) if avg is not None else None,
+                "pass_rate": round(passed / count * 100, 1) if count else None,
+                "count": count,
             }
         )
 
     # Class performance: per arm over the selected term (or the latest term
     # with data when no term is requested).
-    by_class = []
-    term_ids = [t.id for t in terms]
-    if term_ids:
-        if term_id is not None:
-            latest_term = term_id
-        else:
-            # Prefer the term with the most scored results, then the current
-            # term, then the latest by term order.
-            top = db.execute(
-                select(Result.term_id, func.count(Result.id))
-                .where(Result.school_id == school_id)
-                .group_by(Result.term_id)
-                .order_by(func.count(Result.id).desc())
-                .limit(1)
-            ).first()
-            current = db.scalar(
-                select(Term).where(Term.school_id == school_id, Term.is_current.is_(True))
-            )
-            latest_term = (
-                (top[0] if top else None)
-                or (current.id if current else None)
-                or term_ids[-1]
-            )
-        arms = list(
-            db.scalars(
-                select(ClassArm)
-                .where(ClassArm.school_id == school_id)
-                .order_by(ClassArm.full_name)
-            )
+    if term_id is not None:
+        latest_term = term_id
+    else:
+        # Prefer the term with the most scored results, then the current term,
+        # then the latest by term order.
+        top = db.execute(
+            select(Result.term_id, func.count(Result.id))
+            .where(Result.school_id == school_id)
+            .group_by(Result.term_id)
+            .order_by(func.count(Result.id).desc())
+            .limit(1)
+        ).first()
+        current = db.scalar(
+            select(Term).where(Term.school_id == school_id, Term.is_current.is_(True))
         )
-        for arm in arms:
-            totals = list(
-                db.scalars(
-                    select(Result.total).where(
-                        Result.school_id == school_id,
-                        Result.class_arm_id == arm.id,
-                        Result.term_id == latest_term,
-                        Result.total.is_not(None),
-                        Result.status.in_(["submitted", "verified", "approved", "published"]),
-                    )
-                )
-            )
-            if not totals:
-                continue
-            vals = [float(v) for v in totals]
-            passed = sum(1 for v in vals if v >= 50)
-            by_class.append(
-                {
-                    "arm_name": arm.full_name,
-                    "avg_score": round(mean(vals), 1),
-                    "pass_rate": round(passed / len(vals) * 100, 1),
-                    "count": len(vals),
-                }
-            )
+        latest_term = (
+            (top[0] if top else None)
+            or (current.id if current else None)
+            or term_ids[-1]
+        )
+
+    # One grouped query for every class instead of one query per class.
+    class_rows = db.execute(
+        select(
+            ClassArm.id,
+            ClassArm.full_name,
+            func.avg(Result.total),
+            func.count(Result.total),
+            func.sum(case((Result.total >= 50, 1), else_=0)),
+        )
+        .join(Result, Result.class_arm_id == ClassArm.id)
+        .where(
+            Result.school_id == school_id,
+            Result.term_id == latest_term,
+            Result.total.is_not(None),
+            Result.status.in_(_RESULT_STATUSES),
+        )
+        .group_by(ClassArm.id, ClassArm.full_name)
+        .order_by(ClassArm.full_name, ClassArm.id)
+    ).all()
+    for _arm_id, arm_name, avg, count, passed in class_rows:
+        by_class.append(
+            {
+                "arm_name": arm_name,
+                "avg_score": round(float(avg), 1),
+                "pass_rate": round(int(passed or 0) / int(count) * 100, 1),
+                "count": int(count),
+            }
+        )
 
     return {"by_term": by_term, "by_class": by_class}
 
@@ -305,6 +317,11 @@ def attendance(db: Session, school_id: uuid.UUID) -> dict:
         "week": _attendance_overview(db, school_id, week_start, today),
         "month": _attendance_overview(db, school_id, month_start, today),
     }
+
+
+def attendance_overall(db: Session, school_id: uuid.UUID) -> dict:
+    """Attendance across all recorded dates, reused by the insights panel."""
+    return _attendance_overview(db, school_id, None, None)
 
 
 def activity(db: Session, school_id: uuid.UUID, limit: int = 10) -> list[dict]:
@@ -384,12 +401,21 @@ def activity(db: Session, school_id: uuid.UUID, limit: int = 10) -> list[dict]:
 
 
 def tasks(
-    db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None, can_fees: bool = False
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID | None,
+    can_fees: bool = False,
+    readiness_rows: list[dict] | None = None,
 ) -> list[dict]:
     out: list[dict] = []
 
     if term_id:
-        rows = readiness_for_term(db, school_id, term_id)
+        rows = (
+            readiness_rows
+            if readiness_rows is not None
+            else readiness_for_term(db, school_id, term_id)
+        )
         pending = sum(r["pending"] for r in rows)
         submitted = sum(r["submitted"] for r in rows)
         total_cells = len(rows)
@@ -460,13 +486,25 @@ def tasks(
     return out
 
 
-def insights(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) -> list[dict]:
+def insights(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID | None,
+    readiness_rows: list[dict] | None = None,
+    performance_rows: dict | None = None,
+    attendance_overview: dict | None = None,
+) -> list[dict]:
     """Rule-based AI academic insights derived from real school data."""
     items: list[dict] = []
 
     # Result readiness signal
     if term_id:
-        rows = readiness_for_term(db, school_id, term_id)
+        rows = (
+            readiness_rows
+            if readiness_rows is not None
+            else readiness_for_term(db, school_id, term_id)
+        )
         if rows:
             overall = round(sum(r["entered_pct"] for r in rows) / len(rows), 1)
             worst = min(rows, key=lambda r: r["entered_pct"])
@@ -514,7 +552,11 @@ def insights(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) ->
                 )
 
     # Attendance signal
-    att = _attendance_overview(db, school_id, None, None)
+    att = (
+        attendance_overview
+        if attendance_overview is not None
+        else _attendance_overview(db, school_id, None, None)
+    )
     if att["total"]:
         if att["rate"] is not None and att["rate"] < 90:
             items.append(
@@ -542,7 +584,7 @@ def insights(db: Session, school_id: uuid.UUID, *, term_id: uuid.UUID | None) ->
             )
 
     # Class performance signal
-    perf = performance(db, school_id)
+    perf = performance_rows if performance_rows is not None else performance(db, school_id)
     if perf["by_class"]:
         weakest = min(perf["by_class"], key=lambda c: c["avg_score"] or 0)
         if weakest["avg_score"] is not None and weakest["avg_score"] < 55:

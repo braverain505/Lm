@@ -148,7 +148,11 @@ def login(
 ):
     device, ip = _client_info(request)
     result = auth_service.login(
-        db, email=payload.email, password=payload.password, device=device, ip=ip
+        db,
+        identifier=payload.identifier or payload.email or "",
+        password=payload.password,
+        device=device,
+        ip=ip,
     )
     db.commit()
     _set_cookies(response, result)

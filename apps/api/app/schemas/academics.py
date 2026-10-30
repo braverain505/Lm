@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SessionOut(BaseModel):
@@ -50,6 +50,19 @@ class TermCreate(BaseModel):
     name: str
     start_date: date | None = None
     end_date: date | None = None
+
+
+class TermReopenRequest(BaseModel):
+    """Reopening is an explicit, audited correction: the school must say why."""
+
+    reason: str = Field(min_length=3, max_length=500)
+
+
+class TermReopenOut(BaseModel):
+    term: TermOut
+    archive_id: uuid.UUID | None = None
+    archive_version: int | None = None
+    results_reset: int
 
 
 class ArmOut(BaseModel):

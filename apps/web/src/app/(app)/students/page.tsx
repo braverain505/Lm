@@ -2,8 +2,8 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowUpRight, MessageSquare, Plus, Search, UserPlus } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { ArrowLeftRight, ArrowUpRight, MessageSquare, Plus, Search, UserPlus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   useActiveSchoolId,
   useArms,
+  useChangeStudentsClass,
   useEnrollStudent,
   usePromoteStudents,
   useSessions,
@@ -125,6 +126,81 @@ export default function StudentsPage() {
   const { data: fromArms = [] } = useArms(promoteFrom || null);
   const { data: toArms = [] } = useArms(promoteTo || null);
 
+  // --- Move class (single or bulk promote/demote) ----------------------------
+  // The destination class is picked explicitly, so the same control promotes
+  // (to the next class) and demotes (to the previous one) with no assumption
+  // about how the school names or orders its classes.
+  const changeClass = useChangeStudentsClass();
+  const [selected, setSelected] = useState<string[]>([]);
+  const [moveArm, setMoveArm] = useState("");
+  const [classMap, setClassMap] = useState<Record<string, string>>({});
+
+  // Which class each pupil is in this session. The students endpoint does not
+  // carry the current arm, so it is read off each class's roster.
+  useEffect(() => {
+    if (!schoolId || arms.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      arms.map((arm) =>
+        api
+          .schoolFetch<{ student_id: string; is_current: boolean }[]>(
+            schoolId,
+            `/students/arms/${arm.id}/enrollments`,
+          )
+          .then((rows) =>
+            rows
+              .filter((row) => row.is_current)
+              .map((row) => [row.student_id, arm.full_name] as const),
+          )
+          .catch(() => [] as (readonly [string, string])[]),
+      ),
+    ).then((lists) => {
+      if (cancelled) return;
+      const next: Record<string, string> = {};
+      lists.flat().forEach(([studentId, armName]) => {
+        next[studentId] = armName;
+      });
+      setClassMap(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, arms]);
+
+  const toggleSelected = (studentId: string) =>
+    setSelected((ids) =>
+      ids.includes(studentId) ? ids.filter((id) => id !== studentId) : [...ids, studentId],
+    );
+
+  const onMoveClass = async () => {
+    if (!currentSessionId || !moveArm || selected.length === 0) return;
+    const target = arms.find((a) => a.id === moveArm);
+    try {
+      const result = await changeClass.mutateAsync({
+        student_ids: selected,
+        session_id: currentSessionId,
+        target_arm_id: moveArm,
+      });
+      if (target) {
+        setClassMap((prev) => {
+          const next = { ...prev };
+          selected.forEach((id) => {
+            next[id] = target.full_name;
+          });
+          return next;
+        });
+      }
+      toast(
+        `Moved ${result.moved} student${result.moved === 1 ? "" : "s"} to ${target?.full_name ?? "class"}` +
+          (result.skipped.length > 0 ? ` · ${result.skipped.length} already there` : ""),
+      );
+      setSelected([]);
+      setMoveArm("");
+    } catch {
+      toast("Failed to move students", "error");
+    }
+  };
+
   // --- Edit student -----------------------------------------------------------
   const [editFor, setEditFor] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
@@ -198,6 +274,16 @@ export default function StudentsPage() {
         s.admission_no.toLowerCase().includes(needle),
     );
   }, [data, q]);
+
+  const allShownSelected =
+    filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
+
+  const toggleAllShown = () =>
+    setSelected((ids) =>
+      allShownSelected
+        ? ids.filter((id) => !filtered.some((s) => s.id === id))
+        : [...new Set([...ids, ...filtered.map((s) => s.id)])],
+    );
 
   const onEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -573,12 +659,59 @@ export default function StudentsPage() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
+          {canEnroll && selected.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-border/60 bg-muted/40 p-3">
+              <div className="min-w-56 space-y-1">
+                <Label>
+                  Move {selected.length} student{selected.length === 1 ? "" : "s"} to
+                </Label>
+                <select
+                  className="flex h-9 w-full rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm"
+                  value={moveArm}
+                  onChange={(e) => setMoveArm(e.target.value)}
+                >
+                  <option value="">Choose class…</option>
+                  {arms.map((a) => (
+                    <option key={a.id} value={a.id}>{a.full_name}</option>
+                  ))}
+                </select>
+              </div>
+              <Button onClick={onMoveClass} disabled={!moveArm} isLoading={changeClass.isPending} className="gap-1.5">
+                <ArrowLeftRight className="h-4 w-4" /> Move
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSelected([]);
+                  setMoveArm("");
+                }}
+              >
+                Clear
+              </Button>
+              <p className="w-full text-[11px] text-muted-foreground/85">
+                Pick the next class to promote, or the previous one to demote.
+              </p>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
+                  {canEnroll && (
+                    <th className="w-8 pb-2.5">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all students shown"
+                        checked={allShownSelected}
+                        onChange={toggleAllShown}
+                        className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
+                      />
+                    </th>
+                  )}
                   <th className="pb-2.5 font-semibold">Admission</th>
                   <th className="pb-2.5 font-semibold">Name</th>
+                  <th className="pb-2.5 font-semibold">Class</th>
                   <th className="pb-2.5 font-semibold">Gender</th>
                   <th className="pb-2.5 font-semibold">State</th>
                   <th className="pb-2.5 font-semibold">Comments</th>
@@ -587,10 +720,10 @@ export default function StudentsPage() {
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={6}><Skeleton className="my-2 h-6 w-full" /></td></tr>
+                  <tr><td colSpan={canEnroll ? 8 : 7}><Skeleton className="my-2 h-6 w-full" /></td></tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center">
+                    <td colSpan={canEnroll ? 8 : 7} className="py-12 text-center">
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/75">
                           <UserPlus className="h-5 w-5 text-muted-foreground/65" />
@@ -610,8 +743,20 @@ export default function StudentsPage() {
                     const hasComment = commentMap[s.id];
                     return (
                       <tr key={s.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
+                        {canEnroll && (
+                          <td className="py-3">
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${s.full_name}`}
+                              checked={selected.includes(s.id)}
+                              onChange={() => toggleSelected(s.id)}
+                              className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
+                            />
+                          </td>
+                        )}
                         <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
                         <td className="py-3 font-medium">{s.full_name}</td>
+                        <td className="py-3 text-muted-foreground">{classMap[s.id] ?? "—"}</td>
                         <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
                         <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
                         <td className="py-3">
@@ -630,6 +775,18 @@ export default function StudentsPage() {
                             {canEdit && (
                               <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
                                 Edit
+                              </Button>
+                            )}
+                            {canEnroll && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelected([s.id]);
+                                  setMoveArm("");
+                                }}
+                              >
+                                Move class
                               </Button>
                             )}
                             {canEnroll && (

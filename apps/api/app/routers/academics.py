@@ -21,6 +21,8 @@ from ..schemas.academics import (
     SubjectUpdate,
     TermCreate,
     TermOut,
+    TermReopenOut,
+    TermReopenRequest,
 )
 from ..services import academics_service
 
@@ -148,10 +150,45 @@ def close_term(
     ctx=Depends(require_permission(ACADEMICS_MANAGE)),
 ):
     """Admin closes a term. Once closed, no result mutations are allowed.
-    Results entered in the term remain viewable but immutable."""
-    term = academics_service.close_term(db, ctx.school.id, term_id)
+
+    Published report cards are frozen into the school's result archive as part
+    of closing, so the documents that went out are preserved.
+    """
+    term = academics_service.close_term(
+        db, ctx.school.id, term_id, actor_id=ctx.user.id
+    )
     db.commit()
     return TermOut.model_validate(term)
+
+
+@router.post("/terms/{term_id}/reopen", response_model=TermReopenOut)
+def reopen_term(
+    term_id: uuid.UUID,
+    payload: TermReopenRequest,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Reopen a closed term to correct a result.
+
+    Archives the term's published report cards first, then returns its results
+    to draft so scores can be edited and re-compiled. The reopen reason is
+    stored on the archive and journaled against every reset result.
+    """
+    result = academics_service.reopen_term(
+        db,
+        ctx.school.id,
+        term_id,
+        actor_id=ctx.user.id,
+        reason=payload.reason,
+    )
+    db.commit()
+    archive = result["archive"]
+    return TermReopenOut(
+        term=TermOut.model_validate(result["term"]),
+        archive_id=archive.id if archive is not None else None,
+        archive_version=archive.version if archive is not None else None,
+        results_reset=result["results_reset"],
+    )
 
 
 @router.delete("/terms/{term_id}", status_code=204)

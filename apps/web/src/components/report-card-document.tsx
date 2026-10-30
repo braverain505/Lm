@@ -239,6 +239,11 @@ function CognitiveWidget({ widget, card }: { widget: ReportWidget; card: ReportC
   const summary = card.summary;
   const showComponents = prop(widget, "show_components", true);
   const components = card.subjects[0]?.components ?? [];
+  // The school's opt-in final-term policy adds each subject's session average
+  // to the cognitive table, beside the term total it came from.
+  const sessionAverages = new Map(
+    (card.cumulative?.subjects ?? []).map((row) => [row.subject_id, row.average]),
+  );
   return (
     <section className="rc-panel rc-panel-navy">
       <header className="rc-panel-header">
@@ -257,6 +262,7 @@ function CognitiveWidget({ widget, card }: { widget: ReportWidget; card: ReportC
                 </th>
               ))}
             <th className="num">Total</th>
+            {card.cumulative && <th className="num">Session Avg</th>}
             <th className="ctr">Grade</th>
             {prop(widget, "show_remarks", true) && <th>Remark</th>}
           </tr>
@@ -277,6 +283,9 @@ function CognitiveWidget({ widget, card }: { widget: ReportWidget; card: ReportC
                   </td>
                 ))}
               <td className="num">{s.total ?? "—"}</td>
+              {card.cumulative && (
+                <td className="num">{sessionAverages.get(s.subject_id) ?? "—"}</td>
+              )}
               <td className="ctr">{s.grade_letter ?? "—"}</td>
               {prop(widget, "show_remarks", true) && <td>{s.remark ?? "—"}</td>}
             </tr>
@@ -367,43 +376,72 @@ function SummaryWidget({ widget, card }: { widget: ReportWidget; card: ReportCar
         : `${summary.class_rank}th`
       : "—";
   const remark = summary.remark ?? avgBand?.remark ?? summary.grade_letter ?? "—";
+  const cumulative = card.cumulative;
 
   return (
-    <section className="rc-summary">
-      <div className="rc-metric">
-        <span className="k">Overall Average</span>
-        <span className="v">{summary.average == null ? "—" : `${summary.average}%`}</span>
-        <span className="s">{summary.grade_letter ? `(${summary.grade_letter})` : ""}</span>
-      </div>
-      <div className="rc-metric">
-        <span className="k">Overall Grade</span>
-        <span className="v">{summary.grade_letter ?? "—"}</span>
-        <span className="s">{remark}</span>
-      </div>
-      {prop(widget, "show_position", true) && (
+    <>
+      <section className="rc-summary">
         <div className="rc-metric">
-          <span className="k">Position in Class</span>
-          <span className="v">{position}</span>
-          <span className="s">Out of {summary.class_size}</span>
+          <span className="k">Overall Average</span>
+          <span className="v">{summary.average == null ? "—" : `${summary.average}%`}</span>
+          <span className="s">{summary.grade_letter ? `(${summary.grade_letter})` : ""}</span>
         </div>
-      )}
-      {prop(widget, "show_attendance", true) && (
         <div className="rc-metric">
-          <span className="k">Attendance</span>
-          <span className="v">{formatPct(card.attendance_pct)}</span>
-          <span className="s">This term</span>
+          <span className="k">Overall Grade</span>
+          <span className="v">{summary.grade_letter ?? "—"}</span>
+          <span className="s">{remark}</span>
         </div>
+        {prop(widget, "show_position", true) && (
+          <div className="rc-metric">
+            <span className="k">Position in Class</span>
+            <span className="v">{position}</span>
+            <span className="s">Out of {summary.class_size}</span>
+          </div>
+        )}
+        {prop(widget, "show_attendance", true) && (
+          <div className="rc-metric">
+            <span className="k">Attendance</span>
+            <span className="v">{formatPct(card.attendance_pct)}</span>
+            <span className="s">This term</span>
+          </div>
+        )}
+        {prop(widget, "show_conduct", true) && (
+          <div className="rc-metric">
+            <span className="k">Conduct</span>
+            <span className="v" style={{ fontSize: 13 }}>
+              {card.conduct ?? "—"}
+            </span>
+            <span className="s">Overall</span>
+          </div>
+        )}
+      </section>
+      {cumulative && cumulative.terms.length > 0 && (
+        <section className="rc-grading" style={{ marginTop: 8 }}>
+          <h3>Session Average — Combined Term Results</h3>
+          <div className="rc-bands">
+            {cumulative.terms.map((term) => (
+              <div key={term.term_id} className="rc-band">
+                <em>{term.term_name}</em>
+                <span>{term.average}%</span>
+                <b>
+                  {term.subjects_published} subject
+                  {term.subjects_published === 1 ? "" : "s"}
+                </b>
+              </div>
+            ))}
+            <div className="rc-band">
+              <em>Session</em>
+              <span>
+                {cumulative.session_average == null
+                  ? "—"
+                  : `${cumulative.session_average}%`}
+              </span>
+              <b>Combined average</b>
+            </div>
+          </div>
+        </section>
       )}
-      {prop(widget, "show_conduct", true) && (
-        <div className="rc-metric">
-          <span className="k">Conduct</span>
-          <span className="v" style={{ fontSize: 13 }}>
-            {card.conduct ?? "—"}
-          </span>
-          <span className="s">Overall</span>
-        </div>
-      )}
-    </section>
+    </>
   );
 }
 

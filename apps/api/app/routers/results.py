@@ -42,6 +42,8 @@ from ..schemas.results import (
     ScoreSaveRequest,
     SubjectActionRequest,
     SubjectSubmitRequest,
+    TermArchiveDetail,
+    TermArchiveOut,
     WorkbenchRow,
 )
 from ..services import ai_service, comment_bank_service, portal_service, results_service
@@ -577,6 +579,36 @@ def cumulative(
     return results_service.cumulative_for_session(
         db, ctx.school.id, student_id=student_id, session_id=session_id
     )
+
+
+@router.get("/archives", response_model=list[TermArchiveOut])
+def list_archives(
+    db: DbSession,
+    term_id: uuid.UUID | None = None,
+    session_id: uuid.UUID | None = None,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """The school's archive of previously published report cards.
+
+    Each row is one frozen version of a term's cards, written when the term was
+    reopened for a correction. Narrow by term or session when drilling in.
+    """
+    rows = results_service.list_term_archives(
+        db, ctx.school.id, term_id=term_id, session_id=session_id
+    )
+    return [TermArchiveOut(**results_service.archive_summary(row)) for row in rows]
+
+
+@router.get("/archives/{archive_id}", response_model=TermArchiveDetail)
+def get_archive(
+    archive_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """One archived version: the frozen cards and the layout they printed with."""
+    row = results_service.get_term_archive(db, ctx.school.id, archive_id)
+    summary = results_service.archive_summary(row)
+    return TermArchiveDetail(**summary, payload=row.payload or {})
 
 
 @router.get("/broadsheet")

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Activity,
+  Archive,
   Banknote,
   BarChart3,
   BookCopy,
@@ -17,6 +18,7 @@ import {
   ListChecks,
   MessageSquareText,
   MonitorPlay,
+  KeyRound,
   NotebookPen,
   Package,
   PieChart,
@@ -159,6 +161,9 @@ export const PANEL_SECTIONS: NavSection[] = [
       // as the cards themselves and the API enforces it on both endpoints.
       { href: "/reports/broadsheet", label: "Broadsheet", icon: Table2, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       { href: "/reports/cumulative", label: "Cumulative Results", icon: TrendingUp, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
+      // Frozen cards from a reopened term. Same document, same permission as
+      // the live report cards — an archive is the exam office's record.
+      { href: "/reports/archive", label: "Result Archive", icon: Archive, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       // Designing the card is `school.manage`, so this link is the admin's half
       // of the same feature. The API enforces it on every write.
       {
@@ -216,6 +221,12 @@ export const PANEL_SECTIONS: NavSection[] = [
   {
     label: "Settings",
     items: [
+      {
+        href: "/account",
+        label: "My account",
+        icon: KeyRound,
+        perm: null,
+      },
       {
         href: "/settings",
         label: "School Settings",
@@ -278,6 +289,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
   "/reports/broadsheet": { title: "Broadsheet", breadcrumb: "Result Generation" },
   "/reports/cumulative": { title: "Cumulative Results", breadcrumb: "Result Generation" },
+  "/reports/archive": { title: "Result Archive", breadcrumb: "Result Generation" },
   "/reports/designer": { title: "Report Card Designer", breadcrumb: "Result Generation" },
   "/attendance": { title: "Attendance", breadcrumb: "Academics" },
   "/timetable": { title: "Timetable", breadcrumb: "Academics" },
@@ -295,6 +307,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/question-banks": { title: "AI Questions", breadcrumb: "AI Tools" },
   "/copilot": { title: "Clearis AI", breadcrumb: "AI Tools" },
   "/settings": { title: "Settings", breadcrumb: "Settings" },
+  "/account": { title: "My account", breadcrumb: "Settings" },
 };
 
 export function pageMeta(pathname: string): PageMeta {

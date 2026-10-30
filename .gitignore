@@ -25,3 +25,6 @@ htmlcov/
 *.log
 .vercel
 .env*
+
+# Database dumps
+backups/

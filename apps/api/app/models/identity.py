@@ -17,6 +17,10 @@ class User(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False)
+    # Optional sign-in name, stored lowercased. Login accepts either this or the
+    # email, so a teacher without a school mailbox can still sign in. Global
+    # unique (like email) because a user may belong to several schools.
+    username: Mapped[str | None] = mapped_column(String(40), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(160), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(40))

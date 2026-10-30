@@ -74,12 +74,13 @@ def create_staff_account(
     staff, role = people_service.create_staff_account(
         db, ctx.school.id, staff_id,
         email=str(payload.email), password=payload.password, role_id=payload.role_id,
-        arm_id=payload.arm_id,
+        arm_id=payload.arm_id, username=payload.username,
     )
     db.commit()
     return StaffAccountOut(
         staff_id=staff.id,
         email=str(payload.email).strip().lower(),
+        username=staff.user.username if staff.user else None,
         role_id=role.id,
         role_code=role.code,
         role_name=role.name,
@@ -101,10 +102,13 @@ def update_staff_account(
     if not updates:
         from ..core.errors import ValidationError
 
-        raise ValidationError("Provide at least one field: email, password, or role_id")
+        raise ValidationError(
+            "Provide at least one field: email, username, password, or role_id"
+        )
     staff, role = people_service.update_staff_account(
         db, ctx.school.id, staff_id,
         email=str(payload.email) if payload.email is not None else None,
+        username=payload.username,
         password=payload.password,
         role_id=payload.role_id,
         arm_id=payload.arm_id,
@@ -113,6 +117,7 @@ def update_staff_account(
     return StaffAccountOut(
         staff_id=staff.id,
         email=str(staff.user.email).strip().lower() if staff.user else "",
+        username=staff.user.username if staff.user else None,
         role_id=role.id,
         role_code=role.code,
         role_name=role.name,

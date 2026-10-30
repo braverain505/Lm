@@ -63,6 +63,92 @@ def test_admin_creates_staff_account_and_teacher_logs_in(client):
     assert "users.manage" not in memberships[0]["permissions"]
 
 
+def test_staff_login_gets_a_username_and_signs_in_with_it(client):
+    """A teacher with no mailbox of their own can sign in with the username
+    derived for them, case-insensitively, instead of an email."""
+    register_school(client)
+    sid = active_school_id(client)
+    staff = _add_staff(client, sid, staff_no="T010")
+
+    created = _create_account(client, sid, staff["id"], email="grace@test.edu")
+    assert created.status_code == 201, created.text
+    assert created.json()["username"] == "grace"
+
+    login = client.post(
+        "/api/auth/login", json={"identifier": "Grace", "password": "Str0ng!Pass"}
+    )
+    assert login.status_code == 200, login.text
+    assert login.json()["user"]["username"] == "grace"
+
+    # The email still works for the same account.
+    by_email = client.post(
+        "/api/auth/login", json={"identifier": "grace@test.edu", "password": "Str0ng!Pass"}
+    )
+    assert by_email.status_code == 200, by_email.text
+
+
+def test_admin_chooses_the_username_and_it_must_be_unique(client):
+    register_school(client)
+    sid = active_school_id(client)
+    first = _add_staff(client, sid, staff_no="T011", full_name="Grace Teacher")
+    second = _add_staff(client, sid, staff_no="T012", full_name="John Teacher")
+
+    role_id = _role_id(client, sid, "teacher")
+    chosen = client.post(
+        f"{STAFF}/{first['id']}/account",
+        json={
+            "email": "grace@test.edu",
+            "username": "Grace.Teacher",
+            "password": "Str0ng!Pass",
+            "role_id": role_id,
+        },
+        headers={"X-School-Id": sid},
+    )
+    assert chosen.status_code == 201, chosen.text
+    assert chosen.json()["username"] == "grace.teacher"
+
+    clash = client.post(
+        f"{STAFF}/{second['id']}/account",
+        json={
+            "email": "john@test.edu",
+            "username": "grace.teacher",
+            "password": "Str0ng!Pass",
+            "role_id": role_id,
+        },
+        headers={"X-School-Id": sid},
+    )
+    assert clash.status_code == 409, clash.text
+
+
+def test_teacher_changes_their_own_password(client):
+    """No admin in the loop: the teacher is signed in and rotates the password
+    from their own account page."""
+    register_school(client)
+    sid = active_school_id(client)
+    staff = _add_staff(client, sid, staff_no="T013")
+    _create_account(client, sid, staff["id"], email="grace@test.edu")
+
+    login = client.post(
+        "/api/auth/login", json={"identifier": "grace", "password": "Str0ng!Pass"}
+    )
+    assert login.status_code == 200, login.text
+
+    changed = client.post(
+        "/api/auth/change-password",
+        json={"current_password": "Str0ng!Pass", "new_password": "N3w!Passw0rd"},
+    )
+    assert changed.status_code == 200, changed.text
+
+    old = client.post(
+        "/api/auth/login", json={"identifier": "grace", "password": "Str0ng!Pass"}
+    )
+    assert old.status_code == 401
+    new = client.post(
+        "/api/auth/login", json={"identifier": "grace", "password": "N3w!Passw0rd"}
+    )
+    assert new.status_code == 200, new.text
+
+
 def test_account_provisioning_requires_users_manage(client, db):
     register_school(client)
     sid = active_school_id(client)

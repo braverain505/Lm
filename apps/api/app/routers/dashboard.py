@@ -22,7 +22,7 @@ from ..schemas.dashboard import (
     PerformanceOut,
     TaskItem,
 )
-from ..services import dashboard_service
+from ..services import dashboard_service, results_service
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -50,7 +50,21 @@ def summary(
     resolved_term = dashboard_service.resolve_term(db, school_id, term_id)
     resolved_term_id = resolved_term.id if resolved_term is not None else None
 
-    k = dashboard_service.kpis(db=db, school_id=school_id, term_id=resolved_term_id)
+    # The readiness matrix is the expensive part of this payload. Build it once
+    # and share it with the KPIs, tasks and insights instead of letting each
+    # one recompute it (which multiplied the per-student queries by three).
+    readiness_rows = (
+        results_service.readiness_for_term(db, school_id, resolved_term.id)
+        if resolved_term is not None
+        else []
+    )
+
+    k = dashboard_service.kpis(
+        db=db,
+        school_id=school_id,
+        term_id=resolved_term_id,
+        readiness_rows=readiness_rows,
+    )
     if not can_results:
         k["readiness_overall"] = None
         k["readiness_submitted"] = 0
@@ -70,9 +84,28 @@ def summary(
         }
     act = dashboard_service.activity(db=db, school_id=school_id)
     tasks = dashboard_service.tasks(
-        db=db, school_id=school_id, term_id=resolved_term_id, can_fees=can_fees
+        db=db,
+        school_id=school_id,
+        term_id=resolved_term_id,
+        can_fees=can_fees,
+        readiness_rows=readiness_rows,
     )
-    ins = dashboard_service.insights(db=db, school_id=school_id, term_id=resolved_term_id) if can_ai else {"insights": []}
+    ins = (
+        dashboard_service.insights(
+            db=db,
+            school_id=school_id,
+            term_id=resolved_term_id,
+            readiness_rows=readiness_rows,
+            performance_rows=perf if can_results else None,
+            attendance_overview=(
+                dashboard_service.attendance_overall(db, school_id)
+                if can_ai
+                else None
+            ),
+        )
+        if can_ai
+        else {"insights": []}
+    )
 
     return DashboardSummary(
         kpis=DashboardKpis(**k),

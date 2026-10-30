@@ -30,6 +30,7 @@ class StaffOut(BaseModel):
     employment_status: str
     has_account: bool = False
     account_email: str | None = None
+    account_username: str | None = None
     account_role_id: uuid.UUID | None = None
     account_role_name: str | None = None
     # The class arm this teacher is the homeroom (class) teacher of, if any.
@@ -60,6 +61,8 @@ class StaffUpdate(BaseModel):
 
 class StaffAccountCreate(BaseModel):
     email: EmailStr
+    # Optional sign-in name. Left blank, one is derived from the email.
+    username: str | None = Field(default=None, max_length=40)
     password: str = Field(min_length=8, max_length=128)
     role_id: uuid.UUID
     # Required by the UI when the role is "Homeroom Teacher": the class arm the
@@ -69,6 +72,7 @@ class StaffAccountCreate(BaseModel):
 
 class StaffAccountUpdate(BaseModel):
     email: EmailStr | None = None
+    username: str | None = Field(default=None, max_length=40)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     role_id: uuid.UUID | None = None
     # Set/replace the class arm this teacher is the homeroom teacher of.
@@ -78,6 +82,7 @@ class StaffAccountUpdate(BaseModel):
 class StaffAccountOut(BaseModel):
     staff_id: uuid.UUID
     email: str
+    username: str | None = None
     role_id: uuid.UUID
     role_code: str
     role_name: str
@@ -186,6 +191,14 @@ class EnrollmentOut(BaseModel):
 
 
 class ClassChangeRequest(BaseModel):
+    session_id: uuid.UUID
+    target_arm_id: uuid.UUID
+
+
+class ClassChangeBulkRequest(BaseModel):
+    """Move several students into one class (bulk promote/demote)."""
+
+    student_ids: list[uuid.UUID]
     session_id: uuid.UUID
     target_arm_id: uuid.UUID
 

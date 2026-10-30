@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Phone, Plus, Power, ShieldCheck, Timer, Trash2, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Percent, Phone, Plus, Power, RotateCcw, ShieldCheck, Timer, Trash2, Unlock } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useReportCardDesign, useCreateReportCardTemplate, useUpdateReportCardTemplate } from "@/hooks/use-api";
+import { useActiveSchoolId, useSchoolMe, useOverview, useSessions, useTerms, useCloseTerm, useReopenTerm, useResultsPolicy, useUpdateResultsPolicy, useReportCardDesign, useCreateReportCardTemplate, useUpdateReportCardTemplate } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 import { isSchoolAdminRole } from "@/lib/roles";
@@ -32,6 +32,9 @@ export default function SettingsPage() {
   const { data: sessions = [], isLoading: loadingSessions } = useSessions();
   const { session: activeSession, setTerm, setSession } = useSessionTerm();
   const closeTerm = useCloseTerm();
+  const reopenTerm = useReopenTerm();
+  const { data: resultsPolicy, isLoading: loadingPolicy } = useResultsPolicy();
+  const updateResultsPolicy = useUpdateResultsPolicy();
 
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -157,7 +160,8 @@ export default function SettingsPage() {
       `• Prevent all score entries and result modifications\n` +
       `• Lock attendance records for this term\n` +
       `• Make all data read-only\n\n` +
-      `This action cannot be undone. Continue?`
+      `The term can be reopened later for a correction. Its published report\n` +
+      `cards are archived automatically now, so the printed record is kept. Continue?`
     );
     if (!confirmed) return;
     try {
@@ -167,6 +171,70 @@ export default function SettingsPage() {
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to close term", "error");
     }
+  };
+
+  // Reopening is the correction path for a closed term. The reason is required
+  // because it is stored on the archive row and journaled against every result
+  // the reopen unlocks.
+  const handleReopenTerm = async (term: Term) => {
+    const reason = window.prompt(
+      `Reopen the ${term.name} term for a correction?\n\n` +
+      `Published report cards are already archived. Reopening sends the term's\n` +
+      `results back to draft so scores can be edited and compiled again.\n\n` +
+      `Why is this term being reopened? (required)`,
+      "",
+    );
+    if (reason === null) return;
+    const trimmed = reason.trim();
+    if (trimmed.length < 3) {
+      toast("Give a short reason (at least 3 characters)", "error");
+      return;
+    }
+    try {
+      const result = await reopenTerm.mutateAsync({ termId: term.id, reason: trimmed });
+      const parentSession = sessions.find((s) => s.id === term.academic_session_id);
+      if (parentSession) {
+        setSelectedSessionId(parentSession.id);
+        setSession({ ...parentSession, status: "open", is_current: true });
+      }
+      setTerm(result.term);
+      void queryClient.invalidateQueries({ queryKey: ["terms"] });
+      void queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      void queryClient.invalidateQueries({ queryKey: ["archives"] });
+      toast(
+        result.archive_id
+          ? `${term.name} reopened — previous cards kept in archive version ${result.archive_version}; ${result.results_reset} results back in draft`
+          : `${term.name} reopened — ${result.results_reset} results back in draft (no published cards to archive)`,
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed to reopen term", "error");
+    }
+  };
+
+  // Results policy is a per-school academic rule, not a display preference: it
+  // is saved on the school so every report card renderer (web, bulk PDF, the
+  // parent portal) computes the same final-term average.
+  const applyResultsPolicy = (patch: {
+    combine_previous_terms?: boolean;
+    final_term_no?: number;
+  }) => {
+    const current = resultsPolicy ?? {
+      combine_previous_terms: false,
+      final_term_no: 3,
+    };
+    updateResultsPolicy.mutate(
+      { ...current, ...patch },
+      {
+        onSuccess: (saved) =>
+          toast(
+            saved.combine_previous_terms
+              ? `Final-term average enabled (term ${saved.final_term_no})`
+              : "Final-term average disabled",
+          ),
+        onError: (err: Error) =>
+          toast(err.message || "Failed to save results policy", "error"),
+      },
+    );
   };
 
   // --- Session creation ---
@@ -652,6 +720,27 @@ export default function SettingsPage() {
                                 Close term
                               </Button>
                             )}
+                            {/* A closed term is not permanent: reopening it is the
+                                correction path. Published cards are archived and
+                                its results return to draft so scores can be fixed
+                                and compiled again. */}
+                            {isClosed && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1"
+                                title={`Reopen ${t.name}`}
+                                onClick={() => handleReopenTerm(t)}
+                                disabled={
+                                  reopenTerm.isPending ||
+                                  closeTerm.isPending ||
+                                  activateTerm.isPending
+                                }
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Reopen
+                              </Button>
+                            )}
                             {/* Undo a term created by mistake. A term with
                                 results or components is refused server-side. */}
                             <Button
@@ -660,7 +749,7 @@ export default function SettingsPage() {
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               title={`Delete ${t.name}`}
                               onClick={() => handleDeleteTerm(t.id, t.name)}
-                              disabled={deleteTerm.isPending || closeTerm.isPending || activateTerm.isPending}
+                              disabled={deleteTerm.isPending || closeTerm.isPending || activateTerm.isPending || reopenTerm.isPending}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -701,6 +790,72 @@ export default function SettingsPage() {
                 )}
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Results policy — admin only */}
+      {canManage && (
+        <Card className="premium-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-[15px]">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/20">
+                <Percent className="h-4 w-4 text-primary" />
+              </span>
+              Results policy
+            </CardTitle>
+            <CardDescription>
+              How the final term&apos;s report card combines the year&apos;s work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {loadingPolicy ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/60 bg-muted/40 p-4">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-[var(--primary)]"
+                    checked={resultsPolicy?.combine_previous_terms ?? false}
+                    onChange={(e) =>
+                      applyResultsPolicy({ combine_previous_terms: e.target.checked })
+                    }
+                    disabled={updateResultsPolicy.isPending}
+                  />
+                  <span>
+                    <span className="block text-[13px] font-medium">
+                      Show the combined term average on the final term&apos;s report card
+                    </span>
+                    <span className="mt-1 block text-[11.5px] leading-relaxed text-muted-foreground/90">
+                      The final term card adds a session average — the mean of the
+                      first, second and final term averages — alongside the usual
+                      term average. Leave it off for a standard term-only card.
+                    </span>
+                  </span>
+                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Label className="text-[12.5px]">Final term</Label>
+                  <select
+                    className="h-9 rounded-xl border border-border/90 bg-background/70 px-3 text-[13px] shadow-sm transition-all"
+                    value={resultsPolicy?.final_term_no ?? 3}
+                    onChange={(e) =>
+                      applyResultsPolicy({ final_term_no: Number(e.target.value) })
+                    }
+                    disabled={updateResultsPolicy.isPending}
+                  >
+                    {[1, 2, 3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        Term {n}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[11.5px] text-muted-foreground/90">
+                    This applies to this school only.
+                  </span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

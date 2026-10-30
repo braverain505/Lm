@@ -14,6 +14,7 @@ from ..core.permissions import (
     STUDENTS_VIEW,
 )
 from ..schemas.people import (
+    ClassChangeBulkRequest,
     ClassChangeRequest,
     EnrollmentCreate,
     EnrollmentOut,
@@ -191,6 +192,25 @@ def promote_students(
         to_session_id=payload.to_session_id,
         target_arms=[p.model_dump() for p in payload.target_arms],
         student_ids=payload.student_ids,
+    )
+    db.commit()
+    return result
+
+
+@router.post("/class-change", response_model=dict)
+def change_students_class(
+    payload: ClassChangeBulkRequest,
+    db: DbSession,
+    ctx=Depends(require_permission(STUDENTS_ENROLL)),
+):
+    """Move several students into one class the admin picks within the given
+    session — the bulk form of a manual promote/demote. Students with no active
+    enrollment in that session (or already there) are returned as skipped."""
+    result = people_service.change_students_class(
+        db, ctx.school.id,
+        student_ids=payload.student_ids,
+        session_id=payload.session_id,
+        target_arm_id=payload.target_arm_id,
     )
     db.commit()
     return result

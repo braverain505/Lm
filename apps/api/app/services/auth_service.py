@@ -7,7 +7,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -155,16 +155,31 @@ def register_school(
     return _issue_tokens(db, user, device=device, ip=ip)
 
 
+def _find_by_identifier(db: Session, identifier: str) -> User | None:
+    """The account for an email or a username, matched case-insensitively.
+
+    Emails contain an ``@`` and usernames never do, so the two namespaces
+    cannot shadow each other; the email lookup goes first anyway to keep the
+    old behaviour exact.
+    """
+    ident = identifier.strip().lower()
+    if not ident:
+        return None
+    user = db.scalar(select(User).where(func.lower(User.email) == ident))
+    if user is None:
+        user = db.scalar(select(User).where(func.lower(User.username) == ident))
+    return user
+
+
 def login(
     db: Session,
     *,
-    email: str,
+    identifier: str,
     password: str,
     device: str | None = None,
     ip: str | None = None,
 ) -> AuthResult:
-    email = email.strip().lower()
-    user = db.scalar(select(User).where(User.email == email))
+    user = _find_by_identifier(db, identifier)
 
     # Transient auto-lock: after repeated failures the account cools down for
     # a window, which defuses password guessing without a support ticket.
@@ -185,7 +200,7 @@ def login(
             # The raise below rolls the request back — persist the counter
             # explicitly so repeated failures actually accumulate.
             db.commit()
-        raise APIError(401, ERR_AUTH_FAILED, "Invalid email or password")
+        raise APIError(401, ERR_AUTH_FAILED, "Invalid email, username or password")
     if user.status == "disabled":
         raise APIError(403, ERR_ACCOUNT_DISABLED, "Account disabled")
     if user.status == "locked":

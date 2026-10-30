@@ -17,6 +17,7 @@ export type ApiError = z.infer<typeof ApiErrorSchema>;
 export const UserSummarySchema = z.object({
   id: z.string().uuid(),
   email: z.string(),
+  username: z.string().nullable().optional(),
   full_name: z.string(),
   status: z.string(),
   is_superadmin: z.boolean(),
@@ -127,6 +128,20 @@ export const TermSchema = z.object({
 });
 export type Term = z.infer<typeof TermSchema>;
 
+export const TermReopenResultSchema = z.object({
+  term: TermSchema,
+  archive_id: z.string().uuid().nullable(),
+  archive_version: z.number().nullable(),
+  results_reset: z.number(),
+});
+export type TermReopenResult = z.infer<typeof TermReopenResultSchema>;
+
+export const ResultsPolicySchema = z.object({
+  combine_previous_terms: z.boolean(),
+  final_term_no: z.number().int().min(1).max(6),
+});
+export type ResultsPolicy = z.infer<typeof ResultsPolicySchema>;
+
 export const ArmSchema = z.object({
   id: z.string().uuid(),
   academic_session_id: z.string().uuid(),
@@ -229,6 +244,7 @@ export const StaffSchema = z.object({
   employment_status: z.string(),
   has_account: z.boolean(),
   account_email: z.string().nullable(),
+  account_username: z.string().nullable().optional(),
   account_role_id: z.string().uuid().nullable(),
   account_role_name: z.string().nullable(),
   homeroom_arm_id: z.string().uuid().nullable().optional(),
@@ -250,6 +266,7 @@ export type StaffCreate = z.infer<typeof StaffCreateSchema>;
 
 export const StaffAccountCreateSchema = z.object({
   email: z.string().email(),
+  username: z.string().max(40).optional(),
   password: z.string().min(8),
   role_id: z.string().uuid(),
   arm_id: z.string().uuid().optional(),
@@ -258,6 +275,7 @@ export type StaffAccountCreate = z.infer<typeof StaffAccountCreateSchema>;
 
 export const StaffAccountUpdateSchema = z.object({
   email: z.string().email().optional(),
+  username: z.string().max(40).optional(),
   password: z.string().min(8).optional(),
   role_id: z.string().uuid().optional(),
   arm_id: z.string().uuid().optional(),
@@ -267,6 +285,7 @@ export type StaffAccountUpdate = z.infer<typeof StaffAccountUpdateSchema>;
 export const StaffAccountOutSchema = z.object({
   staff_id: z.string().uuid(),
   email: z.string(),
+  username: z.string().nullable().optional(),
   role_id: z.string().uuid(),
   role_code: z.string(),
   role_name: z.string(),
@@ -500,10 +519,80 @@ export const ReportCardSchema = z.object({
       }),
     )
     .default([]),
+  // Opt-in on the school's configured final term: the term-by-term averages
+  // and their mean, plus each subject's session average.
+  cumulative: z
+    .object({
+      final_term_no: z.number(),
+      terms: z.array(
+        z.object({
+          term_id: z.string().uuid(),
+          term_name: z.string(),
+          term_no: z.number(),
+          average: z.number(),
+          subjects_published: z.number(),
+        }),
+      ),
+      term_average: z.number().nullable(),
+      session_average: z.number().nullable(),
+      subjects: z.array(
+        z.object({
+          subject_id: z.string().uuid(),
+          subject_name: z.string(),
+          terms: z.array(
+            z.object({
+              term_id: z.string().uuid(),
+              term_name: z.string(),
+              term_no: z.number(),
+              total: z.number().nullable(),
+            }),
+          ),
+          average: z.number().nullable(),
+        }),
+      ),
+    })
+    .nullable()
+    .optional(),
   can_comment: z.boolean().default(false),
   can_manage_psychomotor: z.boolean().default(false),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;
+
+// --- Archived report cards ------------------------------------------------------
+// One frozen version of a term's published cards, written before a reopened term
+// is recompiled. The payload carries the exact cards and the layout they used.
+export const TermArchiveSchema = z.object({
+  id: z.string().uuid(),
+  term_id: z.string().uuid().nullable(),
+  term_name: z.string().nullable(),
+  term_no: z.number().nullable(),
+  session_id: z.string().uuid().nullable(),
+  session_name: z.string().nullable(),
+  version: z.number(),
+  reason: z.string(),
+  archived_at: z.string(),
+  archived_by_name: z.string().nullable(),
+  student_count: z.number(),
+  class_count: z.number(),
+});
+export type TermArchive = z.infer<typeof TermArchiveSchema>;
+
+export const TermArchiveDetailSchema = TermArchiveSchema.extend({
+  payload: z
+    .object({
+      archived_at: z.string().optional(),
+      archived_by_name: z.string().nullable().optional(),
+      reason: z.string().optional(),
+      term: z.object({ id: z.string(), name: z.string(), term_no: z.number() }).optional(),
+      session: z.object({ id: z.string(), name: z.string().nullable() }).optional(),
+      // Kept loose here because the layout contract is declared below; the
+      // archive viewer parses it with ReportLayoutSchema before rendering.
+      layout: z.record(z.unknown()).nullable().optional(),
+      students: z.array(ReportCardSchema).default([]),
+    })
+    .passthrough(),
+});
+export type TermArchiveDetail = z.infer<typeof TermArchiveDetailSchema>;
 
 export const ReportIndexRowSchema = z.object({
   student_id: z.string().uuid(),
