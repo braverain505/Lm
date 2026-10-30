@@ -19,6 +19,24 @@ import { NextRequest, NextResponse } from 'next/server';
 // instance (which the browser would then treat as this app's data source).
 const API_URL = (process.env.API_URL || '').trim().replace(/\/$/, '');
 
+/**
+ * Pass the real client address on to the backend.
+ *
+ * The API keys its per-IP rate limits on the request address. Because every
+ * call is proxied server-side, that address is this machine unless the
+ * original client IP is forwarded — which put all users in one login budget
+ * (a few attempts locked everyone out with "too many attempts").
+ */
+function forwardClientIp(headers: Headers, request?: NextRequest) {
+  const forwardedFor = request?.headers.get('x-forwarded-for');
+  const realIp = request?.headers.get('x-real-ip');
+  if (forwardedFor) {
+    headers.set('X-Forwarded-For', forwardedFor);
+  } else if (realIp) {
+    headers.set('X-Forwarded-For', realIp);
+  }
+  if (realIp) headers.set('X-Real-IP', realIp);
+}
 
 
 /**
@@ -77,10 +95,11 @@ async function forwardRequest(
     headers.set('X-School-Id', schoolId);
   }
 
-  // Forward cookies to backend
+  // Forward cookies and the client address to the backend
   if (cookieHeader) {
     headers.set('Cookie', cookieHeader);
   }
+  forwardClientIp(headers, request);
 
   try {
     let response: Response;
@@ -97,6 +116,7 @@ async function forwardRequest(
       const fwdSchool = request.headers.get('x-school-id');
       if (fwdSchool) forwardHeaders.set('X-School-Id', fwdSchool);
       if (cookieHeader) forwardHeaders.set('Cookie', cookieHeader);
+      forwardClientIp(forwardHeaders, request);
 
       const form = await request.formData();
       response = await fetch(url.toString(), {

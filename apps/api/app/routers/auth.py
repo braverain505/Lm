@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from ..config import settings
 from ..core import security
 from ..core.deps import AnyUser, DbSession, require_platform_admin
-from ..core.rate_limit import limiter
+from ..core.rate_limit import get_client_ip, limiter
 from ..schemas.auth import (
     ChangeEmailRequest,
     ChangePasswordRequest,
@@ -70,7 +70,9 @@ def _clear_cookies(response: Response) -> None:
 
 def _client_info(request: Request) -> tuple[str | None, str | None]:
     ua = request.headers.get("user-agent")
-    ip = request.client.host if request.client else None
+    # Same address the rate limiter keys on, so the audit trail records the
+    # person rather than the web proxy that forwarded them.
+    ip = get_client_ip(request)
     label = (ua or "unknown")[:120]
     return label, ip
 
@@ -139,7 +141,11 @@ def register_school(
 
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("5/15minutes")  # Prevent brute force attacks
+# Per-IP backstop against brute force. 20 rather than 5 because a whole school
+# can sign in from one NAT address in the same morning; the per-account
+# lockout in auth_service (10 consecutive failures) is what stops password
+# guessing against a single account.
+@limiter.limit("20/15minutes")
 def login(
     payload: LoginRequest,
     response: Response,
