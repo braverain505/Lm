@@ -1,9 +1,19 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeftRight, ArrowUpRight, MessageSquare, Plus, Search, UserPlus } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeftRight,
+  ArrowUpRight,
+  BookOpen,
+  ChevronRight,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Search,
+  UserPlus,
+} from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 
 import { api } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +28,7 @@ import {
   useChangeStudentsClass,
   useEnrollStudent,
   usePromoteStudents,
+  useRenameArm,
   useSessions,
   useStudents,
   useTerms,
@@ -25,6 +36,10 @@ import {
 } from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
 import { useHasPermission } from "@/components/access-denied";
+import { cn } from "@/lib/utils";
+
+// The section that holds pupils with no enrollment this session.
+const UNASSIGNED = "__unassigned__";
 
 /** Resolve a stored photo URL to a loadable <img> src.
  * data:/blob:/http(s): URLs pass through; backend-relative /api/uploads/...
@@ -49,6 +64,7 @@ export default function StudentsPage() {
   const canCreate = useHasPermission("students.create");
   const canEdit = useHasPermission("students.edit");
   const canEnroll = useHasPermission("students.enroll");
+  const canManageClasses = useHasPermission("academics.manage");
   const { data = [], isLoading } = useStudents();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -58,7 +74,7 @@ export default function StudentsPage() {
   const currentSessionId = sessions.find((s) => s.is_current)?.id ?? sessions[0]?.id ?? null;
   const { data: terms = [] } = useTerms(currentSessionId);
   const currentTermId = terms.find((t) => t.is_current)?.id ?? terms[0]?.id ?? null;
-  const { data: arms = [] } = useArms(currentSessionId);
+  const { data: arms = [], isLoading: armsLoading } = useArms(currentSessionId);
 
   // Fetch report cards for all arms to build comment status map
   // We fetch each arm's cards and merge into a single map
@@ -133,39 +149,53 @@ export default function StudentsPage() {
   const changeClass = useChangeStudentsClass();
   const [selected, setSelected] = useState<string[]>([]);
   const [moveArm, setMoveArm] = useState("");
-  const [classMap, setClassMap] = useState<Record<string, string>>({});
+  const [openArm, setOpenArm] = useState<string | null>(null);
+  const [renamingArm, setRenamingArm] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameArm = useRenameArm();
 
-  // Which class each pupil is in this session. The students endpoint does not
-  // carry the current arm, so it is read off each class's roster.
-  useEffect(() => {
-    if (!schoolId || arms.length === 0) return;
-    let cancelled = false;
-    Promise.all(
-      arms.map((arm) =>
-        api
-          .schoolFetch<{ student_id: string; is_current: boolean }[]>(
-            schoolId,
-            `/students/arms/${arm.id}/enrollments`,
-          )
-          .then((rows) =>
-            rows
-              .filter((row) => row.is_current)
-              .map((row) => [row.student_id, arm.full_name] as const),
-          )
-          .catch(() => [] as (readonly [string, string])[]),
-      ),
-    ).then((lists) => {
-      if (cancelled) return;
+  const onRenameClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renamingArm || !renameValue.trim()) return;
+    try {
+      await renameArm.mutateAsync({ armId: renamingArm, name: renameValue.trim() });
+      setRenamingArm(null);
+      toast("Class renamed successfully");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Failed to rename class", "error");
+    }
+  };
+
+  // Which class each pupil is in this session (student id -> class arm id).
+  // The students endpoint does not carry the current arm, so it is read off
+  // each class's roster; that is what lets the page group pupils by class.
+  const armIds = useMemo(() => arms.map((arm) => arm.id), [arms]);
+  const { data: classMap = {}, isLoading: classMapLoading } = useQuery({
+    queryKey: ["student-classes", schoolId, armIds],
+    enabled: !!schoolId && armIds.length > 0,
+    queryFn: async () => {
+      const lists = await Promise.all(
+        armIds.map((armId) =>
+          api
+            .schoolFetch<{ student_id: string; is_current: boolean }[]>(
+              schoolId!,
+              `/students/arms/${armId}/enrollments`,
+            )
+            .then((rows) =>
+              rows
+                .filter((row) => row.is_current)
+                .map((row) => [row.student_id, armId] as const),
+            )
+            .catch(() => [] as (readonly [string, string])[]),
+        ),
+      );
       const next: Record<string, string> = {};
-      lists.flat().forEach(([studentId, armName]) => {
-        next[studentId] = armName;
+      lists.flat().forEach(([studentId, armId]) => {
+        next[studentId] = armId;
       });
-      setClassMap(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolId, arms]);
+      return next;
+    },
+  });
 
   const toggleSelected = (studentId: string) =>
     setSelected((ids) =>
@@ -181,15 +211,7 @@ export default function StudentsPage() {
         session_id: currentSessionId,
         target_arm_id: moveArm,
       });
-      if (target) {
-        setClassMap((prev) => {
-          const next = { ...prev };
-          selected.forEach((id) => {
-            next[id] = target.full_name;
-          });
-          return next;
-        });
-      }
+      void queryClient.invalidateQueries({ queryKey: ["student-classes"] });
       toast(
         `Moved ${result.moved} student${result.moved === 1 ? "" : "s"} to ${target?.full_name ?? "class"}` +
           (result.skipped.length > 0 ? ` · ${result.skipped.length} already there` : ""),
@@ -275,21 +297,43 @@ export default function StudentsPage() {
     );
   }, [data, q]);
 
-  const allShownSelected =
-    filtered.length > 0 && filtered.every((s) => selected.includes(s.id));
+  // Pupils are grouped by the class they belong to this session, one
+  // collapsible section per class. Someone with no enrollment this session is
+  // kept in a "No class yet" section so they remain editable.
+  const groups = useMemo(() => {
+    const byArm = new Map<string, (typeof data)[number][]>();
+    const unassigned: (typeof data)[number][] = [];
+    for (const student of filtered) {
+      const armId = classMap[student.id];
+      if (armId) {
+        const list = byArm.get(armId);
+        if (list) list.push(student);
+        else byArm.set(armId, [student]);
+      } else {
+        unassigned.push(student);
+      }
+    }
+    const rows = arms.map((arm) => ({
+      id: arm.id,
+      name: arm.full_name,
+      students: byArm.get(arm.id) ?? [],
+    }));
+    if (unassigned.length > 0) {
+      rows.push({ id: UNASSIGNED, name: "No class yet", students: unassigned });
+    }
+    // While searching, hide classes with no match and show every match.
+    return q.trim() ? rows.filter((group) => group.students.length > 0) : rows;
+  }, [arms, classMap, filtered, q]);
 
-  const toggleAllShown = () =>
-    setSelected((ids) =>
-      allShownSelected
-        ? ids.filter((id) => !filtered.some((s) => s.id === id))
-        : [...new Set([...ids, ...filtered.map((s) => s.id)])],
-    );
+  const groupsLoading =
+    isLoading || armsLoading || (armIds.length > 0 && classMapLoading);
 
   const onEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!enrollFor || !enrollArm || !currentSessionId) return;
     try {
       await enrollStudent.mutateAsync({ student_id: enrollFor, arm_id: enrollArm, session_id: currentSessionId });
+      void queryClient.invalidateQueries({ queryKey: ["student-classes"] });
       setEnrollFor(null);
       setEnrollArm("");
       toast("Student enrolled successfully");
@@ -647,7 +691,7 @@ export default function StudentsPage() {
         </motion.div>
       )}
 
-      {/* Table */}
+      {/* Classes -> pupils */}
       <Card className="premium-card">
         <CardContent className="p-5">
           <div className="relative mb-4">
@@ -694,120 +738,234 @@ export default function StudentsPage() {
             </div>
           )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
-                  {canEnroll && (
-                    <th className="w-8 pb-2.5">
-                      <input
-                        type="checkbox"
-                        aria-label="Select all students shown"
-                        checked={allShownSelected}
-                        onChange={toggleAllShown}
-                        className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
-                      />
-                    </th>
-                  )}
-                  <th className="pb-2.5 font-semibold">Admission</th>
-                  <th className="pb-2.5 font-semibold">Name</th>
-                  <th className="pb-2.5 font-semibold">Class</th>
-                  <th className="pb-2.5 font-semibold">Gender</th>
-                  <th className="pb-2.5 font-semibold">State</th>
-                  <th className="pb-2.5 font-semibold">Comments</th>
-                  <th className="pb-2.5 font-semibold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoading ? (
-                  <tr><td colSpan={canEnroll ? 8 : 7}><Skeleton className="my-2 h-6 w-full" /></td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr>
-                    <td colSpan={canEnroll ? 8 : 7} className="py-12 text-center">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/75">
-                          <UserPlus className="h-5 w-5 text-muted-foreground/65" />
-                        </div>
-                        <p className="text-[13px] font-medium text-muted-foreground/90">
-                          {data.length > 0
-                            ? "No matches found."
-                            : canCreate
-                              ? "No students yet. Add your first student."
-                              : "No students have been added yet."}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filtered.map((s) => {
-                    const hasComment = commentMap[s.id];
-                    return (
-                      <tr key={s.id} className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60">
-                        {canEnroll && (
-                          <td className="py-3">
-                            <input
-                              type="checkbox"
-                              aria-label={`Select ${s.full_name}`}
-                              checked={selected.includes(s.id)}
-                              onChange={() => toggleSelected(s.id)}
-                              className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
-                            />
-                          </td>
-                        )}
-                        <td className="py-3 font-mono text-[11px] text-muted-foreground">{s.admission_no}</td>
-                        <td className="py-3 font-medium">{s.full_name}</td>
-                        <td className="py-3 text-muted-foreground">{classMap[s.id] ?? "—"}</td>
-                        <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
-                        <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
-                        <td className="py-3">
-                          {hasComment === true ? (
-                            <Badge variant="success" className="gap-1 text-[10px]">
-                              <MessageSquare className="h-3 w-3" /> Entered
-                            </Badge>
-                          ) : hasComment === false ? (
-                            <Badge variant="warning" className="text-[10px]">Pending</Badge>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground/65">—</span>
+          {groupsLoading ? (
+            <Skeleton className="my-2 h-24 w-full" />
+          ) : groups.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-12 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/75">
+                <UserPlus className="h-5 w-5 text-muted-foreground/65" />
+              </div>
+              <p className="text-[13px] font-medium text-muted-foreground/90">
+                {data.length > 0
+                  ? "No matches found."
+                  : canCreate
+                    ? "No students yet. Add your first student."
+                    : "No students have been added yet."}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {groups.map((group) => {
+                // A search reveals every class with a match; otherwise the
+                // class the user clicked is the one open.
+                const open = q.trim() !== "" || openArm === group.id;
+                const allGroupSelected =
+                  group.students.length > 0 &&
+                  group.students.every((s) => selected.includes(s.id));
+                const toggleGroup = () =>
+                  setSelected((ids) =>
+                    allGroupSelected
+                      ? ids.filter((id) => !group.students.some((s) => s.id === id))
+                      : [
+                          ...new Set([
+                            ...ids,
+                            ...group.students.map((s) => s.id),
+                          ]),
+                        ],
+                  );
+                return (
+                  <div
+                    key={group.id}
+                    className="overflow-hidden rounded-xl border border-border/60"
+                  >
+                    <div className="flex items-center gap-1 pr-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenArm((current) =>
+                            current === group.id ? null : group.id,
+                          )
+                        }
+                        aria-expanded={open}
+                        className="flex flex-1 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/60"
+                      >
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                            open && "rotate-90",
                           )}
-                        </td>
-                        <td className="py-3">
-                          <div className="flex justify-end gap-2">
-                            {canEdit && (
-                              <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
-                                Edit
-                              </Button>
-                            )}
-                            {canEnroll && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelected([s.id]);
-                                  setMoveArm("");
-                                }}
-                              >
-                                Move class
-                              </Button>
-                            )}
-                            {canEnroll && (
-                              <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
-                                Enroll
-                              </Button>
-                            )}
-                            {!canEdit && !canEnroll && (
-                              <span className="text-[11px] text-muted-foreground/65">
-                                View only
-                              </span>
-                            )}
+                        />
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+                          <BookOpen className="h-4 w-4 text-primary" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] font-semibold">
+                            {group.name}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground/85">
+                            {group.students.length} student
+                            {group.students.length === 1 ? "" : "s"}
+                          </span>
+                        </span>
+                      </button>
+                      {canManageClasses && group.id !== UNASSIGNED && (
+                        <button
+                          type="button"
+                          title={`Rename ${group.name}`}
+                          aria-label={`Rename ${group.name}`}
+                          onClick={() => {
+                            setRenamingArm(group.id);
+                            setRenameValue(group.name);
+                          }}
+                          className="rounded-lg p-2 text-muted-foreground/75 transition-colors hover:bg-accent hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {renamingArm === group.id && (
+                      <form
+                        onSubmit={onRenameClass}
+                        className="flex flex-wrap items-center gap-2 border-t border-border/60 px-4 py-2"
+                      >
+                        <Input
+                          autoFocus
+                          aria-label={`New name for ${group.name}`}
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          className="h-8 max-w-64"
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          disabled={!renameValue.trim() || renameArm.isPending}
+                          isLoading={renameArm.isPending}
+                        >
+                          Save
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRenamingArm(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </form>
+                    )}
+
+                    {open && (
+                      <div className="border-t border-border/60 bg-muted/20 px-4 pb-2">
+                        {group.students.length === 0 ? (
+                          <p className="py-6 text-center text-[13px] text-muted-foreground/85">
+                            No students in this class yet.
+                          </p>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[13px]">
+                              <thead>
+                                <tr className="border-b border-border/60 text-left text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground/85">
+                                  {canEnroll && (
+                                    <th className="w-8 pb-2.5">
+                                      <input
+                                        type="checkbox"
+                                        aria-label={`Select all students in ${group.name}`}
+                                        checked={allGroupSelected}
+                                        onChange={toggleGroup}
+                                        className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
+                                      />
+                                    </th>
+                                  )}
+                                  <th className="pb-2.5 font-semibold">Admission</th>
+                                  <th className="pb-2.5 font-semibold">Name</th>
+                                  <th className="pb-2.5 font-semibold">Gender</th>
+                                  <th className="pb-2.5 font-semibold">State</th>
+                                  <th className="pb-2.5 font-semibold">Comments</th>
+                                  <th className="pb-2.5 font-semibold text-right">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {group.students.map((s) => {
+                                  const hasComment = commentMap[s.id];
+                                  return (
+                                    <tr
+                                      key={s.id}
+                                      className="border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60"
+                                    >
+                                      {canEnroll && (
+                                        <td className="py-3">
+                                          <input
+                                            type="checkbox"
+                                            aria-label={`Select ${s.full_name}`}
+                                            checked={selected.includes(s.id)}
+                                            onChange={() => toggleSelected(s.id)}
+                                            className="h-3.5 w-3.5 rounded border-border accent-[var(--primary)]"
+                                          />
+                                        </td>
+                                      )}
+                                      <td className="py-3 font-mono text-[11px] text-muted-foreground">
+                                        {s.admission_no}
+                                      </td>
+                                      <td className="py-3 font-medium">{s.full_name}</td>
+                                      <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
+                                      <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
+                                      <td className="py-3">
+                                        {hasComment === true ? (
+                                          <Badge variant="success" className="gap-1 text-[10px]">
+                                            <MessageSquare className="h-3 w-3" /> Entered
+                                          </Badge>
+                                        ) : hasComment === false ? (
+                                          <Badge variant="warning" className="text-[10px]">Pending</Badge>
+                                        ) : (
+                                          <span className="text-[11px] text-muted-foreground/65">—</span>
+                                        )}
+                                      </td>
+                                      <td className="py-3">
+                                        <div className="flex justify-end gap-2">
+                                          {canEdit && (
+                                            <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
+                                              Edit
+                                            </Button>
+                                          )}
+                                          {canEnroll && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                setSelected([s.id]);
+                                                setMoveArm("");
+                                              }}
+                                            >
+                                              Move class
+                                            </Button>
+                                          )}
+                                          {canEnroll && (
+                                            <Button variant="outline" size="sm" onClick={() => setEnrollFor(s.id)}>
+                                              Enroll
+                                            </Button>
+                                          )}
+                                          {!canEdit && !canEnroll && (
+                                            <span className="text-[11px] text-muted-foreground/65">
+                                              View only
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

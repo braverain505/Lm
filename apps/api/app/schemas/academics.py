@@ -80,6 +80,10 @@ class ArmCreate(BaseModel):
     campus_id: uuid.UUID | None = None
 
 
+class ArmUpdate(BaseModel):
+    name: str
+
+
 class SubjectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

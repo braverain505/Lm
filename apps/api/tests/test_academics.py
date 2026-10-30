@@ -129,6 +129,48 @@ def test_delete_missing_class_returns_404(client, db):
     assert r.json()["error"]["code"] == "ERR_NOT_FOUND"
 
 
+def test_rename_class_keeps_its_pupils(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    session_id = _create_session(client, sid)
+    arm_id = _create_arm(client, sid, session_id, "JSS 1 A")
+    student_id = _create_student(client, sid, "STU-001")
+    _enroll(client, sid, student_id, arm_id, session_id)
+
+    r = client.patch(
+        f"{ACAD}/arms/{arm_id}",
+        json={"name": "  JSS 1 Gold  "},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["id"] == arm_id
+    assert r.json()["name"] == "JSS 1 Gold"
+    assert r.json()["full_name"] == "JSS 1 Gold"
+
+    # Only the label changed: the roster still points at the same class.
+    r = client.get(f"/api/students/arms/{arm_id}/enrollments", headers={"X-School-Id": sid})
+    assert [row["student_id"] for row in r.json()] == [student_id]
+
+
+def test_rename_class_to_an_existing_name_is_refused(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    session_id = _create_session(client, sid)
+    _create_arm(client, sid, session_id, "JSS 1 A")
+    arm_id = _create_arm(client, sid, session_id, "JSS 1 B")
+
+    r = client.patch(
+        f"{ACAD}/arms/{arm_id}",
+        json={"name": "JSS 1 A"},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 409
+    assert r.json()["error"]["code"] == "ERR_CONFLICT"
+
+    r = client.get(f"{ACAD}/sessions/{session_id}/arms", headers={"X-School-Id": sid})
+    assert sorted(a["name"] for a in r.json()) == ["JSS 1 A", "JSS 1 B"]
+
+
 # --- Terms -------------------------------------------------------------------
 def test_delete_unused_term(client, db):
     register_school(client)

@@ -457,6 +457,31 @@ def create_arm(
     return arm
 
 
+def update_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID, *, name: str) -> ClassArm:
+    """Rename a class. The name is the label printed on rosters and report
+    cards, so ``full_name`` follows it; the class keeps its id, so pupils,
+    offerings and assignments stay attached."""
+    arm = get_arm(db, school_id, arm_id)
+    new_name = name.strip()
+    if not new_name:
+        raise ValidationError("Class name cannot be empty")
+    if new_name != arm.name:
+        clash = db.scalar(
+            select(ClassArm.id).where(
+                ClassArm.school_id == school_id,
+                ClassArm.academic_session_id == arm.academic_session_id,
+                ClassArm.name == new_name,
+                ClassArm.id != arm.id,
+            )
+        )
+        if clash is not None:
+            raise ConflictError(f"{new_name} already exists this session")
+        arm.name = new_name
+        arm.full_name = new_name
+        db.flush()
+    return arm
+
+
 def delete_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID) -> None:
     """Delete a class created by mistake.
 

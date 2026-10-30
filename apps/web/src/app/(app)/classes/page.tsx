@@ -13,7 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActiveSchoolId, useArms, useOfferings, useSessions, useSubjects } from "@/hooks/use-api";
+import {
+  useActiveSchoolId,
+  useArms,
+  useOfferings,
+  useRenameArm,
+  useSessions,
+  useSubjects,
+} from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +34,8 @@ export default function ClassesPage() {
   const { toast } = useToast();
 
   const [armName, setArmName] = useState("");
+  const [editingArmId, setEditingArmId] = useState<string | null>(null);
+  const [editArmName, setEditArmName] = useState("");
   const [offeringsArmId, setOfferingsArmId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [subjectCode, setSubjectCode] = useState("");
@@ -57,6 +66,23 @@ export default function ClassesPage() {
     },
     onError: (err: Error) => toast(err.message || "Failed to create class", "error"),
   });
+
+  // Renaming changes only the label: pupils, subjects and teacher assignments
+  // stay on the class, so it is the safe fix for a typo or a class named wrong.
+  const renameArm = useRenameArm();
+  const handleRenameArm = () => {
+    if (!editingArmId || !editArmName.trim()) return;
+    renameArm.mutate(
+      { armId: editingArmId, name: editArmName.trim() },
+      {
+        onSuccess: () => {
+          setEditingArmId(null);
+          toast("Class renamed successfully");
+        },
+        onError: (err: Error) => toast(err.message || "Failed to rename class", "error"),
+      },
+    );
+  };
 
   // Deleting undoes a class created by mistake. The API refuses a class with
   // students enrolled, so the confirmation states that guard rather than hiding
@@ -204,41 +230,95 @@ export default function ClassesPage() {
           </Card>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {arms.map((arm, idx) => (
-              <motion.div
-                key={arm.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
-                className="flex items-stretch gap-2"
-              >
-                <Link
-                  href={`/classes/${arm.id}`}
-                  className="group flex flex-1 items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-card hover:border-primary/65"
+            {arms.map((arm, idx) =>
+              editingArmId === arm.id ? (
+                <motion.form
+                  key={arm.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleRenameArm();
+                  }}
+                  className="space-y-2 rounded-xl border bg-card p-4 shadow-sm"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/20">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="truncate font-medium">{arm.full_name}</p>
-                      <p className="text-xs text-muted-foreground/75">{currentSession.name}</p>
-                    </div>
+                  <p className="text-xs font-medium text-muted-foreground/85">
+                    Class name
+                  </p>
+                  <Input
+                    autoFocus
+                    value={editArmName}
+                    onChange={(e) => setEditArmName(e.target.value)}
+                    placeholder="e.g. JSS 1 A"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!editArmName.trim() || renameArm.isPending}
+                      isLoading={renameArm.isPending}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingArmId(null)}
+                    >
+                      Cancel
+                    </Button>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/75 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-auto shrink-0 px-3 text-destructive hover:border-destructive/50 hover:text-destructive"
-                  title={`Delete ${arm.full_name}`}
-                  onClick={() => handleDeleteArm(arm.id, arm.full_name)}
-                  disabled={deleteArm.isPending}
+                </motion.form>
+              ) : (
+                <motion.div
+                  key={arm.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: 0.04 + idx * 0.04, ease }}
+                  className="flex items-stretch gap-2"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </motion.div>
-            ))}
+                  <Link
+                    href={`/classes/${arm.id}`}
+                    className="group flex flex-1 items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-[1px] hover:shadow-card hover:border-primary/65"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="truncate font-medium">{arm.full_name}</p>
+                        <p className="text-xs text-muted-foreground/75">{currentSession.name}</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/75 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-auto shrink-0 px-3"
+                    title={`Rename ${arm.full_name}`}
+                    onClick={() => {
+                      setEditingArmId(arm.id);
+                      setEditArmName(arm.full_name);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-auto shrink-0 px-3 text-destructive hover:border-destructive/50 hover:text-destructive"
+                    title={`Delete ${arm.full_name}`}
+                    onClick={() => handleDeleteArm(arm.id, arm.full_name)}
+                    disabled={deleteArm.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              ),
+            )}
           </div>
         )}
       </div>

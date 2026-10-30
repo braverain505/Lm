@@ -326,6 +326,24 @@ export function useArms(sessionId: string | null) {
   });
 }
 
+export function useRenameArm() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ armId, name }: { armId: string; name: string }) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.schoolFetch<Arm>(schoolId, `/academics/arms/${armId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["arms"] });
+      void queryClient.invalidateQueries({ queryKey: ["student-classes"] });
+    },
+  });
+}
+
 export function useAssignments(armId: string | null) {
   const schoolId = useActiveSchoolId();
   return useQuery({

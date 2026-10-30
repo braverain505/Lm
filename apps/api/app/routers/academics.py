@@ -9,6 +9,7 @@ from ..core.permissions import ACADEMICS_MANAGE, ACADEMICS_VIEW
 from ..schemas.academics import (
     ArmCreate,
     ArmOut,
+    ArmUpdate,
     AssignmentCreate,
     AssignmentOut,
     OfferingCreate,
@@ -223,6 +224,20 @@ def create_arm(
         session_id=payload.session_id,
         name=payload.name, campus_id=payload.campus_id,
     )
+    db.commit()
+    return ArmOut.model_validate(arm)
+
+
+@router.patch("/arms/{arm_id}", response_model=ArmOut)
+def update_arm(
+    arm_id: uuid.UUID,
+    payload: ArmUpdate,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Rename a class. Pupils, subject offerings and teacher assignments stay
+    on it because only the label changes."""
+    arm = academics_service.update_arm(db, ctx.school.id, arm_id, name=payload.name)
     db.commit()
     return ArmOut.model_validate(arm)
 
