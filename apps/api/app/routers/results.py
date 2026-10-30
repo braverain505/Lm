@@ -859,6 +859,25 @@ def best_in_subjects(
     )
 
 
+@router.get("/best-in-subjects/breakdown")
+def best_in_subjects_breakdown(
+    arm_id: uuid.UUID,
+    session_id: uuid.UUID,
+    db: DbSession,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Subject leaders for every term of a session, plus the session leaders.
+
+    The leadership report's single read: term blocks come from published term
+    totals, and the session block ranks students by the mean of their published
+    term totals per subject. Every published subject is included — not only the
+    core ones the card's ribbon uses.
+    """
+    return results_service.best_in_subjects_breakdown(
+        db, ctx.school.id, arm_id=arm_id, session_id=session_id
+    )
+
+
 @router.get("/grade-bands")
 def grade_bands(
     term_id: uuid.UUID,

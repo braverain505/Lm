@@ -649,6 +649,41 @@ export const BestInSubjectRowSchema = z.object({
 });
 export type BestInSubjectRow = z.infer<typeof BestInSubjectRowSchema>;
 
+// Session-wide leadership: a student's subject mark is the mean of their
+// published term totals, so the session leader is comparable across a term with
+// three published subjects and one with two.
+export const BestInSubjectSessionRowSchema = z.object({
+  subject_id: z.string().uuid(),
+  subject_name: z.string(),
+  top_average: z.number(),
+  term_count: z.number(),
+  leader_count: z.number(),
+  leaders: z.array(z.string()),
+});
+export type BestInSubjectSessionRow = z.infer<
+  typeof BestInSubjectSessionRowSchema
+>;
+
+export const BestInSubjectsTermBlockSchema = z.object({
+  term_id: z.string().uuid(),
+  term_name: z.string(),
+  term_no: z.number(),
+  subjects: z.array(BestInSubjectRowSchema),
+});
+export type BestInSubjectsTermBlock = z.infer<
+  typeof BestInSubjectsTermBlockSchema
+>;
+
+export const BestInSubjectsBreakdownSchema = z.object({
+  arm: z.object({ id: z.string().uuid(), full_name: z.string() }),
+  session: z.object({ id: z.string().uuid(), name: z.string() }),
+  terms: z.array(BestInSubjectsTermBlockSchema),
+  session_subjects: z.array(BestInSubjectSessionRowSchema),
+});
+export type BestInSubjectsBreakdown = z.infer<
+  typeof BestInSubjectsBreakdownSchema
+>;
+
 export const PsychomotorRowSchema = z.object({
   learning_area: z.string(),
   achievement_level: z.string(),

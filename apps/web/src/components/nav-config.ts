@@ -29,6 +29,7 @@ import {
   Shield,
   Sparkles,
   SlidersHorizontal,
+  Trophy,
   UserPlus,
   Users,
   UsersRound,
@@ -161,6 +162,9 @@ export const PANEL_SECTIONS: NavSection[] = [
       // as the cards themselves and the API enforces it on both endpoints.
       { href: "/reports/broadsheet", label: "Broadsheet", icon: Table2, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       { href: "/reports/cumulative", label: "Cumulative Results", icon: TrendingUp, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
+      // Subject leaders per term and across the session. Same published-results
+      // desk as the broadsheet and the cards, and the same permission.
+      { href: "/reports/best-in-subjects", label: "Best in Subjects", icon: Trophy, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       // Frozen cards from a reopened term. Same document, same permission as
       // the live report cards — an archive is the exam office's record.
       { href: "/reports/archive", label: "Result Archive", icon: Archive, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
@@ -289,6 +293,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
   "/reports/broadsheet": { title: "Broadsheet", breadcrumb: "Result Generation" },
   "/reports/cumulative": { title: "Cumulative Results", breadcrumb: "Result Generation" },
+  "/reports/best-in-subjects": { title: "Best in Subjects", breadcrumb: "Result Generation" },
   "/reports/archive": { title: "Result Archive", breadcrumb: "Result Generation" },
   "/reports/designer": { title: "Report Card Designer", breadcrumb: "Result Generation" },
   "/attendance": { title: "Attendance", breadcrumb: "Academics" },

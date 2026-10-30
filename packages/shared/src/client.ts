@@ -94,6 +94,8 @@ import {
   CommentBankEntrySchema,
   BestInSubjectRow,
   BestInSubjectRowSchema,
+  BestInSubjectsBreakdown,
+  BestInSubjectsBreakdownSchema,
   GradeBandRow,
   GradeBandRowSchema,
   PsychomotorRow,
@@ -1012,6 +1014,19 @@ export const fetchBestInSubjects = (schoolId: string, armId: string, termId: str
     `/results/best-in-subjects?arm_id=${armId}&term_id=${termId}`,
     {},
     z.array(BestInSubjectRowSchema).parse,
+  );
+
+/** Subject leaders for every term of a session, plus the session leaders. */
+export const fetchBestInSubjectsBreakdown = (
+  schoolId: string,
+  armId: string,
+  sessionId: string,
+) =>
+  schoolFetch<BestInSubjectsBreakdown>(
+    schoolId,
+    `/results/best-in-subjects/breakdown?arm_id=${armId}&session_id=${sessionId}`,
+    {},
+    BestInSubjectsBreakdownSchema.parse,
   );
 
 export const fetchGradeBands = (schoolId: string, termId: string) =>
@@ -2331,6 +2346,7 @@ export const api = {
   updateCommentBankEntry,
   deactivateCommentBankEntry,
   fetchBestInSubjects,
+  fetchBestInSubjectsBreakdown,
   fetchGradeBands,
   fetchPsychomotor,
   savePsychomotor,

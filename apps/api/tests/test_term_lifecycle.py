@@ -287,6 +287,100 @@ def test_reopened_term_keeps_its_students_after_promotion(client, db):
     assert len(r.json()) == 3
 
 
+def _enter_scores(client, sid, w, comps, scores):
+    """Score the three configured students with different marks, one cell."""
+    entries = [
+        {
+            "student_enrollment_id": env_id,
+            "scores": [
+                {"assessment_component_id": comps[comp], "score": scores[i]}
+                for comp in ("CA1", "CA2", "Exam")
+            ],
+        }
+        for i, env_id in enumerate(w["enrollment_ids"])
+    ]
+    r = client.put(
+        f"{BASE}/scorecard",
+        json={
+            "arm_id": w["arm_id"],
+            "subject_id": w["subject_id"],
+            "term_id": w["term_id"],
+            "entries": entries,
+        },
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+
+
+def _publish(client, sid, w):
+    for step in ("submit", "verify", "approve", "publish"):
+        r = _act(client, sid, w, step)
+        assert r.status_code == 200, r.text
+
+
+def _student_names(db, enrollment_ids):
+    names = []
+    for env_id in enrollment_ids:
+        env = db.get(StudentEnrollment, uuid.UUID(env_id))
+        names.append(env.student.full_name)
+    return names
+
+
+def test_best_in_subjects_names_term_and_session_leaders(client, db):
+    """The leadership list follows published results, term by term.
+
+    The leader changes with each term, the third term is a three-way tie, and
+    the session leader is decided by the mean of the published term totals —
+    with two students finishing level at 70.
+    """
+    register_school(client)
+    sid = active_school_id(client)
+    w = _configure(client, sid, db)
+    comps = _add_components(client, sid, w["term_id"])
+    _enter_scores(client, sid, w, comps, [90, 60, 60])
+    _publish(client, sid, w)
+
+    second = _open_term(client, sid, w["session_id"], 2, "Second Term")
+    second_comps = _add_components(client, sid, second)
+    second_w = {**w, "term_id": second}
+    _enter_scores(client, sid, second_w, second_comps, [60, 90, 60])
+    _publish(client, sid, second_w)
+
+    third = _open_term(client, sid, w["session_id"], 3, "Third Term")
+    third_comps = _add_components(client, sid, third)
+    third_w = {**w, "term_id": third}
+    _enter_scores(client, sid, third_w, third_comps, [60, 60, 60])
+    _publish(client, sid, third_w)
+
+    names = _student_names(db, w["enrollment_ids"])
+
+    r = client.get(
+        f"{BASE}/best-in-subjects/breakdown",
+        params={"arm_id": w["arm_id"], "session_id": w["session_id"]},
+        headers={"X-School-Id": sid},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["session"]["name"] == "2025/2026"
+    assert [block["term_no"] for block in body["terms"]] == [1, 2, 3]
+
+    # Each term has its own leader; the third term's flat scores tie everyone.
+    first_rows = body["terms"][0]["subjects"]
+    assert first_rows[0]["leaders"] == [names[0]]
+    assert first_rows[0]["top_score"] == 90.0
+    assert body["terms"][1]["subjects"][0]["leaders"] == [names[1]]
+    assert body["terms"][2]["subjects"][0]["leaders"] == sorted(names)
+    assert body["terms"][2]["subjects"][0]["leader_count"] == 3
+
+    # Session: A and B are level on 70 (90/60/60 and 60/90/60), C on 60.
+    session = body["session_subjects"][0]
+    assert session["subject_name"] == "Mathematics"
+    assert session["top_average"] == 70.0
+    assert session["leaders"] == sorted([names[0], names[1]])
+    assert session["leader_count"] == 2
+    assert session["term_count"] == 3
+
+
 def test_final_term_card_combines_term_averages_when_policy_is_on(client, db):
     register_school(client)
     sid = active_school_id(client)

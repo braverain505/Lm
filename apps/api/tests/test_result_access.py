@@ -94,6 +94,7 @@ def test_teacher_cannot_reach_any_report_card_endpoint(client, db):
         f"{BASE}/report-cards?arm_id={w['arm_id']}&term_id={w['term_id']}",
         f"{BASE}/broadsheet?arm_id={w['arm_id']}&term_id={w['term_id']}",
         f"{BASE}/best-in-subjects?arm_id={w['arm_id']}&term_id={w['term_id']}",
+        f"{BASE}/best-in-subjects/breakdown?arm_id={w['arm_id']}&session_id={w['session_id']}",
         f"{BASE}/cumulative?student_id={student_id}&session_id={w['session_id']}",
     ]
     for url in endpoints:

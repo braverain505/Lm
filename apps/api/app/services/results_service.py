@@ -1403,6 +1403,210 @@ def best_in_subjects_overview(
     return out
 
 
+def _grouped_subject_totals(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_id: uuid.UUID,
+    term_ids: list[uuid.UUID],
+    core_only: bool = False,
+) -> dict[uuid.UUID, dict]:
+    """Published totals per subject across an arm and one or more terms.
+
+    ``scorers`` maps enrollment id to the student's summed published total and
+    the number of terms that contributed, so a single-term call and a whole
+    session call share one query (the session view divides by ``terms`` to get
+    the subject average). Published snapshots are the source, exactly like the
+    card, so a printed card and this list agree.
+
+    Unlike the card's ``_grouped_core_totals``, this includes every subject that
+    has published results — the leadership list is the school's record of who
+    topped each subject, not only the designated core ones. Pass
+    ``core_only=True`` to mirror the card.
+    """
+    groups: dict[uuid.UUID, dict] = {}
+    if not term_ids:
+        return groups
+    stmt = (
+        select(Result, Subject, StudentEnrollment, Student)
+        .join(Subject, Subject.id == Result.subject_id)
+        .join(StudentEnrollment, StudentEnrollment.id == Result.student_enrollment_id)
+        .join(Student, Student.id == StudentEnrollment.student_id)
+        .where(
+            Result.school_id == school_id,
+            Result.class_arm_id == arm_id,
+            Result.term_id.in_(term_ids),
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+    )
+    if core_only:
+        stmt = stmt.where(Subject.is_core.is_(True))
+    for result, subject, env, stu in db.execute(stmt).all():
+        snap = result.published_snapshot or {}
+        total = snap.get("total")
+        if total is None:
+            total = result.total
+        if total is None:
+            continue
+        g = groups.setdefault(
+            subject.id,
+            {"subject_id": subject.id, "name": subject.name, "scorers": {}},
+        )
+        scorer = g["scorers"].setdefault(
+            str(env.id), {"name": stu.full_name, "total": 0.0, "terms": 0}
+        )
+        scorer["total"] += float(total)
+        scorer["terms"] += 1
+    return groups
+
+
+def _top_scorers(scorers: list[dict], key: str) -> tuple[float, list[dict]]:
+    """The highest value on ``key`` and everyone who holds it (ties included)."""
+    top = max(s[key] for s in scorers)
+    leaders = sorted((s for s in scorers if s[key] == top), key=lambda s: s["name"])
+    return top, leaders
+
+
+def _session_terms(
+    db: Session, school_id: uuid.UUID, session_id: uuid.UUID
+) -> list[Term]:
+    """Every term of a session, in order — the units a session average spans."""
+    session = db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.id == session_id,
+            AcademicSession.school_id == school_id,
+        )
+    )
+    if session is None:
+        raise NotFoundError("Academic session not found")
+    return list(
+        db.scalars(
+            select(Term)
+            .where(
+                Term.school_id == school_id,
+                Term.academic_session_id == session_id,
+            )
+            .order_by(Term.term_no)
+        )
+    )
+
+
+def best_in_subjects_for_term(
+    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, term_id: uuid.UUID
+) -> list[dict]:
+    """Every subject's top score and its leaders in an arm × term.
+
+    This is the term half of the leadership list. It covers all published
+    subjects (the card's ribbon stays core-only) and is empty until at least
+    one result has been published.
+    """
+    get_arm(db, school_id, arm_id)
+    get_term(db, school_id, term_id)
+    out: list[dict] = []
+    for g in _grouped_subject_totals(
+        db, school_id, arm_id=arm_id, term_ids=[term_id]
+    ).values():
+        if not g["scorers"]:
+            continue
+        top, leaders = _top_scorers(list(g["scorers"].values()), "total")
+        out.append(
+            {
+                "subject_id": str(g["subject_id"]),
+                "subject_name": g["name"],
+                "top_score": round(top, 2),
+                "leader_count": len(leaders),
+                "leaders": [s["name"] for s in leaders],
+            }
+        )
+    out.sort(key=lambda r: r["subject_name"])
+    return out
+
+
+def best_in_subjects_for_session(
+    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, session_id: uuid.UUID
+) -> list[dict]:
+    """Every subject's session leader in an arm.
+
+    A student's session mark for a subject is the mean of the published term
+    totals for it, so terms with no published result are skipped rather than
+    dragging the average down. The leader is the highest such mean; ties are
+    kept together.
+    """
+    get_arm(db, school_id, arm_id)
+    terms = _session_terms(db, school_id, session_id)
+    out: list[dict] = []
+    for g in _grouped_subject_totals(
+        db,
+        school_id,
+        arm_id=arm_id,
+        term_ids=[t.id for t in terms],
+    ).values():
+        if not g["scorers"]:
+            continue
+        for scorer in g["scorers"].values():
+            scorer["average"] = (
+                round(scorer["total"] / scorer["terms"], 2) if scorer["terms"] else 0.0
+            )
+        top, leaders = _top_scorers(list(g["scorers"].values()), "average")
+        out.append(
+            {
+                "subject_id": str(g["subject_id"]),
+                "subject_name": g["name"],
+                "top_average": top,
+                # How many terms the subject was published in — the page labels
+                # the session column with this so a two-term session is honest.
+                "term_count": max(s["terms"] for s in g["scorers"].values()),
+                "leader_count": len(leaders),
+                "leaders": [s["name"] for s in leaders],
+            }
+        )
+    out.sort(key=lambda r: r["subject_name"])
+    return out
+
+
+def best_in_subjects_breakdown(
+    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, session_id: uuid.UUID
+) -> dict:
+    """Term-by-term and whole-session subject leaders for one arm.
+
+    One payload for the leadership report: ``terms`` holds a block per term that
+    has published results, and ``session_subjects`` the averaged leaders across
+    the session. Both cover every published subject.
+    """
+    arm = get_arm(db, school_id, arm_id)
+    session = db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.id == session_id,
+            AcademicSession.school_id == school_id,
+        )
+    )
+    if session is None:
+        raise NotFoundError("Academic session not found")
+    terms_payload: list[dict] = []
+    for term in _session_terms(db, school_id, session_id):
+        subjects = best_in_subjects_for_term(
+            db, school_id, arm_id=arm_id, term_id=term.id
+        )
+        if not subjects:
+            continue
+        terms_payload.append(
+            {
+                "term_id": str(term.id),
+                "term_name": term.name,
+                "term_no": term.term_no,
+                "subjects": subjects,
+            }
+        )
+    return {
+        "arm": {"id": str(arm.id), "full_name": arm.full_name},
+        "session": {"id": str(session.id), "name": session.name},
+        "terms": terms_payload,
+        "session_subjects": best_in_subjects_for_session(
+            db, school_id, arm_id=arm_id, session_id=session_id
+        ),
+    }
+
+
 def report_index(
     db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, term_id: uuid.UUID
 ) -> list[dict]:

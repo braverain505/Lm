@@ -902,6 +902,20 @@ export function useBestInSubjects(armId: string | null, termId: string | null) {
   });
 }
 
+/** Subject leaders for each term of a session and across the session. */
+export function useBestInSubjectsBreakdown(
+  armId: string | null,
+  sessionId: string | null,
+) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["best-in-subjects-breakdown", schoolId, armId, sessionId],
+    enabled: !!schoolId && !!armId && !!sessionId,
+    queryFn: async () =>
+      api.fetchBestInSubjectsBreakdown(schoolId!, armId!, sessionId!),
+  });
+}
+
 /** Grading key for a term (live grade previews during score entry). */
 export function useGradeBands(termId: string | null) {
   const schoolId = useActiveSchoolId();
