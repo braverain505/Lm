@@ -71,6 +71,7 @@ def test_school_admin_cannot_access_superadmin(client, db):
         ("/announcements", "get", None),
         ("/schools", "post", {"name": "Nope", "admin_full_name": "X", "admin_email": "x@y.z"}),
         (f"/schools/{sid}/classes", "get", None),
+        (f"/schools/{sid}/classes", "post", {"name": "JSS 1A"}),
         (
             f"/schools/{sid}/students/bulk",
             "post",
@@ -444,3 +445,139 @@ def test_bulk_add_keeps_the_good_rows_when_one_fails(client, db):
     students = db.scalars(select(Student).where(Student.school_id == school_uuid)).all()
     assert {s.first_name for s in students} == {"Ada", "Tunde"}
     assert len({s.admission_no for s in students}) == 2
+
+
+def test_create_class_in_an_existing_session(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    session, _arms = _add_session_arms(db, school_uuid, arms=("JSS 1A",))
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "  JSS 1B  ", "session_id": str(session.id)},
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["created"] is True
+    assert body["class_arm"]["name"] == "JSS 1B"
+    assert body["class_arm"]["students"] == 0
+    assert body["session"]["id"] == str(session.id)
+
+    r = client.get(f"{SUPER}/schools/{sid}/classes")
+    names = {a["name"] for a in r.json()["sessions"][0]["arms"]}
+    assert names == {"JSS 1A", "JSS 1B"}
+
+
+def test_create_class_creates_the_first_session(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "Primary 1", "session_name": "2025/2026"},
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["created"] is True
+    assert body["session"]["name"] == "2025/2026"
+    assert body["session"]["is_current"] is True
+
+    sessions = db.scalars(
+        select(AcademicSession).where(AcademicSession.school_id == school_uuid)
+    ).all()
+    assert len(sessions) == 1 and sessions[0].is_current is True
+    assert sessions[0].id == uuid.UUID(body["session"]["id"])
+
+
+def test_create_class_is_idempotent_by_name(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    session, _arms = _add_session_arms(db, uuid.UUID(sid))
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    first = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "JSS 1C", "session_id": str(session.id)},
+    )
+    assert first.status_code == 201, first.text
+    assert first.json()["created"] is True
+
+    second = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "jss 1c", "session_id": str(session.id)},
+    )
+    assert second.status_code == 201, second.text
+    assert second.json()["created"] is False
+    assert second.json()["class_arm"]["id"] == first.json()["class_arm"]["id"]
+
+
+def test_create_class_rejects_another_schools_session(client, db):
+    from app.services.tenancy_service import create_school
+
+    register_school(client)
+    sid = active_school_id(client)
+    _add_session_arms(db, uuid.UUID(sid))
+
+    other = create_school(db, name="Other Academy", school_type="secondary")
+    db.flush()
+    other_session, _other_arms = _add_session_arms(db, other.id)
+
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "JSS 1A", "session_id": str(other_session.id)},
+    )
+    assert r.status_code == 422, r.text
+    assert "not found" in r.json()["error"]["message"].lower()
+
+
+def test_create_class_without_a_session_needs_a_name(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(f"{SUPER}/schools/{sid}/classes", json={"name": "JSS 1A"})
+    assert r.status_code == 422, r.text
+    assert "no academic session" in r.json()["error"]["message"].lower()
+
+
+def test_create_class_then_bulk_add_uses_it(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    created = client.post(
+        f"{SUPER}/schools/{sid}/classes",
+        json={"name": "Nursery 2", "session_name": "2026/2027"},
+    )
+    assert created.status_code == 201, created.text
+    arm_id = created.json()["class_arm"]["id"]
+    session_id = created.json()["session"]["id"]
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={
+            "session_id": session_id,
+            "rows": [{"full_name": "Ada Obi", "class_arm_id": arm_id}],
+        },
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["created"] == 1
+    assert r.json()["students"][0]["class_arm_name"] == "Nursery 2"
+
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(StudentEnrollment.school_id == school_uuid)
+    )
+    assert enrollment is not None and str(enrollment.class_arm_id) == arm_id

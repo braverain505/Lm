@@ -8,6 +8,8 @@ import type {
   SaBulkStudentCreate,
   SaBulkStudentResult,
   SaOverview,
+  SaSchoolClassCreate,
+  SaSchoolClassCreated,
   SaSchoolClasses,
   SaSchoolCreate,
   SaSchoolDetail,
@@ -145,6 +147,19 @@ export function useSaSchoolClasses(schoolId: string | null) {
     queryKey: ["sa", "school", schoolId, "classes"],
     enabled: enabled && !!schoolId,
     queryFn: async () => api.superAdminSchoolClasses(schoolId!),
+  });
+}
+
+export function useSaCreateSchoolClass(schoolId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation<SaSchoolClassCreated, Error, SaSchoolClassCreate>({
+    mutationFn: (body) => {
+      if (!schoolId) throw new Error("No school selected");
+      return api.superAdminCreateSchoolClass(schoolId, body) as Promise<SaSchoolClassCreated>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["sa", "school", schoolId, "classes"] });
+    },
   });
 }
 

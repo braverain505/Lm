@@ -42,6 +42,7 @@ from ..models import (
     User,
 )
 from . import platform_service
+from .academics_service import create_arm, create_session
 from .people_service import create_student, enroll_student
 from .subscription_service import (
     ensure_default_plans,
@@ -2146,6 +2147,130 @@ def school_classes(db: Session, school_id: uuid.UUID) -> dict:
             }
             for s in sessions
         ],
+    }
+
+
+def _current_session(db: Session, school_id: uuid.UUID) -> AcademicSession | None:
+    return db.scalar(
+        select(AcademicSession).where(
+            AcademicSession.school_id == school_id,
+            AcademicSession.is_current.is_(True),
+        )
+    )
+
+
+def create_school_class(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    name: str,
+    session_id: uuid.UUID | None = None,
+    session_name: str | None = None,
+    actor_id: uuid.UUID | None = None,
+    ip: str | None = None,
+) -> dict:
+    """Create one class for a school, so students can be dropped straight in.
+
+    The session comes from ``session_id``, else a session the school already
+    has under ``session_name``, else the current session. A ``session_name``
+    the school does not have yet is created — and becomes the current session
+    when the school has none. Naming a class the session already has returns
+    that class instead of failing, so a retry is harmless.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+
+    label = " ".join(str(name).split())
+    if not label:
+        raise ValidationError("Class name cannot be empty")
+    if len(label) > 40:
+        raise ValidationError("Class name must be 40 characters or fewer")
+
+    if session_id is not None:
+        session = db.scalar(
+            select(AcademicSession).where(
+                AcademicSession.id == session_id,
+                AcademicSession.school_id == school_id,
+            )
+        )
+        if session is None:
+            raise ValidationError("Academic session not found for this school")
+    else:
+        wanted = " ".join(str(session_name).split()) if session_name else ""
+        if wanted:
+            session = db.scalar(
+                select(AcademicSession).where(
+                    AcademicSession.school_id == school_id,
+                    AcademicSession.name == wanted,
+                )
+            )
+            if session is None:
+                session = create_session(
+                    db,
+                    school_id,
+                    name=wanted,
+                    start_date=None,
+                    end_date=None,
+                    is_current=_current_session(db, school_id) is None,
+                )
+                _audit(
+                    db,
+                    action="create",
+                    entity_type="academic_session",
+                    entity_id=str(session.id),
+                    user_id=actor_id,
+                    school_id=school_id,
+                    ip=ip,
+                    details=f"Created session {session.name} for {school.name}",
+                )
+        else:
+            session = _current_session(db, school_id)
+            if session is None:
+                raise ValidationError(
+                    "This school has no academic session yet; give the session a name"
+                )
+
+    # Case-insensitive so "jss 1a" does not become a second "JSS 1A".
+    existing = db.scalar(
+        select(ClassArm).where(
+            ClassArm.school_id == school_id,
+            ClassArm.academic_session_id == session.id,
+            func.lower(ClassArm.name) == label.lower(),
+        )
+    )
+    if existing is not None:
+        arm, created = existing, False
+    else:
+        arm = create_arm(db, school_id, session_id=session.id, name=label)
+        created = True
+        _audit(
+            db,
+            action="create",
+            entity_type="class_arm",
+            entity_id=str(arm.id),
+            user_id=actor_id,
+            school_id=school_id,
+            ip=ip,
+            details=f"Created class {arm.full_name} in {session.name} for {school.name}",
+        )
+
+    students = db.scalar(
+        select(func.count(StudentEnrollment.id)).where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.class_arm_id == arm.id,
+        )
+    )
+    return {
+        "created": created,
+        "session": {"id": str(session.id), "name": session.name, "is_current": session.is_current},
+        "class_arm": {
+            "id": str(arm.id),
+            "name": arm.name,
+            "full_name": arm.full_name,
+            "academic_session_id": str(arm.academic_session_id),
+            "students": students or 0,
+        },
     }
 
 

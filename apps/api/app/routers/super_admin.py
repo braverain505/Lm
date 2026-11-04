@@ -12,6 +12,7 @@ from ..core.deps import DbSession, require_platform_admin
 from ..schemas.super_admin import (
     AnnouncementCreateRequest,
     BulkStudentCreateRequest,
+    ClassCreateRequest,
     SchoolCreateRequest,
     SettingsUpdateRequest,
     SubscriptionUpdateRequest,
@@ -249,6 +250,29 @@ def school_classes(
 ):
     """Sessions and class arms for a school, used by the bulk student form."""
     return super_admin_service.school_classes(db, school_id)
+
+
+@router.post("/schools/{school_id}/classes", status_code=201)
+def create_school_class(
+    school_id: uuid.UUID,
+    payload: ClassCreateRequest,
+    request: Request,
+    db: DbSession,
+    _admin: User = PlatformAdmin,
+):
+    """Create a class for a school (and its session, if the school has none)."""
+    _, ip = _client_info(request)
+    result = super_admin_service.create_school_class(
+        db,
+        school_id,
+        name=payload.name,
+        session_id=payload.session_id,
+        session_name=payload.session_name,
+        actor_id=_admin.id,
+        ip=ip,
+    )
+    db.commit()
+    return result
 
 
 @router.post("/schools/{school_id}/students/bulk", status_code=201)

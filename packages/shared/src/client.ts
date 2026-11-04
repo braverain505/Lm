@@ -199,6 +199,9 @@ import {
   SaSchoolCreate,
   SaSchoolClasses,
   SaSchoolClassesSchema,
+  SaSchoolClassCreate,
+  SaSchoolClassCreated,
+  SaSchoolClassCreatedSchema,
   SaSubscriptionUpdate,
   SaTickets,
   SaTicketsSchema,
@@ -607,6 +610,17 @@ export async function superAdminSchool(schoolId: string): Promise<SaSchoolDetail
 
 export async function superAdminSchoolClasses(schoolId: string): Promise<SaSchoolClasses> {
   return request(`/superadmin/schools/${schoolId}/classes`, { zod: SaSchoolClassesSchema.parse });
+}
+
+export async function superAdminCreateSchoolClass(
+  schoolId: string,
+  body: SaSchoolClassCreate,
+): Promise<SaSchoolClassCreated> {
+  return request(`/superadmin/schools/${schoolId}/classes`, {
+    method: "POST",
+    body: JSON.stringify(body),
+    zod: SaSchoolClassCreatedSchema.parse,
+  });
 }
 
 export async function superAdminBulkAddStudents(
@@ -2322,6 +2336,7 @@ export const api = {
   superAdminSchools,
   superAdminSchool,
   superAdminSchoolClasses,
+  superAdminCreateSchoolClass,
   superAdminBulkAddStudents,
   superAdminAddSchool,
   superAdminUpdateSubscription,

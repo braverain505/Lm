@@ -2076,6 +2076,20 @@ export const SaSchoolClassesSchema = z.object({
 });
 export type SaSchoolClasses = z.infer<typeof SaSchoolClassesSchema>;
 
+export const SaSchoolClassCreateSchema = z.object({
+  name: z.string().min(1).max(40),
+  session_id: z.string().uuid().nullable().optional(),
+  session_name: z.string().max(80).nullable().optional(),
+});
+export type SaSchoolClassCreate = z.infer<typeof SaSchoolClassCreateSchema>;
+
+export const SaSchoolClassCreatedSchema = z.object({
+  created: z.boolean(),
+  session: z.object({ id: z.string(), name: z.string(), is_current: z.boolean() }),
+  class_arm: SaClassArmSchema,
+});
+export type SaSchoolClassCreated = z.infer<typeof SaSchoolClassCreatedSchema>;
+
 export const SaBulkStudentRowSchema = z.object({
   full_name: z.string().min(2),
   class_arm_id: z.string().uuid(),

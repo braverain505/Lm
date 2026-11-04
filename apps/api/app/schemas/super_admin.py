@@ -56,6 +56,20 @@ class BulkStudentRow(BaseModel):
     admission_no: str | None = Field(default=None, max_length=40)
 
 
+class ClassCreateRequest(BaseModel):
+    """Create one class for a school while adding students in bulk.
+
+    The session is resolved from ``session_id``, else from an existing session
+    named ``session_name``, else the school's current session. When
+    ``session_name`` names a session the school does not have yet, it is
+    created.
+    """
+
+    name: str = Field(min_length=1, max_length=40)
+    session_id: uuid.UUID | None = None
+    session_name: str | None = Field(default=None, max_length=80)
+
+
 class BulkStudentCreateRequest(BaseModel):
     """Add many students to one school in a single request.
 

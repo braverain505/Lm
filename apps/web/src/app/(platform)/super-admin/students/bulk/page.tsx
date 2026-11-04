@@ -1,9 +1,9 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, Search, Trash2, UserPlus, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Building2, CheckCircle2, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { EmptyState, Panel, PanelSkeleton, fmtNum } from "@/components/platform-utils";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSaBulkAddStudents, useSaSchoolClasses, useSaSchools } from "@/hooks/use-superadmin";
-import type { SaBulkStudentResult } from "@clearis/shared";
+import {
+  useSaBulkAddStudents,
+  useSaCreateSchoolClass,
+  useSaSchoolClasses,
+  useSaSchools,
+} from "@/hooks/use-superadmin";
+import type { SaBulkStudentResult, SaSchoolClassCreated, SaSessionWithArms } from "@clearis/shared";
 
 const MAX_ROWS = 1000;
 
@@ -137,6 +142,8 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
   const [defaultArm, setDefaultArm] = useState("");
   const [problem, setProblem] = useState("");
   const [result, setResult] = useState<SaBulkStudentResult | null>(null);
+  const [showNewClass, setShowNewClass] = useState(false);
+  const [classNotice, setClassNotice] = useState("");
   const keyRef = useRef(0);
 
   const sessions = useMemo(() => data?.sessions ?? [], [data]);
@@ -146,12 +153,19 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
   );
   const arms = useMemo(() => activeSession?.arms ?? [], [activeSession]);
 
-  // Default to the current session (or the first one) once the school loads.
+  // Default to the current session once the school loads — but if that session
+  // has no classes, prefer one that does, so the class list is never empty
+  // just because the school keeps its classes on another session.
   useEffect(() => {
     if (!sessions.length) return;
     setSessionId((prev) => {
       if (prev && sessions.some((s) => s.id === prev)) return prev;
-      return (sessions.find((s) => s.is_current) ?? sessions[0]).id;
+      const preferred =
+        sessions.find((s) => s.is_current && s.arms.length > 0) ??
+        sessions.find((s) => s.arms.length > 0) ??
+        sessions.find((s) => s.is_current) ??
+        sessions[0];
+      return preferred.id;
     });
   }, [sessions]);
 
@@ -207,6 +221,20 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
   function applyDefaultArm(armId: string) {
     setDefaultArm(armId);
     setRows((prev) => prev.map((row) => ({ ...row, armId })));
+  }
+
+  function handleClassCreated(created: SaSchoolClassCreated) {
+    setSessionId(created.session.id);
+    setDefaultArm(created.class_arm.id);
+    // Children already in the list who have no class yet fall into the new one.
+    setRows((prev) => prev.map((row) => (row.armId ? row : { ...row, armId: created.class_arm.id })));
+    setClassNotice(
+      created.created
+        ? `Class ${created.class_arm.full_name} created in ${created.session.name}.`
+        : `${created.class_arm.full_name} already exists in ${created.session.name}, so it was selected instead.`,
+    );
+    setShowNewClass(false);
+    setProblem("");
   }
 
   function submit() {
@@ -297,22 +325,33 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
       </div>
 
       {noClasses ? (
-        <Panel title="This school has no classes yet">
-          <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-            <div className="space-y-1">
-              <p className="font-semibold">Create the school's academic session and classes first.</p>
+        <Panel
+          title="This school has no classes yet"
+          subtitle={`Create the first class for ${data.school.name} here, then add students to it.`}
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
               <p className="text-muted-foreground">
-                Students must be enrolled in a class, and classes belong to an academic session. Open the school account,
-                add a session under Academics, then come back to this page.
+                Every student is enrolled in a class, and a class belongs to an academic session.
+                {sessions.length === 0
+                  ? " This school has no session yet, so name one below."
+                  : " The session below is the school's current one."}
               </p>
-              <Link
-                href={`/super-admin/schools/${data.school.id}`}
-                className="inline-flex items-center gap-1.5 pt-1 font-medium text-primary hover:underline"
-              >
-                <Building2 className="h-3.5 w-3.5" /> Open {data.school.name}
-              </Link>
             </div>
+            <NewClassForm
+              schoolId={data.school.id}
+              sessions={sessions}
+              defaultSessionId={sessionId}
+              autoFocus
+              onCreated={handleClassCreated}
+            />
+            <Link
+              href={`/super-admin/schools/${data.school.id}`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <Building2 className="h-3.5 w-3.5" /> Open {data.school.name}
+            </Link>
           </div>
         </Panel>
       ) : (
@@ -392,6 +431,39 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
                   </Select>
                 </div>
               </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowNewClass((open) => !open)}
+                >
+                  <Plus className="h-3.5 w-3.5" /> New class
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Need a class that is not in the list? Create it here and it becomes selectable straight away.
+                </p>
+              </div>
+
+              {classNotice && (
+                <p className="flex items-center gap-1.5 text-sm text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {classNotice}
+                </p>
+              )}
+
+              {showNewClass && (
+                <div className="rounded-xl border bg-muted/40 p-3">
+                  <NewClassForm
+                    schoolId={schoolId}
+                    sessions={sessions}
+                    defaultSessionId={sessionId}
+                    autoFocus
+                    onCreated={handleClassCreated}
+                    onCancel={() => setShowNewClass(false)}
+                  />
+                </div>
+              )}
 
               {rows.length === 0 ? (
                 <EmptyState message="Paste names above and add them to the list to assign classes." />
@@ -486,6 +558,143 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
         </>
       )}
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ new class */
+
+/** The academic year a Nigerian session would be called right now, so the
+ *  first class a school gets does not start from an empty box. */
+function suggestedSessionName(): string {
+  const now = new Date();
+  const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${start}/${start + 1}`;
+}
+
+function NewClassForm({
+  schoolId,
+  sessions,
+  defaultSessionId,
+  autoFocus,
+  onCreated,
+  onCancel,
+}: {
+  schoolId: string;
+  sessions: SaSessionWithArms[];
+  defaultSessionId: string;
+  autoFocus?: boolean;
+  onCreated: (result: SaSchoolClassCreated) => void;
+  onCancel?: () => void;
+}) {
+  const createClass = useSaCreateSchoolClass(schoolId);
+  const [sessionChoice, setSessionChoice] = useState(defaultSessionId || (sessions.length ? sessions[0].id : "new"));
+  const [newSessionName, setNewSessionName] = useState(suggestedSessionName);
+  const [className, setClassName] = useState("");
+  const [error, setError] = useState("");
+
+  const creatingSession = sessions.length === 0 || sessionChoice === "new";
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const label = className.trim();
+    if (!label) {
+      setError("Give the class a name, for example JSS 1A.");
+      return;
+    }
+    if (creatingSession && !newSessionName.trim()) {
+      setError("Give the academic session a name, for example 2025/2026.");
+      return;
+    }
+    setError("");
+    createClass.mutate(
+      {
+        name: label,
+        session_id: creatingSession ? null : sessionChoice,
+        session_name: creatingSession ? newSessionName.trim() : null,
+      },
+      {
+        onSuccess: (created) => {
+          setClassName("");
+          onCreated(created);
+        },
+        onError: (err) => setError(err.message || "Could not create the class."),
+      },
+    );
+  }
+
+  return (
+    <form className="space-y-3" onSubmit={submit}>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Academic session</Label>
+          {sessions.length === 0 ? (
+            <Input
+              value={newSessionName}
+              onChange={(e) => setNewSessionName(e.target.value)}
+              placeholder="2025/2026"
+              className="h-9"
+              autoFocus={autoFocus}
+            />
+          ) : (
+            <Select
+              value={sessionChoice}
+              onValueChange={(value) => {
+                setSessionChoice(value);
+                setError("");
+              }}
+            >
+              <SelectTrigger className="h-9 w-full">
+                <SelectValue placeholder="Choose a session" />
+              </SelectTrigger>
+              <SelectContent>
+                {sessions.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
+                    {s.is_current ? " (current)" : ""}
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">New session...</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {sessions.length > 0 && sessionChoice === "new" && (
+            <Input
+              value={newSessionName}
+              onChange={(e) => setNewSessionName(e.target.value)}
+              placeholder="2025/2026"
+              className="h-9"
+            />
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Class name</Label>
+          <Input
+            value={className}
+            onChange={(e) => setClassName(e.target.value)}
+            placeholder="JSS 1A"
+            className="h-9"
+            autoFocus={autoFocus && sessions.length > 0}
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" size="sm" isLoading={createClass.isPending}>
+          <Plus className="h-3.5 w-3.5" /> Create class
+        </Button>
+        {onCancel && (
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={createClass.isPending}>
+            Cancel
+          </Button>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+      {sessions.length === 0 && (
+        <p className="text-xs text-muted-foreground">
+          This school has no session yet. The session you name here becomes its current one.
+        </p>
+      )}
+    </form>
   );
 }
 
