@@ -493,16 +493,13 @@ function BulkIntake({ schoolId, onChangeSchool }: { schoolId: string; onChangeSc
                           />
                         </div>
                         <Select
-                          value={row.armId || "unset"}
-                          onValueChange={(value) => updateRow(row.key, { armId: value === "unset" ? "" : value })}
+                          value={row.armId || ""}
+                          onValueChange={(value) => updateRow(row.key, { armId: value })}
                         >
                           <SelectTrigger className="h-8 w-full text-[12px]">
                             <SelectValue placeholder="Choose class" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="unset" disabled>
-                              Choose class
-                            </SelectItem>
                             {arms.map((arm) => (
                               <SelectItem key={arm.id} value={arm.id}>
                                 {arm.full_name}

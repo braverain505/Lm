@@ -7,7 +7,14 @@ import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
-const SelectValue = SelectPrimitive.Value;
+
+const SelectValue = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Value>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Value>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Value ref={ref} className={cn("truncate", className)} {...props} />
+));
+SelectValue.displayName = SelectPrimitive.Value.displayName;
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -68,7 +75,8 @@ const SelectItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className="flex-1 truncate">{children}</span>
+    {/* ItemText is what Radix portals into SelectValue when the menu is closed. */}
+    <SelectPrimitive.ItemText className="flex-1 truncate">{children}</SelectPrimitive.ItemText>
     <SelectPrimitive.ItemIndicator className="absolute right-2.5">
       <Check className="h-3.5 w-3.5 text-primary" />
     </SelectPrimitive.ItemIndicator>
