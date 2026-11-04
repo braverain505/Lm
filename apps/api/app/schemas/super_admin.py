@@ -45,3 +45,23 @@ class AnnouncementCreateRequest(BaseModel):
 
 class SettingsUpdateRequest(BaseModel):
     updates: dict[str, object] = Field(default_factory=dict)
+
+
+class BulkStudentRow(BaseModel):
+    """One pasted child: a full name plus the class they belong in."""
+
+    full_name: str = Field(min_length=2, max_length=160)
+    class_arm_id: uuid.UUID
+    gender: str | None = Field(default=None, max_length=16)
+    admission_no: str | None = Field(default=None, max_length=40)
+
+
+class BulkStudentCreateRequest(BaseModel):
+    """Add many students to one school in a single request.
+
+    ``session_id`` is optional: when omitted the school's current academic
+    session is used. Every row's class must belong to that session.
+    """
+
+    session_id: uuid.UUID | None = None
+    rows: list[BulkStudentRow] = Field(min_length=1, max_length=1000)

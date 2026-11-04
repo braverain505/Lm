@@ -189,11 +189,16 @@ import {
   DashboardSummarySchema,
   SaOverview,
   SaOverviewSchema,
+  SaBulkStudentCreate,
+  SaBulkStudentResult,
+  SaBulkStudentResultSchema,
   SaSchoolList,
   SaSchoolListSchema,
   SaSchoolDetail,
   SaSchoolDetailSchema,
   SaSchoolCreate,
+  SaSchoolClasses,
+  SaSchoolClassesSchema,
   SaSubscriptionUpdate,
   SaTickets,
   SaTicketsSchema,
@@ -598,6 +603,21 @@ export async function superAdminSchools(params: {
 
 export async function superAdminSchool(schoolId: string): Promise<SaSchoolDetail> {
   return request(`/superadmin/schools/${schoolId}`, { zod: SaSchoolDetailSchema.parse });
+}
+
+export async function superAdminSchoolClasses(schoolId: string): Promise<SaSchoolClasses> {
+  return request(`/superadmin/schools/${schoolId}/classes`, { zod: SaSchoolClassesSchema.parse });
+}
+
+export async function superAdminBulkAddStudents(
+  schoolId: string,
+  body: SaBulkStudentCreate,
+): Promise<SaBulkStudentResult> {
+  return request(`/superadmin/schools/${schoolId}/students/bulk`, {
+    method: "POST",
+    body: JSON.stringify(body),
+    zod: SaBulkStudentResultSchema.parse,
+  });
 }
 
 export async function superAdminAddSchool(body: SaSchoolCreate): Promise<{ id: string; name: string; admin_email: string; temp_password: string }> {
@@ -2301,6 +2321,8 @@ export const api = {
   superAdminHealth,
   superAdminSchools,
   superAdminSchool,
+  superAdminSchoolClasses,
+  superAdminBulkAddStudents,
   superAdminAddSchool,
   superAdminUpdateSubscription,
   superAdminResetAdmin,

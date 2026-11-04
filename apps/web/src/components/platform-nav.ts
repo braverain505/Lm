@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  UserPlus,
   Users,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const PLATFORM_NAV: PlatformNavSection[] = [
     label: "Tenants",
     items: [
       { href: "/super-admin/schools", label: "Schools", icon: Building2 },
+      { href: "/super-admin/students/bulk", label: "Bulk students", icon: UserPlus },
       { href: "/super-admin/subscriptions", label: "Subscriptions", icon: CreditCard },
     ],
   },
@@ -70,6 +72,7 @@ export const PLATFORM_NAV: PlatformNavSection[] = [
 export const PLATFORM_META: Record<string, { title: string; breadcrumb: string }> = {
   "/super-admin": { title: "Platform Overview", breadcrumb: "Command center" },
   "/super-admin/schools": { title: "Schools", breadcrumb: "Tenants" },
+  "/super-admin/students/bulk": { title: "Bulk students", breadcrumb: "Tenants" },
   "/super-admin/subscriptions": { title: "Subscriptions", breadcrumb: "Tenants" },
   "/super-admin/growth": { title: "Growth", breadcrumb: "Analytics" },
   "/super-admin/revenue": { title: "Revenue", breadcrumb: "Analytics" },

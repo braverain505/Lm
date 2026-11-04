@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, AlertTriangle, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, Trash2, UserPlus, UserX } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -107,6 +107,11 @@ export default function SchoolDetailPage() {
           <ArrowLeft className="h-4 w-4" /> Schools
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" asChild>
+            <Link href={`/super-admin/students/bulk?school=${schoolId}`}>
+              <UserPlus className="h-3.5 w-3.5" /> Add students in bulk
+            </Link>
+          </Button>
           <Button
             size="sm"
             variant="outline"

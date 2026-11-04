@@ -5,7 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   SaAnnouncementCreate,
   SaAnnouncement,
+  SaBulkStudentCreate,
+  SaBulkStudentResult,
   SaOverview,
+  SaSchoolClasses,
   SaSchoolCreate,
   SaSchoolDetail,
   SaSchoolList,
@@ -133,6 +136,31 @@ export function useSaSchool(schoolId: string | null) {
     queryKey: ["sa", "school", schoolId],
     enabled: enabled && !!schoolId,
     queryFn: async () => api.superAdminSchool(schoolId!),
+  });
+}
+
+export function useSaSchoolClasses(schoolId: string | null) {
+  const enabled = usePlatformEnabled();
+  return useQuery({
+    queryKey: ["sa", "school", schoolId, "classes"],
+    enabled: enabled && !!schoolId,
+    queryFn: async () => api.superAdminSchoolClasses(schoolId!),
+  });
+}
+
+export function useSaBulkAddStudents(schoolId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation<SaBulkStudentResult, Error, SaBulkStudentCreate>({
+    mutationFn: (body) => {
+      if (!schoolId) throw new Error("No school selected");
+      return api.superAdminBulkAddStudents(schoolId, body) as Promise<SaBulkStudentResult>;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["sa", "school", schoolId] });
+      void queryClient.invalidateQueries({ queryKey: ["sa", "schools"] });
+      void queryClient.invalidateQueries({ queryKey: ["sa", "overview"] });
+      void queryClient.invalidateQueries({ queryKey: ["sa", "subscriptions"] });
+    },
   });
 }
 

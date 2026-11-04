@@ -2053,6 +2053,67 @@ export const SaSchoolDetailSchema = z.object({
 });
 export type SaSchoolDetail = z.infer<typeof SaSchoolDetailSchema>;
 
+export const SaClassArmSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  full_name: z.string(),
+  academic_session_id: z.string().uuid(),
+  students: z.number().default(0),
+});
+export type SaClassArm = z.infer<typeof SaClassArmSchema>;
+
+export const SaSessionWithArmsSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  is_current: z.boolean(),
+  arms: z.array(SaClassArmSchema),
+});
+export type SaSessionWithArms = z.infer<typeof SaSessionWithArmsSchema>;
+
+export const SaSchoolClassesSchema = z.object({
+  school: z.object({ id: z.string().uuid(), name: z.string(), slug: z.string() }),
+  sessions: z.array(SaSessionWithArmsSchema),
+});
+export type SaSchoolClasses = z.infer<typeof SaSchoolClassesSchema>;
+
+export const SaBulkStudentRowSchema = z.object({
+  full_name: z.string().min(2),
+  class_arm_id: z.string().uuid(),
+  gender: z.string().nullable().optional(),
+  admission_no: z.string().nullable().optional(),
+});
+export type SaBulkStudentRow = z.infer<typeof SaBulkStudentRowSchema>;
+
+export const SaBulkStudentCreateSchema = z.object({
+  session_id: z.string().uuid().nullable().optional(),
+  rows: z.array(SaBulkStudentRowSchema).min(1),
+});
+export type SaBulkStudentCreate = z.infer<typeof SaBulkStudentCreateSchema>;
+
+export const SaBulkStudentResultSchema = z.object({
+  school: z.object({ id: z.string(), name: z.string() }),
+  session: z.object({ id: z.string(), name: z.string() }),
+  created: z.number(),
+  failed: z.number(),
+  students: z.array(
+    z.object({
+      id: z.string(),
+      admission_no: z.string(),
+      full_name: z.string(),
+      class_arm_id: z.string(),
+      class_arm_name: z.string(),
+    }),
+  ),
+  errors: z.array(
+    z.object({
+      index: z.number(),
+      full_name: z.string(),
+      message: z.string(),
+    }),
+  ),
+});
+export type SaBulkStudentResult = z.infer<typeof SaBulkStudentResultSchema>;
+
 export const SaTicketSchema = z.object({
   id: z.string().uuid(),
   school_id: z.string().uuid().nullable(),

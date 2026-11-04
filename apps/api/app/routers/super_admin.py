@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from ..core.deps import DbSession, require_platform_admin
 from ..schemas.super_admin import (
     AnnouncementCreateRequest,
+    BulkStudentCreateRequest,
     SchoolCreateRequest,
     SettingsUpdateRequest,
     SubscriptionUpdateRequest,
@@ -233,6 +234,44 @@ def delete_school(
     _, ip = _client_info(request)
     result = super_admin_service.delete_school(
         db, school_id, actor_id=_admin.id, ip=ip
+    )
+    db.commit()
+    return result
+
+
+# --- Bulk student intake ----------------------------------------------------
+
+@router.get("/schools/{school_id}/classes")
+def school_classes(
+    school_id: uuid.UUID,
+    db: DbSession,
+    _admin: User = PlatformAdmin,
+):
+    """Sessions and class arms for a school, used by the bulk student form."""
+    return super_admin_service.school_classes(db, school_id)
+
+
+@router.post("/schools/{school_id}/students/bulk", status_code=201)
+def bulk_add_students(
+    school_id: uuid.UUID,
+    payload: BulkStudentCreateRequest,
+    request: Request,
+    db: DbSession,
+    _admin: User = PlatformAdmin,
+):
+    """Create many students for a school, enrolling each in their chosen class.
+
+    Partial success is intentional: rows are attempted independently and the
+    response lists both the created students and the rows that failed.
+    """
+    _, ip = _client_info(request)
+    result = super_admin_service.bulk_add_students(
+        db,
+        school_id,
+        rows=payload.rows,
+        session_id=payload.session_id,
+        actor_id=_admin.id,
+        ip=ip,
     )
     db.commit()
     return result

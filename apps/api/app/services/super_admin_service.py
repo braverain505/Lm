@@ -20,6 +20,8 @@ from ..core.security import hash_password, hash_token, utcnow
 from ..models import (
     AuditLog,
     AiUsage,
+    AcademicSession,
+    ClassArm,
     Guardian,
     ImpersonationSession,
     PlatformAnnouncement,
@@ -34,11 +36,13 @@ from ..models import (
     SchoolSubscription,
     Staff,
     Student,
+    StudentEnrollment,
     SubscriptionEvent,
     SubscriptionPlan,
     User,
 )
 from . import platform_service
+from .people_service import create_student, enroll_student
 from .subscription_service import (
     ensure_default_plans,
     get_active_subscription,
@@ -2085,3 +2089,231 @@ def impersonate(
         details=f"Support impersonation session started for {school.name}",
     )
     return {"token": token, "school_id": str(school.id), "school_name": school.name, "expires_in_minutes": 30}
+
+
+# --- Bulk student intake ------------------------------------------------------
+def school_classes(db: Session, school_id: uuid.UUID) -> dict:
+    """Sessions and class arms for one school, for the bulk student form.
+
+    A school may have several sessions; the current one is listed first so the
+    form can default to it. Arms with no session are ignored (an arm always
+    belongs to a session by construction).
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+
+    sessions = list(
+        db.scalars(
+            select(AcademicSession)
+            .where(AcademicSession.school_id == school_id)
+            .order_by(AcademicSession.is_current.desc(), AcademicSession.name)
+        )
+    )
+    arms = list(
+        db.scalars(
+            select(ClassArm)
+            .where(ClassArm.school_id == school_id)
+            .order_by(ClassArm.full_name)
+        )
+    )
+    counts = dict(
+        db.execute(
+            select(StudentEnrollment.class_arm_id, func.count(StudentEnrollment.id))
+            .where(StudentEnrollment.school_id == school_id)
+            .group_by(StudentEnrollment.class_arm_id)
+        ).all()
+    )
+    by_session: dict[uuid.UUID, list[dict]] = defaultdict(list)
+    for arm in arms:
+        by_session[arm.academic_session_id].append(
+            {
+                "id": str(arm.id),
+                "name": arm.name,
+                "full_name": arm.full_name,
+                "academic_session_id": str(arm.academic_session_id),
+                "students": counts.get(arm.id, 0),
+            }
+        )
+    return {
+        "school": {"id": str(school.id), "name": school.name, "slug": school.slug},
+        "sessions": [
+            {
+                "id": str(s.id),
+                "name": s.name,
+                "is_current": s.is_current,
+                "arms": by_session.get(s.id, []),
+            }
+            for s in sessions
+        ],
+    }
+
+
+def _split_full_name(full_name: str) -> tuple[str, str | None, str]:
+    """Split a pasted name into first / middle / last.
+
+    Two words are first + last; three or more are first + middle(s) + last. A
+    single word is rejected because the student record needs a surname.
+    """
+    parts = " ".join(str(full_name).split()).split(" ")
+    if len(parts) < 2:
+        raise ValidationError("A full name needs at least a first name and a surname")
+    if len(parts) == 2:
+        return parts[0], None, parts[1]
+    return parts[0], " ".join(parts[1:-1]), parts[-1]
+
+
+def _admission_number_factory(db: Session, school: School):
+    """Return a callable that mints unused admission numbers for this school.
+
+    The format is ``<short code>-<year>-<sequence>``. Existing numbers in that
+    format set the starting sequence, so repeated bulk runs continue the
+    series instead of colliding.
+    """
+    base = "".join(
+        ch for ch in (school.short_name or school.slug or "ADM").upper() if ch.isalnum()
+    )
+    prefix = base[:4] or "ADM"
+    stem = f"{prefix}-{_now().year}-"
+    existing = set(
+        db.scalars(
+            select(Student.admission_no).where(
+                Student.school_id == school.id,
+                Student.admission_no.like(f"{stem}%"),
+            )
+        )
+    )
+    counter = {"value": 0}
+
+    def next_number() -> str:
+        while True:
+            counter["value"] += 1
+            candidate = f"{stem}{counter['value']:04d}"
+            if candidate not in existing:
+                existing.add(candidate)
+                return candidate
+
+    return next_number
+
+
+def bulk_add_students(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    rows: list,
+    session_id: uuid.UUID | None = None,
+    actor_id: uuid.UUID | None = None,
+    ip: str | None = None,
+) -> dict:
+    """Create students and enroll each in the chosen class.
+
+    Each row is attempted in its own savepoint, so one bad name or class does
+    not discard the students that were created successfully. The response
+    reports both lists; the caller commits.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+
+    if session_id is not None:
+        session = db.scalar(
+            select(AcademicSession).where(
+                AcademicSession.id == session_id,
+                AcademicSession.school_id == school_id,
+            )
+        )
+        if session is None:
+            raise ValidationError("Academic session not found for this school")
+    else:
+        session = db.scalar(
+            select(AcademicSession).where(
+                AcademicSession.school_id == school_id,
+                AcademicSession.is_current.is_(True),
+            )
+        )
+        if session is None:
+            raise ValidationError(
+                "This school has no current academic session; choose a session first"
+            )
+
+    arms = {
+        arm.id: arm
+        for arm in db.scalars(select(ClassArm).where(ClassArm.school_id == school_id))
+    }
+    next_admission_no = _admission_number_factory(db, school)
+
+    created: list[dict] = []
+    errors: list[dict] = []
+
+    for index, item in enumerate(rows):
+        try:
+            with db.begin_nested():
+                arm = arms.get(item.class_arm_id)
+                if arm is None:
+                    raise ValidationError("Class not found at this school")
+                if arm.academic_session_id != session.id:
+                    raise ValidationError(
+                        f"Class '{arm.full_name}' is not in the {session.name} session"
+                    )
+                first_name, middle_name, last_name = _split_full_name(item.full_name)
+                gender = (item.gender or "").strip().lower()
+                if gender not in ("male", "female"):
+                    gender = "other"
+                admission_no = (item.admission_no or "").strip() or next_admission_no()
+                student = create_student(
+                    db,
+                    school.id,
+                    admission_no=admission_no,
+                    first_name=first_name,
+                    last_name=last_name,
+                    middle_name=middle_name,
+                    gender=gender,
+                )
+                enroll_student(
+                    db,
+                    school.id,
+                    student_id=student.id,
+                    arm_id=arm.id,
+                    session_id=session.id,
+                )
+            created.append(
+                {
+                    "id": str(student.id),
+                    "admission_no": student.admission_no,
+                    "full_name": " ".join(
+                        part for part in (first_name, middle_name, last_name) if part
+                    ),
+                    "class_arm_id": str(arm.id),
+                    "class_arm_name": arm.full_name,
+                }
+            )
+        except Exception as exc:  # noqa: BLE001 — one bad row must not stop the batch
+            errors.append(
+                {
+                    "index": index,
+                    "full_name": getattr(item, "full_name", ""),
+                    "message": str(exc),
+                }
+            )
+
+    _audit(
+        db,
+        action="create",
+        entity_type="student_bulk_import",
+        entity_id=str(school.id),
+        user_id=actor_id,
+        school_id=school.id,
+        ip=ip,
+        details=(
+            f"Bulk added {len(created)} student(s) to {school.name} "
+            f"({len(errors)} failed)"
+        ),
+    )
+    return {
+        "school": {"id": str(school.id), "name": school.name},
+        "session": {"id": str(session.id), "name": session.name},
+        "created": len(created),
+        "failed": len(errors),
+        "students": created,
+        "errors": errors,
+    }

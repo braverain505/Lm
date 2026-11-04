@@ -16,7 +16,17 @@ import uuid
 from sqlalchemy import select
 
 from app.core.security import hash_password
-from app.models import PlatformSetting, School, SchoolSubscription, SubscriptionEvent, User
+from app.models import (
+    AcademicSession,
+    ClassArm,
+    PlatformSetting,
+    School,
+    SchoolSubscription,
+    Student,
+    StudentEnrollment,
+    SubscriptionEvent,
+    User,
+)
 from app.services.subscription_service import ensure_default_plans
 from .conftest import active_school_id, register_school
 
@@ -42,6 +52,7 @@ def _login(client, email: str):
 
 def test_school_admin_cannot_access_superadmin(client, db):
     register_school(client)
+    sid = active_school_id(client)
     for path, method, body in [
         ("/overview", "get", None),
         ("/schools", "get", None),
@@ -59,6 +70,12 @@ def test_school_admin_cannot_access_superadmin(client, db):
         ("/settings", "get", None),
         ("/announcements", "get", None),
         ("/schools", "post", {"name": "Nope", "admin_full_name": "X", "admin_email": "x@y.z"}),
+        (f"/schools/{sid}/classes", "get", None),
+        (
+            f"/schools/{sid}/students/bulk",
+            "post",
+            {"rows": [{"full_name": "Ada Obi", "class_arm_id": str(uuid.uuid4())}]},
+        ),
     ]:
         r = getattr(client, method)(f"{SUPER}{path}", json=body) if body else getattr(client, method)(f"{SUPER}{path}")
         assert r.status_code == 403, f"{path} should be forbidden"
@@ -254,3 +271,176 @@ def test_platform_settings_read_and_update(client, db):
 
     r = client.get(f"{SUPER}/settings")
     assert r.json()["platform.maintenance_mode"] is True
+
+
+# --- Bulk student intake ----------------------------------------------------
+
+def _add_session_arms(db, school_id, name="2025/2026", arms=("JSS 1A", "JSS 1B"), is_current=True):
+    session = AcademicSession(school_id=school_id, name=name, is_current=is_current)
+    db.add(session)
+    db.flush()
+    created = []
+    for arm_name in arms:
+        arm = ClassArm(
+            school_id=school_id,
+            academic_session_id=session.id,
+            name=arm_name,
+            full_name=arm_name,
+        )
+        db.add(arm)
+        created.append(arm)
+    db.flush()
+    return session, created
+
+
+def test_bulk_add_students_creates_and_enrolls(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    session, arms = _add_session_arms(db, school_uuid)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.get(f"{SUPER}/schools/{sid}/classes")
+    assert r.status_code == 200, r.text
+    classes = r.json()
+    assert classes["school"]["name"] == "Test Academy"
+    assert [s["name"] for s in classes["sessions"]] == [session.name]
+    assert classes["sessions"][0]["is_current"] is True
+    assert len(classes["sessions"][0]["arms"]) == 2
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={
+            "rows": [
+                {
+                    "full_name": "Adaeze Ngozi Okafor",
+                    "class_arm_id": str(arms[0].id),
+                    "gender": "female",
+                },
+                {"full_name": "Tunde Bakare", "class_arm_id": str(arms[1].id)},
+            ]
+        },
+    )
+    assert r.status_code == 201, r.text
+    result = r.json()
+    assert result["created"] == 2 and result["failed"] == 0
+    assert {s["class_arm_name"] for s in result["students"]} == {"JSS 1A", "JSS 1B"}
+
+    students = db.scalars(
+        select(Student).where(Student.school_id == school_uuid)
+    ).all()
+    assert len(students) == 2
+    assert all(s.admission_no for s in students)
+    adaeze = next(s for s in students if s.first_name == "Adaeze")
+    assert (adaeze.middle_name, adaeze.last_name) == ("Ngozi", "Okafor")
+    assert adaeze.gender == "female"
+
+    enrollments = db.scalars(
+        select(StudentEnrollment).where(StudentEnrollment.school_id == school_uuid)
+    ).all()
+    assert len(enrollments) == 2
+    assert {e.class_arm_id for e in enrollments} == {arms[0].id, arms[1].id}
+    assert all(e.is_current and e.status == "active" for e in enrollments)
+
+
+def test_bulk_add_students_uses_the_requested_session(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    _current_session, _current_arms = _add_session_arms(
+        db, school_uuid, name="2026/2027", arms=("JSS 2A",), is_current=True
+    )
+    previous_session, previous_arms = _add_session_arms(
+        db, school_uuid, name="2025/2026", arms=("JSS 1A",), is_current=False
+    )
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={
+            "session_id": str(previous_session.id),
+            "rows": [
+                {"full_name": "Amina Yusuf", "class_arm_id": str(previous_arms[0].id)}
+            ],
+        },
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["created"] == 1
+    assert r.json()["session"]["name"] == "2025/2026"
+
+    enrollment = db.scalar(
+        select(StudentEnrollment).where(StudentEnrollment.school_id == school_uuid)
+    )
+    assert enrollment is not None
+    assert enrollment.academic_session_id == previous_session.id
+
+
+def test_bulk_add_rejects_a_class_from_another_school(client, db):
+    from app.services.tenancy_service import create_school
+
+    register_school(client)
+    sid = active_school_id(client)
+    _session_a, _arms_a = _add_session_arms(db, uuid.UUID(sid))
+
+    other = create_school(db, name="Other Academy", school_type="secondary")
+    db.flush()
+    _session_b, arms_b = _add_session_arms(db, other.id)
+
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={"rows": [{"full_name": "Ada Obi", "class_arm_id": str(arms_b[0].id)}]},
+    )
+    assert r.status_code == 201, r.text
+    result = r.json()
+    assert result["created"] == 0 and result["failed"] == 1
+    assert "not found" in result["errors"][0]["message"].lower()
+
+    assert db.scalar(select(Student).where(Student.school_id == uuid.UUID(sid))) is None
+
+
+def test_bulk_add_students_requires_a_session(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={"rows": [{"full_name": "Ada Obi", "class_arm_id": str(uuid.uuid4())}]},
+    )
+    assert r.status_code == 422, r.text
+    assert "no current academic session" in r.json()["error"]["message"].lower()
+
+
+def test_bulk_add_keeps_the_good_rows_when_one_fails(client, db):
+    register_school(client)
+    sid = active_school_id(client)
+    school_uuid = uuid.UUID(sid)
+    _session, arms = _add_session_arms(db, school_uuid)
+    admin = _create_platform_admin(db)
+    _login(client, admin.email)
+
+    r = client.post(
+        f"{SUPER}/schools/{sid}/students/bulk",
+        json={
+            "rows": [
+                {"full_name": "Ada Obi", "class_arm_id": str(arms[0].id)},
+                {"full_name": "Cher", "class_arm_id": str(arms[0].id)},
+                {"full_name": "Tunde Bakare", "class_arm_id": str(arms[1].id)},
+            ]
+        },
+    )
+    assert r.status_code == 201, r.text
+    result = r.json()
+    assert result["created"] == 2 and result["failed"] == 1
+    assert result["errors"][0]["index"] == 1
+    assert result["errors"][0]["full_name"] == "Cher"
+
+    students = db.scalars(select(Student).where(Student.school_id == school_uuid)).all()
+    assert {s.first_name for s in students} == {"Ada", "Tunde"}
+    assert len({s.admission_no for s in students}) == 2
