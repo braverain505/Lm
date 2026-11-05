@@ -147,6 +147,7 @@ class StudentUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     middle_name: str | None = None
+    gender: str | None = None
     phone: str | None = None
     address: str | None = None
     state: str | None = None

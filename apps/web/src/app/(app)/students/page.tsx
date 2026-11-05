@@ -219,9 +219,12 @@ export default function StudentsPage() {
 
   const openEdit = (student: typeof data[0]) => {
     setEditFor(student.id);
+    // Prefill from the stored parts, not by splitting full_name: the split
+    // folded any middle name into last name, so every save quietly restructured
+    // the name.
     setEditForm({
-      first_name: student.full_name.split(" ")[0] ?? "",
-      last_name: student.full_name.split(" ").slice(1).join(" ") ?? "",
+      first_name: student.first_name,
+      last_name: student.last_name,
       gender: student.gender,
       state: student.state ?? "",
       photo_url: student.photo_url ?? "",

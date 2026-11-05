@@ -1,36 +1,35 @@
 """Input sanitization utilities for preventing XSS attacks.
 
-Temporary implementation using html.escape until nh3 is installed.
-For production, install nh3: pip install nh3
+Both helpers strip markup. They do not entity-encode the result — escaping is
+the job of whatever renders the value, and every renderer here already does it
+(React text nodes, ``escape()`` in the email templates). Escaping on write only
+stores ``Dan&#x27;azumi`` where the user typed ``Dan'azumi``.
 """
-import html
 import re
 
 
 def sanitize_html(text: str | None) -> str | None:
-    """Remove all HTML tags and dangerous content.
+    """Remove all HTML tags.
 
-    Used for rich text fields that should not contain any HTML.
+    Used for fields that should not contain any HTML at all.
     """
     if text is None:
         return None
-    # Remove HTML tags
-    text = re.sub(r'<[^>]+>', '', text)
-    # Escape any remaining special characters
-    return html.escape(text)
+    return re.sub(r"<[^>]+>", "", text)
 
 
 def sanitize_text_input(text: str | None) -> str | None:
-    """Sanitize user text input (names, descriptions, comments).
+    """Strip markup from user text without entity-encoding it.
 
-    Removes HTML tags, strips whitespace, and ensures safe storage.
-    Use this for all user-provided text fields.
+    Removes HTML tags and trims the result. It deliberately does *not*
+    ``html.escape``: escaping belongs at the point of output, not at rest.
+    Every sink for these fields already escapes — React renders them as text,
+    and the email templates call ``escape()`` on each interpolation — so
+    escaping on write only corrupts the stored value. It did exactly that: a
+    pupil named ``Dan'azumi`` was stored as ``Dan&#x27;azumi`` and then
+    displayed verbatim, and each re-save escaped the ampersand again.
     """
     if text is None:
         return None
-    # Remove HTML tags
-    cleaned = re.sub(r'<[^>]+>', '', text)
-    # Escape special characters
-    cleaned = html.escape(cleaned)
-    # Strip leading/trailing whitespace
-    return cleaned.strip() if cleaned else None
+    cleaned = re.sub(r"<[^>]*>", "", text).strip()
+    return cleaned or None
