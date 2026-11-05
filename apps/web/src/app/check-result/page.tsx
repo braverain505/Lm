@@ -163,7 +163,10 @@ export default function CheckResultPage() {
       icon: TrendingUp,
     },
     {
-      label: "Position in class",
+      // A class in a class group is ranked against the whole group, so name it.
+      label: card?.summary.class_group
+        ? `Position in ${card.summary.class_group}`
+        : "Position in class",
       value: card?.summary.class_rank != null ? `${card.summary.class_rank}` : "—",
       sub: `of ${card?.summary.class_size ?? "—"} students`,
       icon: GraduationCap,

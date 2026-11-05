@@ -2133,6 +2133,7 @@ def school_classes(db: Session, school_id: uuid.UUID) -> dict:
                 "name": arm.name,
                 "full_name": arm.full_name,
                 "academic_session_id": str(arm.academic_session_id),
+                "group_name": arm.group_name,
                 "students": counts.get(arm.id, 0),
             }
         )
@@ -2166,6 +2167,7 @@ def create_school_class(
     name: str,
     session_id: uuid.UUID | None = None,
     session_name: str | None = None,
+    group_name: str | None = None,
     actor_id: uuid.UUID | None = None,
     ip: str | None = None,
 ) -> dict:
@@ -2242,7 +2244,9 @@ def create_school_class(
     if existing is not None:
         arm, created = existing, False
     else:
-        arm = create_arm(db, school_id, session_id=session.id, name=label)
+        arm = create_arm(
+            db, school_id, session_id=session.id, name=label, group_name=group_name
+        )
         created = True
         _audit(
             db,
@@ -2269,6 +2273,7 @@ def create_school_class(
             "name": arm.name,
             "full_name": arm.full_name,
             "academic_session_id": str(arm.academic_session_id),
+            "group_name": arm.group_name,
             "students": students or 0,
         },
     }

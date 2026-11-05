@@ -223,6 +223,7 @@ def create_arm(
         db, ctx.school.id,
         session_id=payload.session_id,
         name=payload.name, campus_id=payload.campus_id,
+        group_name=payload.group_name,
     )
     db.commit()
     return ArmOut.model_validate(arm)
@@ -235,9 +236,18 @@ def update_arm(
     db: DbSession,
     ctx=Depends(require_permission(ACADEMICS_MANAGE)),
 ):
-    """Rename a class. Pupils, subject offerings and teacher assignments stay
-    on it because only the label changes."""
-    arm = academics_service.update_arm(db, ctx.school.id, arm_id, name=payload.name)
+    """Rename a class and/or set its class group. Pupils, subject offerings and
+    teacher assignments stay on it because only the label changes.
+
+    ``exclude_unset`` matters here: an omitted ``group_name`` leaves the group
+    alone, while an explicit ``null`` clears it."""
+    sent = payload.model_dump(exclude_unset=True)
+    arm = academics_service.update_arm(
+        db, ctx.school.id, arm_id,
+        name=sent.get("name"),
+        group_name=sent.get("group_name"),
+        set_group_name="group_name" in sent,
+    )
     db.commit()
     return ArmOut.model_validate(arm)
 

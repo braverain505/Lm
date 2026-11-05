@@ -13,20 +13,23 @@ describe("broadsheetRows", () => {
   const card = (overrides: Record<string, unknown>) =>
     ({
       student: { full_name: "Amaka Okafor", admission_no: "BFA/2024/018" },
+      class_arm: { full_name: "JSS 1 A" },
       subjects: [
         { subject_id: "m", subject_name: "Mathematics", total: 93 },
         { subject_id: "e", subject_name: "English Language", total: 74 },
       ],
-      summary: { average: 83.5 },
+      summary: { average: 83.5, class_rank: 1, class_size: 2, class_group: null },
       ...overrides,
     }) as never;
 
-  it("writes a header of student, admission number, each subject, then average", () => {
+  it("writes a header of student, class, position, each subject, then average", () => {
     expect(broadsheetRows([card({})])[0]).toEqual([
       "Student",
       "Admission no",
-      "Mathematics",
+      "Class",
+      "Position",
       "English Language",
+      "Mathematics",
       "Average",
     ]);
   });
@@ -34,19 +37,53 @@ describe("broadsheetRows", () => {
   it("keeps one row per student with the marks aligned to the subject columns", () => {
     const rows = broadsheetRows([card({})]);
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toEqual(["Amaka Okafor", "BFA/2024/018", 93, 74, 83.5]);
+    expect(rows[1]).toEqual(["Amaka Okafor", "BFA/2024/018", "JSS 1 A", 1, 74, 93, 83.5]);
   });
 
   it("leaves a subject the student has no published mark for blank, not zero", () => {
     const rows = broadsheetRows([
       card({ subjects: [{ subject_id: "m", subject_name: "Mathematics", total: null }] }),
     ]);
-    expect(rows[1][2]).toBe("");
+    expect(rows[1][4]).toBe("");
+  });
+
+  /**
+   * A class-group sheet spans classes that sit different subjects. The columns
+   * have to be the union of what everyone sat: taking the first card's list
+   * would drop Physics just because an Arts pupil sorted first.
+   */
+  it("gives a class-group sheet a column for every subject anyone sat", () => {
+    const rows = broadsheetRows([
+      card({
+        subjects: [{ subject_id: "p", subject_name: "Physics", total: 61 }],
+        summary: { average: 61, class_rank: 1, class_size: 2, class_group: "SS 1" },
+      }),
+      card({
+        class_arm: { full_name: "SS 1 Arts" },
+        student: { full_name: "Bala Musa", admission_no: "BFA/2024/019" },
+        subjects: [{ subject_id: "e", subject_name: "English Language", total: 88 }],
+        summary: { average: 88, class_rank: 1, class_size: 2, class_group: "SS 1" },
+      }),
+    ]);
+
+    expect(rows[0]).toEqual([
+      "Student",
+      "Admission no",
+      "Class",
+      "Position",
+      "English Language",
+      "Physics",
+      "Average",
+    ]);
+    // The Arts pupil sits no Physics and the Science pupil sits no English:
+    // each leaves the other's column blank rather than scoring it zero.
+    expect(rows[1]).toEqual(["Amaka Okafor", "BFA/2024/018", "JSS 1 A", 1, "", 61, 61]);
+    expect(rows[2]).toEqual(["Bala Musa", "BFA/2024/019", "SS 1 Arts", 1, 88, "", 88]);
   });
 
   it("returns only a header when there is nothing published", () => {
     expect(broadsheetRows([])).toEqual([
-      ["Student", "Admission no", "Average"],
+      ["Student", "Admission no", "Class", "Position", "Average"],
     ]);
   });
 });

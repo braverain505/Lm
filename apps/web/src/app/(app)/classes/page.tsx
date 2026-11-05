@@ -34,8 +34,10 @@ export default function ClassesPage() {
   const { toast } = useToast();
 
   const [armName, setArmName] = useState("");
+  const [armGroup, setArmGroup] = useState("");
   const [editingArmId, setEditingArmId] = useState<string | null>(null);
   const [editArmName, setEditArmName] = useState("");
+  const [editArmGroup, setEditArmGroup] = useState("");
   const [offeringsArmId, setOfferingsArmId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [subjectCode, setSubjectCode] = useState("");
@@ -56,30 +58,40 @@ export default function ClassesPage() {
       if (!manageSessionId) throw new Error("Create an academic session first");
       return api.schoolFetch(schoolId, "/academics/arms", {
         method: "POST",
-        body: JSON.stringify({ session_id: manageSessionId, name: armName }),
+        body: JSON.stringify({
+          session_id: manageSessionId,
+          name: armName,
+          group_name: armGroup.trim() || null,
+        }),
       });
     },
     onSuccess: () => {
       invalidate();
       setArmName("");
+      setArmGroup("");
       toast("Class created successfully");
     },
     onError: (err: Error) => toast(err.message || "Failed to create class", "error"),
   });
 
-  // Renaming changes only the label: pupils, subjects and teacher assignments
-  // stay on the class, so it is the safe fix for a typo or a class named wrong.
+  // Editing changes the label and/or the class group: pupils, subjects and
+  // teacher assignments stay on the class, so it is the safe fix for a typo or
+  // a class named wrong.
   const renameArm = useRenameArm();
   const handleRenameArm = () => {
     if (!editingArmId || !editArmName.trim()) return;
     renameArm.mutate(
-      { armId: editingArmId, name: editArmName.trim() },
+      {
+        armId: editingArmId,
+        name: editArmName.trim(),
+        groupName: editArmGroup.trim() || null,
+      },
       {
         onSuccess: () => {
           setEditingArmId(null);
-          toast("Class renamed successfully");
+          toast("Class saved successfully");
         },
-        onError: (err: Error) => toast(err.message || "Failed to rename class", "error"),
+        onError: (err: Error) => toast(err.message || "Failed to save class", "error"),
       },
     );
   };
@@ -252,6 +264,18 @@ export default function ClassesPage() {
                     onChange={(e) => setEditArmName(e.target.value)}
                     placeholder="e.g. JSS 1 A"
                   />
+                  <p className="text-xs font-medium text-muted-foreground/85">
+                    Class group (optional)
+                  </p>
+                  <Input
+                    value={editArmGroup}
+                    onChange={(e) => setEditArmGroup(e.target.value)}
+                    placeholder="e.g. SS 1"
+                  />
+                  <p className="text-[11px] leading-snug text-muted-foreground/75">
+                    Classes sharing a group are ranked as one in results. Leave
+                    blank to rank this class on its own.
+                  </p>
                   <div className="flex gap-2">
                     <Button
                       type="submit"
@@ -287,9 +311,12 @@ export default function ClassesPage() {
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/20">
                         <BookOpen className="h-4 w-4 text-primary" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="truncate font-medium">{arm.full_name}</p>
-                        <p className="text-xs text-muted-foreground/75">{currentSession.name}</p>
+                        <p className="text-xs text-muted-foreground/75">
+                          {currentSession.name}
+                          {arm.group_name ? ` · ${arm.group_name}` : ""}
+                        </p>
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground/75 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -302,6 +329,7 @@ export default function ClassesPage() {
                     onClick={() => {
                       setEditingArmId(arm.id);
                       setEditArmName(arm.full_name);
+                      setEditArmGroup(arm.group_name ?? "");
                     }}
                   >
                     <Pencil className="h-4 w-4" />
@@ -352,6 +380,19 @@ export default function ClassesPage() {
                   disabled={!manageSessionId}
                   onKeyDown={(e) => { if (e.key === "Enter" && armName && manageSessionId) createArm.mutate(); }}
                 />
+                <Input
+                  placeholder="Class group (optional, e.g. SS 1)"
+                  value={armGroup}
+                  onChange={(e) => setArmGroup(e.target.value)}
+                  disabled={!manageSessionId}
+                  onKeyDown={(e) => { if (e.key === "Enter" && armName && manageSessionId) createArm.mutate(); }}
+                />
+                <p className="text-[11px] leading-snug text-muted-foreground/75">
+                  Give classes the same group (SS 1 Science, SS 1 Arts, SS 1
+                  Commercial → “SS 1”) to rank them together in results, each
+                  pupil on the subjects they offer. Leave blank to rank a class
+                  on its own.
+                </p>
                 <Button
                   size="sm"
                   onClick={() => createArm.mutate()}

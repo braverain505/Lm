@@ -11,6 +11,7 @@ Invariants enforced here:
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import date, datetime, timezone
 
 from sqlalchemy import delete as sa_delete
@@ -695,6 +696,34 @@ def _recompute_arm_subject(
     _recompute_positions(db, school_id, arm_id, subject_id, term_id)
 
 
+def _group_arms(
+    db: Session, school_id: uuid.UUID, arm: ClassArm
+) -> list[ClassArm]:
+    """Every arm ranked together with ``arm``: the classes sharing its
+    ``group_name`` in the same session. An arm with no group is a group of one,
+    which is what makes the feature opt-in — an ungrouped school ranks exactly
+    as it did before class groups existed."""
+    if not arm.group_name:
+        return [arm]
+    return list(
+        db.scalars(
+            select(ClassArm)
+            .where(
+                ClassArm.school_id == school_id,
+                ClassArm.academic_session_id == arm.academic_session_id,
+                ClassArm.group_name == arm.group_name,
+            )
+            .order_by(ClassArm.full_name, ClassArm.id)
+        )
+    )
+
+
+def _group_arm_ids(
+    db: Session, school_id: uuid.UUID, arm: ClassArm
+) -> list[uuid.UUID]:
+    return [a.id for a in _group_arms(db, school_id, arm)]
+
+
 def _recompute_positions(
     db: Session,
     school_id: uuid.UUID,
@@ -702,10 +731,25 @@ def _recompute_positions(
     subject_id: uuid.UUID,
     term_id: uuid.UUID,
 ) -> None:
+    """Rank one subject's results for a term across the whole class group.
+
+    The ranking population is every arm in ``arm_id``'s group (just the one arm
+    when it has no group). A pupil who does not offer the subject has no result
+    row at all, so they are simply absent from the ranking rather than scored
+    zero — subjects are per-class offerings, and a Commercial pupil is not
+    ranked in Physics.
+    """
+    # The totals this ranks were usually staged by the caller a moment ago
+    # (``recompute_result`` adds a row per pupil but does not flush it), and a
+    # session with ``autoflush=False`` — the test harness, and any session built
+    # that way — would otherwise rank an empty set and leave every position
+    # null. Flush so the ranking always sees the rows it is meant to rank.
+    db.flush()
+    arm = get_arm(db, school_id, arm_id)
     rows = list(
         db.scalars(
             select(Result).where(
-                Result.class_arm_id == arm_id,
+                Result.class_arm_id.in_(_group_arm_ids(db, school_id, arm)),
                 Result.subject_id == subject_id,
                 Result.term_id == term_id,
                 Result.total.is_not(None),
@@ -929,7 +973,13 @@ def publish_arm_subject(
     actor_id: uuid.UUID,
 ) -> int:
     """approve -> published, freezing ``published_snapshot`` per row so report
-    cards and the public portal render immutable totals."""
+    cards and the public portal render immutable totals.
+
+    Positions are re-ranked across the whole class group first, so a class is
+    never published against a half-filled group.
+    """
+    _recompute_positions(db, school_id, arm_id, subject_id, term_id)
+    arm = get_arm(db, school_id, arm_id)
     rows = list(
         db.scalars(
             select(Result).where(
@@ -959,8 +1009,58 @@ def publish_arm_subject(
                 created_at=now,
             )
         )
+    _refresh_group_positions(
+        db, school_id,
+        arm=arm, subject_id=subject_id, term_id=term_id, exclude_arm_id=arm_id,
+    )
     db.flush()
     return len(rows)
+
+
+def _refresh_group_positions(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm: ClassArm,
+    subject_id: uuid.UUID,
+    term_id: uuid.UUID,
+    exclude_arm_id: uuid.UUID,
+) -> None:
+    """Keep an already-published class's frozen ``position`` in step with its
+    class group.
+
+    A report card is immutable, with one deliberate exception: position is
+    relative to the group, so it has to track the group. Publishing SS 1 Science
+    before SS 1 Arts must not leave Science's cards claiming a standing out of
+    22 that the school reads as out of 27. Only ``position`` is rewritten —
+    ``total``, ``grade_letter``, ``grade_point`` and the component scores stay
+    frozen exactly as published.
+
+    A no-op for an arm with no group: its group is itself, so there are no
+    siblings and nothing is touched.
+    """
+    sibling_ids = [
+        group_arm.id
+        for group_arm in _group_arms(db, school_id, arm)
+        if group_arm.id != exclude_arm_id
+    ]
+    if not sibling_ids:
+        return
+    for result in db.scalars(
+        select(Result).where(
+            Result.class_arm_id.in_(sibling_ids),
+            Result.subject_id == subject_id,
+            Result.term_id == term_id,
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+    ):
+        snapshot = dict(result.published_snapshot or {})
+        if snapshot.get("position") == result.position:
+            continue
+        snapshot["position"] = result.position
+        # Reassign rather than mutate: SQLAlchemy only sees a JSONB change when
+        # the attribute is set to a new object.
+        result.published_snapshot = snapshot
 
 
 def reject_arm_subject(
@@ -1261,24 +1361,33 @@ def workbench_for_term(db: Session, school_id: uuid.UUID, term_id: uuid.UUID) ->
 
 # --- Report cards ----------------------------------------------------------
 # A report card renders ONLY published results, from each row's frozen
-# `published_snapshot`. Totals, grades, positions and component scores can
-# never drift after publish, so the printed card is an immutable record.
+# `published_snapshot`. Totals, grades and component scores can never drift
+# after publish, so the printed card is an immutable record. The one exception
+# is `position`, which is relative to the class group and so is refreshed when a
+# sibling class in the group publishes (see ``_refresh_group_positions``).
 def _published_totals(
-    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, term_id: uuid.UUID
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_ids: Sequence[uuid.UUID],
+    term_id: uuid.UUID,
 ) -> dict[uuid.UUID, list[float]]:
     """Published per-subject totals (from frozen snapshots), grouped by
-    enrollment, for one arm x term."""
+    enrollment, for one class group (or a single class, when its group is
+    itself) x term."""
     tbl: dict[uuid.UUID, list[float]] = {}
+    if not arm_ids:
+        return tbl
     # Deliberately not ``list_enrollments``: that only returns *current*
     # enrollments, but a card from a closed (possibly promoted-away) session
-    # still needs its class standing. Every enrollment in this arm belongs to
-    # the arm's session, which is the population the published results came
+    # still needs its class standing. Every enrollment in these arms belongs to
+    # the arms' session, which is the population the published results came
     # from.
     env_ids = list(
         db.scalars(
             select(StudentEnrollment.id).where(
                 StudentEnrollment.school_id == school_id,
-                StudentEnrollment.class_arm_id == arm_id,
+                StudentEnrollment.class_arm_id.in_(arm_ids),
             )
         )
     )
@@ -1287,7 +1396,7 @@ def _published_totals(
     for result in db.scalars(
         select(Result).where(
             Result.school_id == school_id,
-            Result.class_arm_id == arm_id,
+            Result.class_arm_id.in_(arm_ids),
             Result.term_id == term_id,
             Result.status == ResultStatus.PUBLISHED.value,
             Result.student_enrollment_id.in_(env_ids),
@@ -1617,7 +1726,7 @@ def report_index(
     get_arm(db, school_id, arm_id)
     get_term(db, school_id, term_id)
     enrollments = _result_enrollments(db, school_id, arm_id)
-    tally = _published_totals(db, school_id, arm_id=arm_id, term_id=term_id)
+    tally = _published_totals(db, school_id, arm_ids=[arm_id], term_id=term_id)
     rows = []
     for env in enrollments:
         row_totals = tally.get(env.id, [])
@@ -1635,24 +1744,80 @@ def report_index(
 
 
 def report_cards_bulk(
-    db: Session, school_id: uuid.UUID, *, arm_id: uuid.UUID, term_id: uuid.UUID
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_id: uuid.UUID | None = None,
+    arm_ids: Sequence[uuid.UUID] | None = None,
+    term_id: uuid.UUID,
 ) -> list[dict]:
-    """All printable cards for an arm this term (published only). Students
-    with no published subjects are skipped — same rule as the single-card
-    endpoint."""
+    """All printable cards for one class — or several, when a class group is
+    asked for — this term (published only). Students with no published subjects
+    are skipped — same rule as the single-card endpoint."""
+    if arm_ids is None:
+        if arm_id is None:
+            raise ValidationError("Either arm_id or arm_ids is required")
+        arm_ids = [arm_id]
     cards = []
-    for row in report_index(db, school_id, arm_id=arm_id, term_id=term_id):
-        try:
-            cards.append(
-                report_card(
-                    db,
-                    school_id,
-                    student_id=uuid.UUID(row["student_id"]),
-                    term_id=term_id,
+    for target in arm_ids:
+        for row in report_index(db, school_id, arm_id=target, term_id=term_id):
+            try:
+                cards.append(
+                    report_card(
+                        db,
+                        school_id,
+                        student_id=uuid.UUID(row["student_id"]),
+                        term_id=term_id,
+                    )
                 )
+            except NotFoundError:
+                continue
+    return cards
+
+
+def broadsheet_group(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    group_name: str,
+    session_id: uuid.UUID,
+    term_id: uuid.UUID,
+) -> list[dict]:
+    """The class group's broadsheet: every published card in the group, in
+    position order.
+
+    Cards carry each pupil's *own* subjects, so a sheet drawn over SS 1 has
+    Science, Arts and Commercial subjects side by side with a pupil blank
+    wherever their class does not offer a subject. Ordering by the group
+    standing is what makes it readable as one list rather than three.
+    """
+    term = get_term(db, school_id, term_id)
+    if term.academic_session_id != session_id:
+        raise ValidationError("That term does not belong to that session")
+    arms = list(
+        db.scalars(
+            select(ClassArm)
+            .where(
+                ClassArm.school_id == school_id,
+                ClassArm.academic_session_id == session_id,
+                ClassArm.group_name == group_name,
             )
-        except NotFoundError:
-            continue
+            .order_by(ClassArm.full_name, ClassArm.id)
+        )
+    )
+    if not arms:
+        raise NotFoundError(f"No classes are grouped as {group_name!r}")
+    cards = report_cards_bulk(
+        db, school_id, arm_ids=[a.id for a in arms], term_id=term_id
+    )
+    cards.sort(
+        key=lambda card: (
+            card["summary"].get("class_rank") is None,
+            card["summary"].get("class_rank") or 0,
+            card["class_arm"]["full_name"],
+            card["student"]["full_name"],
+        )
+    )
     return cards
 
 
@@ -2039,7 +2204,8 @@ def report_card(
 ) -> dict:
     """The printable term report for one student: only published subjects,
     rendered from frozen snapshots, with class standing computed across the
-    arm. Subjects not published yet are simply absent; 404 when none are."""
+    student's whole class group. Subjects not published yet are simply absent;
+    404 when none are."""
     term = get_term(db, school_id, term_id)
     student = get_student(db, school_id, student_id)
     env = db.scalar(
@@ -2087,19 +2253,26 @@ def report_card(
     if not subject_rows:
         raise NotFoundError("No published results for this student in this term")
 
-    # Class standing: rank this student's aggregate over classmates who have
-    # at least one published subject.
-    totals = _published_totals(db, school_id, arm_id=arm.id, term_id=term_id)
-    aggregates = sorted(
-        (round(sum(v), 2) for v in totals.values()), reverse=True
+    # Class standing: rank this pupil against everyone in the class group who
+    # has at least one published subject.
+    #
+    # By AVERAGE, not by sum of totals. Inside one class the two rank the same,
+    # but a group is made of classes offering different numbers of subjects
+    # (SS 1 Science sits nine, SS 1 Arts eight), and ranking by sum would simply
+    # reward whichever stream teaches the most subjects. The average asks the
+    # question the school actually means: how well did this child do in the
+    # subjects they offer?
+    totals = _published_totals(
+        db, school_id, arm_ids=_group_arm_ids(db, school_id, arm), term_id=term_id
     )
-    class_size = len(aggregates)
     mine_total = round(sum(totals.get(env.id, [])), 2)
-    class_rank = (
-        1 + sum(1 for t in aggregates if t > mine_total) if class_size else None
-    )
-
     avg = round(mine_total / len(subject_rows), 2)
+    averages = sorted(
+        (round(sum(v) / len(v), 2) for v in totals.values() if v), reverse=True
+    )
+    class_size = len(averages)
+    class_rank = 1 + sum(1 for a in averages if a > avg) if class_size else None
+
     session = term.session
     letter, point, remark = _grade_for(db, school_id, session, avg)
 
@@ -2271,6 +2444,10 @@ def report_card(
             "remark": remark,
             "class_rank": class_rank,
             "class_size": class_size,
+            # The class group the standing was taken over ("SS 1"), so the card
+            # can say what the position is a position *in*. Null when the class
+            # stands alone — then it is a position in the class, as before.
+            "class_group": arm.group_name or None,
         },
         "best_in_subjects": best_in_subjects,
         "cumulative": cumulative,

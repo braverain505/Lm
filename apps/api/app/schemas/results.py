@@ -120,6 +120,9 @@ class ReportSummary(BaseModel):
     remark: str | None
     class_rank: int | None
     class_size: int
+    # ``class_rank`` is out of ``class_size`` pupils of this class group ("SS 1")
+    # when the class is in one, and of the class alone when it is not.
+    class_group: str | None = None
 
 
 class ReportStudent(BaseModel):

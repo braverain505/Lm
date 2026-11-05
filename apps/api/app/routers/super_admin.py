@@ -268,6 +268,7 @@ def create_school_class(
         name=payload.name,
         session_id=payload.session_id,
         session_name=payload.session_name,
+        group_name=payload.group_name,
         actor_id=_admin.id,
         ip=ip,
     )

@@ -326,15 +326,31 @@ export function useArms(sessionId: string | null) {
   });
 }
 
+/**
+ * Change a class's label and/or its class group. Only the fields passed are
+ * sent, so clearing a group is `group_name: null` and leaving it alone is
+ * simply omitting it.
+ */
 export function useRenameArm() {
   const schoolId = useActiveSchoolId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ armId, name }: { armId: string; name: string }) => {
+    mutationFn: ({
+      armId,
+      name,
+      groupName,
+    }: {
+      armId: string;
+      name?: string;
+      groupName?: string | null;
+    }) => {
       if (!schoolId) throw new Error("No active school");
+      const body: { name?: string; group_name?: string | null } = {};
+      if (name !== undefined) body.name = name;
+      if (groupName !== undefined) body.group_name = groupName;
       return api.schoolFetch<Arm>(schoolId, `/academics/arms/${armId}`, {
         method: "PATCH",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify(body),
       });
     },
     onSuccess: () => {

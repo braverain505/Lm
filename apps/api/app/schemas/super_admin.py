@@ -68,6 +68,9 @@ class ClassCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     session_id: uuid.UUID | None = None
     session_name: str | None = Field(default=None, max_length=80)
+    # Classes sharing this are ranked as one class group in results ("SS 1"
+    # over its Science/Arts/Commercial arms). Only affects results.
+    group_name: str | None = Field(default=None, max_length=40)
 
 
 class BulkStudentCreateRequest(BaseModel):

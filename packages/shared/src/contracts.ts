@@ -147,6 +147,9 @@ export const ArmSchema = z.object({
   academic_session_id: z.string().uuid(),
   name: z.string(),
   full_name: z.string(),
+  // Classes sharing a group are ranked as one in results ("SS 1" over its
+  // Science/Arts/Commercial arms). Null = the class ranks on its own.
+  group_name: z.string().nullable().default(null),
 });
 export type Arm = z.infer<typeof ArmSchema>;
 
@@ -506,6 +509,7 @@ export const ReportCardSchema = z.object({
     remark: z.string().nullable(),
     class_rank: z.number().nullable(),
     class_size: z.number(),
+    class_group: z.string().nullable().default(null),
   }),
   best_in_subjects: z
     .array(

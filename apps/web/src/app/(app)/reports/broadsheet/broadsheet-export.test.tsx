@@ -30,7 +30,13 @@ vi.mock("@/hooks/use-api", () => ({
   useActiveSchoolId: () => "school-1",
   useSessions: () => ({ data: [{ id: "sess-1", name: "2025/2026", is_current: true }] }),
   useTerms: () => ({ data: [{ id: "term-1", name: "First Term" }] }),
-  useArms: () => ({ data: [{ id: "arm-1", full_name: "JSS 2B" }] }),
+  useArms: () => ({
+    data: [
+      { id: "arm-1", full_name: "JSS 2B", group_name: null },
+      { id: "arm-2", full_name: "SS 1 Science", group_name: "SS 1" },
+      { id: "arm-3", full_name: "SS 1 Arts", group_name: "SS 1" },
+    ],
+  }),
 }));
 
 vi.mock("@clearis/shared", async () => {
@@ -51,7 +57,7 @@ const CARD = {
     { subject_id: "m", subject_name: "Mathematics", total: 93 },
     { subject_id: "e", subject_name: "English Language", total: 74 },
   ],
-  summary: { average: 83.5 },
+  summary: { average: 83.5, class_rank: 1, class_size: 28, class_group: null },
 };
 
 function renderPage() {
@@ -83,10 +89,10 @@ describe("Broadsheet — downloading the sheet", () => {
     const user = userEvent.setup();
     renderPage();
 
-    // The two bare selects on this page are term first, then class.
+    // The two bare selects on this page are term first, then the sheet.
     const selects = screen.getAllByRole("combobox");
     await user.selectOptions(selects[0], "term-1");
-    await user.selectOptions(selects[1], "arm-1");
+    await user.selectOptions(selects[1], "arm:arm-1");
 
     // The grid renders from the fetched cards.
     await screen.findByText("Amaka Okafor");
@@ -99,8 +105,8 @@ describe("Broadsheet — downloading the sheet", () => {
     const [filename, rows] = downloadCsv.mock.calls[0];
     expect(filename).toBe("broadsheet-jss-2b-first-term.csv");
     expect(rows).toEqual([
-      ["Student", "Admission no", "Mathematics", "English Language", "Average"],
-      ["Amaka Okafor", "BFA/2024/018", 93, 74, 83.5],
+      ["Student", "Admission no", "Class", "Position", "English Language", "Mathematics", "Average"],
+      ["Amaka Okafor", "BFA/2024/018", "JSS 2B", 1, 74, 93, 83.5],
     ]);
   });
 
@@ -110,12 +116,32 @@ describe("Broadsheet — downloading the sheet", () => {
 
     const selects = screen.getAllByRole("combobox");
     await user.selectOptions(selects[0], "term-1");
-    await user.selectOptions(selects[1], "arm-1");
+    await user.selectOptions(selects[1], "arm:arm-1");
     await screen.findByText("Amaka Okafor");
 
     expect(api.schoolFetch).toHaveBeenCalledWith(
       "school-1",
       "/results/broadsheet?arm_id=arm-1&term_id=term-1",
+    );
+  });
+
+  /**
+   * A class group is one sheet over classes taught separately. The page has to
+   * offer the group alongside the classes, and ask for it by group rather than
+   * by any one arm — that request is what makes the positions whole-group.
+   */
+  it("offers each class group and asks the API for the whole group", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const selects = screen.getAllByRole("combobox");
+    await user.selectOptions(selects[0], "term-1");
+    await user.selectOptions(selects[1], "group:SS 1");
+    await screen.findByText("Amaka Okafor");
+
+    expect(api.schoolFetch).toHaveBeenCalledWith(
+      "school-1",
+      "/results/broadsheet?group_name=SS%201&session_id=sess-1&term_id=term-1",
     );
   });
 });

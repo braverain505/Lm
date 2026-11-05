@@ -115,7 +115,14 @@ class Term(TenantScopedBase, Base):
 
 class ClassArm(TenantScopedBase, Base):
     """A concrete class for a session, e.g. 'JSS 1A' in 2025/2026. The class
-    itself is the unit — there are no separate class levels."""
+    itself is the unit — there are no separate class levels.
+
+    ``group_name`` is the school's own label for classes that are ranked
+    together even though they are taught separately — "SS 1" over the Science,
+    Arts and Commercial arms, say. Results positions and class standing then
+    span every arm sharing it. Null (the default) means the class stands alone,
+    which is what every class did before this field existed.
+    """
 
     __tablename__ = "class_arms"
     __table_args__ = (
@@ -136,6 +143,8 @@ class ClassArm(TenantScopedBase, Base):
     class_teacher_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("staff.id", ondelete="SET NULL")
     )
+    # "SS 1" — arms sharing this within a session are ranked as one class group.
+    group_name: Mapped[str | None] = mapped_column(String(40))
 
     session: Mapped[AcademicSession] = relationship(back_populates="arms")
     offerings: Mapped[list["SubjectOffering"]] = relationship(

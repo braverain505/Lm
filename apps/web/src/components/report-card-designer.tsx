@@ -172,6 +172,7 @@ export const SAMPLE_CARD: ReportCard = {
     remark: "Excellent",
     class_rank: 2,
     class_size: 28,
+    class_group: null,
   },
   best_in_subjects: [
     {

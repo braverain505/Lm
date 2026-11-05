@@ -393,7 +393,11 @@ function SummaryWidget({ widget, card }: { widget: ReportWidget; card: ReportCar
         </div>
         {prop(widget, "show_position", true) && (
           <div className="rc-metric">
-            <span className="k">Position in Class</span>
+            {/* A class in a group is ranked against the whole group ("SS 1"),
+                so say which one the position is a position in. */}
+            <span className="k">
+              {summary.class_group ? `Position in ${summary.class_group}` : "Position in Class"}
+            </span>
             <span className="v">{position}</span>
             <span className="s">Out of {summary.class_size}</span>
           </div>

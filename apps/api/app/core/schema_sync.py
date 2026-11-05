@@ -63,6 +63,12 @@ _REQUIRED_COLUMNS: dict[str, dict[str, str]] = {
         "failed_login_count": "INTEGER NOT NULL DEFAULT 0",
         "locked_until": "TIMESTAMPTZ",
     },
+    # Not login-critical, but ``ClassArm`` is selected on nearly every page, so
+    # a database that misses revision 0018_class_arm_group 500s everywhere
+    # rather than in one place. Same reason as the two above.
+    "class_arms": {
+        "group_name": "VARCHAR(40)",
+    },
 }
 
 _DISABLED = {"0", "false", "no", "off"}

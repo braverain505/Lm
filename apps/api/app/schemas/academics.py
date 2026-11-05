@@ -72,16 +72,24 @@ class ArmOut(BaseModel):
     academic_session_id: uuid.UUID
     name: str
     full_name: str
+    # Classes that share this are ranked as one class group in results ("SS 1"
+    # over its Science/Arts/Commercial arms). Null = the class stands alone.
+    group_name: str | None = None
 
 
 class ArmCreate(BaseModel):
     session_id: uuid.UUID
     name: str
     campus_id: uuid.UUID | None = None
+    group_name: str | None = None
 
 
 class ArmUpdate(BaseModel):
-    name: str
+    """Both fields optional: the caller sends only what it is changing, and
+    ``group_name: null`` is a real instruction — it clears the group."""
+
+    name: str | None = None
+    group_name: str | None = None
 
 
 class SubjectOut(BaseModel):

@@ -5,7 +5,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
 from ..core.deps import ActiveSchool, DbSession, ensure_ai, require_permission
-from ..core.errors import ConflictError, NotFoundError, PermissionDeniedError
+from ..core.errors import (
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 from ..core.permissions import (
     ACADEMICS_MANAGE,
     RESULTS_APPROVE,
@@ -614,11 +619,29 @@ def get_archive(
 @router.get("/broadsheet")
 def broadsheet(
     db: DbSession,
-    arm_id: uuid.UUID,
     term_id: uuid.UUID,
+    arm_id: uuid.UUID | None = None,
+    group_name: str | None = None,
+    session_id: uuid.UUID | None = None,
     ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
 ):
-    """Return published report-card totals for every student in an arm."""
+    """Published report-card totals for a class — or for a whole class group,
+    when ``group_name`` and ``session_id`` are given instead of ``arm_id``.
+
+    The group form is one sheet over classes that are taught separately but
+    ranked together (all of SS 1), each pupil keeping their own subjects."""
+    if group_name:
+        if session_id is None:
+            raise ValidationError("session_id is required with group_name")
+        return results_service.broadsheet_group(
+            db,
+            ctx.school.id,
+            group_name=group_name,
+            session_id=session_id,
+            term_id=term_id,
+        )
+    if arm_id is None:
+        raise ValidationError("Either arm_id, or group_name with session_id, is required")
     return results_service.report_cards_bulk(
         db, ctx.school.id, arm_id=arm_id, term_id=term_id
     )

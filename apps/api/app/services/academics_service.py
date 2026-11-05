@@ -432,9 +432,13 @@ def create_arm(
     name: str,
     campus_id: uuid.UUID | None = None,
     class_teacher_id: uuid.UUID | None = None,
+    group_name: str | None = None,
 ) -> ClassArm:
     """Create a class for a session. ``name`` is the class label itself
-    (e.g. 'JSS 1A') — there are no separate class levels."""
+    (e.g. 'JSS 1A') — there are no separate class levels.
+
+    ``group_name`` is optional and only affects results: classes sharing it are
+    ranked as one class group."""
     get_session(db, school_id, session_id)
     if db.scalar(
         select(ClassArm.id).where(
@@ -451,17 +455,49 @@ def create_arm(
         name=name,
         full_name=name,
         class_teacher_id=class_teacher_id,
+        group_name=_clean_group_name(group_name),
     )
     db.add(arm)
     db.flush()
     return arm
 
 
-def update_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID, *, name: str) -> ClassArm:
-    """Rename a class. The name is the label printed on rosters and report
-    cards, so ``full_name`` follows it; the class keeps its id, so pupils,
-    offerings and assignments stay attached."""
+def _clean_group_name(group_name: str | None) -> str | None:
+    """Blank means "no group", not a group named "". Keeps one spelling so two
+    classes set to 'SS 1' and ' ss 1 ' cannot silently end up apart."""
+    if group_name is None:
+        return None
+    cleaned = " ".join(group_name.split())
+    return cleaned or None
+
+
+def update_arm(
+    db: Session,
+    school_id: uuid.UUID,
+    arm_id: uuid.UUID,
+    *,
+    name: str | None = None,
+    group_name: str | None = None,
+    set_group_name: bool = False,
+) -> ClassArm:
+    """Change a class's label and/or its class group.
+
+    The name is the label printed on rosters and report cards, so ``full_name``
+    follows it; the class keeps its id, so pupils, offerings and assignments
+    stay attached. A field the caller did not send is left alone — which is why
+    clearing a group needs ``set_group_name``, since ``group_name=None`` alone
+    is indistinguishable from "not sent".
+    """
     arm = get_arm(db, school_id, arm_id)
+    if name is not None:
+        _rename_arm(db, school_id, arm, name)
+    if set_group_name:
+        arm.group_name = _clean_group_name(group_name)
+    db.flush()
+    return arm
+
+
+def _rename_arm(db: Session, school_id: uuid.UUID, arm: ClassArm, name: str) -> None:
     new_name = name.strip()
     if not new_name:
         raise ValidationError("Class name cannot be empty")
@@ -478,8 +514,7 @@ def update_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID, *, name: st
             raise ConflictError(f"{new_name} already exists this session")
         arm.name = new_name
         arm.full_name = new_name
-        db.flush()
-    return arm
+    return None
 
 
 def delete_arm(db: Session, school_id: uuid.UUID, arm_id: uuid.UUID) -> None:
