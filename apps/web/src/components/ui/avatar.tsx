@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -37,6 +39,14 @@ export function initialsOf(name?: string | null): string {
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, name, initials, size = "default", src, ...props }, ref) => {
     const text = initials ?? initialsOf(name);
+
+    // A stored photo can fail to load — a stale /api/uploads path, or a data
+    // URL that was truncated on the way in. Falls back to the initials rather
+    // than leaving the browser's broken-image glyph sitting in a roster row.
+    const [broken, setBroken] = React.useState(false);
+    React.useEffect(() => setBroken(false), [src]);
+    const showImage = Boolean(src) && !broken;
+
     return (
       <div
         ref={ref}
@@ -45,14 +55,19 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
           size === "sm" && "h-7 w-7 text-[10px]",
           size === "default" && "h-9 w-9 text-[11px]",
           size === "lg" && "h-11 w-11 text-[13px]",
-          !src && deriveTone(name ?? "U"),
+          !showImage && deriveTone(name ?? "U"),
           className,
         )}
         style={{ backfaceVisibility: 'hidden', WebkitFontSmoothing: 'antialiased' }}
         {...props}
       >
-        {src ? (
-          <img src={src} alt={name ?? ""} className="h-full w-full object-cover" />
+        {showImage ? (
+          <img
+            src={src as string}
+            alt={name ?? ""}
+            className="h-full w-full object-cover"
+            onError={() => setBroken(true)}
+          />
         ) : (
           <span className="flex h-full w-full items-center justify-center">{text}</span>
         )}

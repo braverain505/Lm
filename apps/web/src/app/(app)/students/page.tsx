@@ -16,6 +16,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 
 import { api } from "@clearis/shared";
+import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,24 +37,10 @@ import {
 } from "@/hooks/use-api";
 import { useToast } from "@/components/toast";
 import { useHasPermission } from "@/components/access-denied";
-import { cn } from "@/lib/utils";
+import { cn, photoSrc } from "@/lib/utils";
 
 // The section that holds pupils with no enrollment this session.
 const UNASSIGNED = "__unassigned__";
-
-/** Resolve a stored photo URL to a loadable <img> src.
- * data:/blob:/http(s): URLs pass through; backend-relative /api/uploads/...
- * paths map onto the same API base the rest of the app uses (same-origin
- * /api/proxy on Vercel), so previews work in production. */
-function photoSrc(url?: string | null): string | undefined {
-  if (!url) return undefined;
-  if (/^(https?:|data:|blob:)/i.test(url)) return url;
-  if (url.startsWith("/api/")) {
-    const base = (process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy").replace(/\/$/, "");
-    return `${base}${url.slice(4)}`;
-  }
-  return url;
-}
 
 export default function StudentsPage() {
   const schoolId = useActiveSchoolId();
@@ -907,7 +894,12 @@ export default function StudentsPage() {
                                       <td className="py-3 font-mono text-[11px] text-muted-foreground">
                                         {s.admission_no}
                                       </td>
-                                      <td className="py-3 font-medium">{s.full_name}</td>
+                                      <td className="py-3">
+                                        <div className="flex items-center gap-2.5">
+                                          <Avatar size="sm" name={s.full_name} src={photoSrc(s.photo_url)} />
+                                          <span className="font-medium">{s.full_name}</span>
+                                        </div>
+                                      </td>
                                       <td className="py-3 capitalize text-muted-foreground">{s.gender}</td>
                                       <td className="py-3 text-muted-foreground">{s.state ?? "—"}</td>
                                       <td className="py-3">

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ import {
   useSubjects,
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
+import { photoSrc } from "@/lib/utils";
 
 export default function ClassRosterPage() {
   const params = useParams<{ armId: string }>();
@@ -236,7 +238,12 @@ export default function ClassRosterPage() {
                 roster.map((s) => (
                   <tr key={s.id} className="border-b last:border-0 hover:bg-accent/60">
                     <td className="py-3 font-mono text-xs">{s.admission_no}</td>
-                    <td className="py-3 font-medium">{s.full_name}</td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar size="sm" name={s.full_name} src={photoSrc(s.photo_url)} />
+                        <span className="font-medium">{s.full_name}</span>
+                      </div>
+                    </td>
                     <td className="py-3 capitalize">{s.gender}</td>
                     <td className="py-3">
                       <div className="flex justify-end gap-2">

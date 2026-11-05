@@ -33,6 +33,25 @@ export function formatMoney(
   return `${symbol}${formatted}`;
 }
 
+/** Resolve a stored photo URL to a loadable <img> src.
+ *
+ * data:/blob:/http(s): URLs pass through; backend-relative /api/uploads/...
+ * paths map onto the same API base the rest of the app uses (same-origin
+ * /api/proxy on Vercel), so previews work in production.
+ *
+ * Student and staff photos are stored as base64 data URLs (see
+ * ``Student.photo_url``), so most of the time this just returns the input.
+ */
+export function photoSrc(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (/^(https?:|data:|blob:)/i.test(url)) return url;
+  if (url.startsWith("/api/")) {
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? "/api/proxy").replace(/\/$/, "");
+    return `${base}${url.slice(4)}`;
+  }
+  return url;
+}
+
 /** ISO date (YYYY-MM-DD) for today, in the browser's own timezone. */
 export function todayIso(): string {
   const now = new Date();
