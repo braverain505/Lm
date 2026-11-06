@@ -122,6 +122,12 @@ class ClassArm(TenantScopedBase, Base):
     Arts and Commercial arms, say. Results positions and class standing then
     span every arm sharing it. Null (the default) means the class stands alone,
     which is what every class did before this field existed.
+
+    ``section`` says which part of the school the class belongs to — nursery,
+    primary or secondary. It is what lets a school that runs its sections
+    differently give each its own scoresheet and report card. Null means the
+    school has not classified the class, and it then uses the school-wide
+    structure like every class did before this field existed.
     """
 
     __tablename__ = "class_arms"
@@ -145,6 +151,8 @@ class ClassArm(TenantScopedBase, Base):
     )
     # "SS 1" — arms sharing this within a session are ranked as one class group.
     group_name: Mapped[str | None] = mapped_column(String(40))
+    # "nursery" | "primary" | "secondary" — which section of the school.
+    section: Mapped[str | None] = mapped_column(String(16))
 
     session: Mapped[AcademicSession] = relationship(back_populates="arms")
     offerings: Mapped[list["SubjectOffering"]] = relationship(

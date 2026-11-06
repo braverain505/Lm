@@ -13,6 +13,7 @@ from ..core.errors import (
 )
 from ..core.permissions import (
     ACADEMICS_MANAGE,
+    ACADEMICS_VIEW,
     RESULTS_APPROVE,
     RESULTS_COMMENT,
     RESULTS_ENTER,
@@ -45,6 +46,8 @@ from ..schemas.results import (
     PsychomotorRowIn,
     PsychomotorSaveRequest,
     ScoreSaveRequest,
+    ScoresheetIn,
+    ScoresheetOut,
     SubjectActionRequest,
     SubjectSubmitRequest,
     TermArchiveDetail,
@@ -126,6 +129,41 @@ def update_component(
             setattr(comp, key, value)
     db.commit()
     return _component(comp)
+
+
+# --- The school's scoresheet ----------------------------------------------------
+# A school-level setting: define the components and what each is marked out of
+# once, and every term inherits it. It is stored on the school (settings
+# bucket), not on a term, so it stays in force until the school changes it.
+#
+# A school with a primary and a secondary section decides here whether both
+# follow that one structure or each has its own — the same decision covers the
+# report card style, which is pinned per section on the report card routes.
+@router.get("/scoresheet", response_model=ScoresheetOut)
+def get_scoresheet(
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_VIEW)),
+):
+    """The school's assessment structure and the term it is in force for."""
+    return ScoresheetOut(**results_service.scoresheet_state(db, ctx.school.id))
+
+
+@router.put("/scoresheet", response_model=ScoresheetOut)
+def put_scoresheet(
+    payload: ScoresheetIn,
+    db: DbSession,
+    ctx=Depends(require_permission(ACADEMICS_MANAGE)),
+):
+    """Save the school's scoresheet and put it in force for the current term.
+
+    Each component's share of the final 100 is derived from its mark limit, so
+    the school only supplies a name and a limit per row. A term whose results
+    are already published is left as it is; the new structure applies from the
+    next term.
+    """
+    state = results_service.update_scoresheet(db, ctx.school.id, payload.model_dump())
+    db.commit()
+    return ScoresheetOut(**state)
 
 
 # --- Scorecard ------------------------------------------------------------------

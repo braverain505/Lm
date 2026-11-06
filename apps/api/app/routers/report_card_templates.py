@@ -21,6 +21,8 @@ from ..schemas.report_card import (
     ReportCardTemplateIn,
     ReportCardTemplateOut,
     ReportCardTemplatePatch,
+    SectionDesignOut,
+    SectionDesignsIn,
 )
 from ..services import report_card_service
 
@@ -37,15 +39,17 @@ def list_templates(db: DbSession, ctx: ActiveSchool):
 
 
 @router.get("/default", response_model=ReportCardTemplateBrief)
-def default_design(db: DbSession, ctx: ActiveSchool):
+def default_design(db: DbSession, ctx: ActiveSchool, section: str | None = None):
     """The design to draw on this school's report cards.
 
-    Always answers: a school that has saved no design gets the built-in card
-    with ``builtin: true``, so a renderer never has to invent a fallback of its
-    own.
+    ``section`` asks for the card a class in that section draws — its own
+    design when the school keeps its sections separate, otherwise the school
+    default. Always answers: a school that has saved no design gets the
+    built-in card with ``builtin: true``, so a renderer never has to invent a
+    fallback of its own.
     """
-    row = report_card_service.resolve_default(db, ctx.school.id)
-    layout = report_card_service.default_layout(db, ctx.school.id)
+    row = report_card_service.resolve_default(db, ctx.school.id, section=section)
+    layout = report_card_service.default_layout(db, ctx.school.id, section=section)
     if row is None:
         return ReportCardTemplateBrief(
             template_id=None,
@@ -61,6 +65,37 @@ def default_design(db: DbSession, ctx: ActiveSchool):
         layout=layout,
         builtin=False,
     )
+
+
+@router.get("/section-defaults", response_model=dict[str, SectionDesignOut])
+def section_defaults(db: DbSession, ctx: ActiveSchool):
+    """Which design each section draws, and whether it is that section's own.
+
+    Readable by any member of the school, like the designs themselves; a card
+    renderer needs to know it to draw the right card for a class.
+    """
+    return report_card_service.report_card_sections(db, ctx.school.id)
+
+
+@router.put("/section-defaults", response_model=dict[str, SectionDesignOut])
+def put_section_defaults(
+    payload: SectionDesignsIn,
+    db: DbSession,
+    ctx=Depends(require_permission(SCHOOL_MANAGE)),
+):
+    """Pin a design to each section, or clear it with null.
+
+    This is the "different card for primary and secondary" half of the school's
+    one structure decision; the same/separate switch itself lives with the
+    scoresheet, because it governs both.
+
+    A null for a section drops it back to the school's default design rather
+    than leaving it without a card.
+    """
+    designs = {name: str(value) if value else None for name, value in payload.designs.items()}
+    state = report_card_service.update_section_templates(db, ctx.school.id, designs)
+    db.commit()
+    return state
 
 
 @router.post("", response_model=ReportCardTemplateOut, status_code=201)

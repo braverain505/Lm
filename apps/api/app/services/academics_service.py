@@ -23,6 +23,7 @@ from ..models import (
     Term,
 )
 from ..models.enums import SessionStatus, TermStatus
+from . import sections_service
 
 
 def _has_rows(db: Session, model, *criteria) -> bool:
@@ -433,12 +434,17 @@ def create_arm(
     campus_id: uuid.UUID | None = None,
     class_teacher_id: uuid.UUID | None = None,
     group_name: str | None = None,
+    section: str | None = None,
 ) -> ClassArm:
     """Create a class for a session. ``name`` is the class label itself
     (e.g. 'JSS 1A') — there are no separate class levels.
 
     ``group_name`` is optional and only affects results: classes sharing it are
-    ranked as one class group."""
+    ranked as one class group.
+
+    ``section`` is the part of the school the class belongs to. Left out, the
+    name is read for a suggestion ("JSS 1A" -> secondary), which the school can
+    change afterwards — it is a label on the class, not a constraint."""
     get_session(db, school_id, session_id)
     if db.scalar(
         select(ClassArm.id).where(
@@ -456,10 +462,31 @@ def create_arm(
         full_name=name,
         class_teacher_id=class_teacher_id,
         group_name=_clean_group_name(group_name),
+        section=_clean_section(section, name),
     )
     db.add(arm)
     db.flush()
     return arm
+
+
+def _clean_section(section: str | None, name: str | None = None) -> str | None:
+    """A class's section, or None when it is not one of the three.
+
+    An explicit value must be a real section — silently dropping a typo would
+    leave the class quietly out of the school's per-section structure. When
+    none is given, the class name is read for a suggestion, so a school that
+    creates "JSS 1A" gets the secondary scoresheet without extra work.
+    """
+    if section is None:
+        return sections_service.guess_section(name)
+    cleaned = section.strip().lower()
+    if not cleaned:
+        return None
+    if cleaned not in sections_service.SECTIONS:
+        raise ValidationError(
+            "A class section is nursery, primary or secondary"
+        )
+    return cleaned
 
 
 def _clean_group_name(group_name: str | None) -> str | None:
@@ -479,6 +506,8 @@ def update_arm(
     name: str | None = None,
     group_name: str | None = None,
     set_group_name: bool = False,
+    section: str | None = None,
+    set_section: bool = False,
 ) -> ClassArm:
     """Change a class's label and/or its class group.
 
@@ -493,6 +522,8 @@ def update_arm(
         _rename_arm(db, school_id, arm, name)
     if set_group_name:
         arm.group_name = _clean_group_name(group_name)
+    if set_section:
+        arm.section = _clean_section(section)
     db.flush()
     return arm
 

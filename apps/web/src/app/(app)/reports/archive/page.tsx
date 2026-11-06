@@ -58,7 +58,13 @@ function ResultArchiveWorkspace() {
   const cards = detail?.payload.students ?? [];
   const card =
     cards.find((row) => row.student.student_id === studentId) ?? cards[0] ?? null;
-  const layout = (detail?.payload.layout ?? null) as ReportLayout | null;
+  // A school that keeps its sections separate froze a design per section: draw
+  // this card in the one its own section prints with, falling back to the
+  // school-wide design for everything else.
+  const layouts = (detail?.payload.layouts ?? {}) as Record<string, ReportLayout>;
+  const layout = ((card?.class_arm?.section && layouts[card.class_arm.section]) ||
+    detail?.payload.layout ||
+    null) as ReportLayout | null;
 
   return (
     <div className="space-y-5">

@@ -87,7 +87,11 @@ function ReportsWorkspace() {
   // The design every card on this page is drawn in. It comes from the school's
   // saved template (a card is the school's document, not this browser's), so the
   // exam office, a teacher and a parent all see the same card.
-  const { data: design } = useReportCardDesign();
+  //
+  // It follows the class being looked at: a school that keeps its sections
+  // separate draws the primary cards in the primary design.
+  const selectedArm = arms.find((a) => a.id === armId);
+  const { data: design } = useReportCardDesign(selectedArm?.section ?? undefined);
   const updateTemplate = useUpdateReportCardTemplate();
   const createTemplate = useCreateReportCardTemplate();
   const themeBusy = updateTemplate.isPending || createTemplate.isPending;

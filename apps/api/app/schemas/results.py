@@ -4,6 +4,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
+from .report_card import SectionDesignOut
+
 
 class ComponentCreate(BaseModel):
     term_id: uuid.UUID
@@ -31,6 +33,58 @@ class ComponentUpdate(BaseModel):
     max_score: float | None = Field(default=None, gt=0)
     weight: float | None = Field(default=None, gt=0)
     is_active: bool | None = None
+
+
+class ScoresheetComponentIn(BaseModel):
+    """One row a school types in settings: what it is called and what it is
+    marked out of. ``key`` is echoed back from a previous GET so renaming a row
+    keeps the scores already entered against it."""
+
+    key: str | None = None
+    name: str = Field(min_length=1, max_length=60)
+    max_score: float = Field(gt=0, le=1000)
+
+
+class ScoresheetIn(BaseModel):
+    # "same": one scoresheet for every class. "separate": each section has its
+    # own. The switch is one setting on the school, not one per section.
+    mode: str
+    # The school-wide scoresheet, used in "same" mode and as the fallback for a
+    # section that has not been given one of its own.
+    default: list[ScoresheetComponentIn]
+    # Per-section structures, by section name ("nursery", "primary",
+    # "secondary"). A missing or null section means it follows the default.
+    sections: dict[str, list[ScoresheetComponentIn] | None] = {}
+
+
+class ScoresheetComponentOut(BaseModel):
+    key: str
+    name: str
+    max_score: float
+    # Share of the final 100, derived from the mark limit in proportion to the
+    # other components so a school only ever has to type one number per row.
+    weight: float
+    sort_order: int
+
+
+class ScoresheetOut(BaseModel):
+    mode: str
+    default: list[ScoresheetComponentOut]
+    # Always all three sections; one with no set of its own shows the default,
+    # which is what its classes will use.
+    sections: dict[str, list[ScoresheetComponentOut]]
+    marks_total: float
+    # False until the school saves its own structure; the card then shows the
+    # current term's components (or the built-in default).
+    is_custom: bool
+    applied_term_id: uuid.UUID | None = None
+    applied_term_name: str | None = None
+    # True when the term in force already has published results, so a change is
+    # stored for future terms but does not touch this one.
+    locked: bool = False
+    # The report card design per section, for the same card in settings.
+    report_cards: dict[str, SectionDesignOut] = {}
+
 
 
 class ScoreCell(BaseModel):

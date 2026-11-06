@@ -22,6 +22,7 @@ import { isSchoolAdminRole } from "@/lib/roles";
 import { Avatar } from "@/components/ui/avatar";
 import { useToast } from "@/components/toast";
 import { ReportTemplatePicker } from "@/components/report-template-picker";
+import { ScoresheetEditor } from "@/components/scoresheet-editor";
 
 export default function SettingsPage() {
   const { user, activeSchool } = useAuth();
@@ -381,6 +382,10 @@ export default function SettingsPage() {
   };
 
   const canManage = activeSchool?.permissions?.includes("school.manage") ?? false;
+  // The scoresheet changes the academic structure, which the API gates on
+  // academics.manage (not school.manage).
+  const canManageAcademics =
+    activeSchool?.permissions?.includes("academics.manage") ?? false;
 
   // School Settings is admin/principal only — teachers and other staff should
   // not be able to reach it even by URL.
@@ -859,6 +864,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Scoresheet — admin only */}
+      {canManageAcademics && <ScoresheetEditor canManageDesigns={canManage} />}
 
       {/* Sign-in credentials */}
       <Card className="premium-card">

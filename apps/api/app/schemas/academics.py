@@ -75,6 +75,10 @@ class ArmOut(BaseModel):
     # Classes that share this are ranked as one class group in results ("SS 1"
     # over its Science/Arts/Commercial arms). Null = the class stands alone.
     group_name: str | None = None
+    # "nursery" | "primary" | "secondary" | null. Which part of the school the
+    # class belongs to, so a school that runs its sections differently gives
+    # each its own scoresheet and report card.
+    section: str | None = None
 
 
 class ArmCreate(BaseModel):
@@ -82,14 +86,18 @@ class ArmCreate(BaseModel):
     name: str
     campus_id: uuid.UUID | None = None
     group_name: str | None = None
+    # Left null, the class name is read for a suggestion (JSS/SS -> secondary,
+    # Basic/Primary -> primary, Nursery/KG -> nursery).
+    section: str | None = None
 
 
 class ArmUpdate(BaseModel):
-    """Both fields optional: the caller sends only what it is changing, and
+    """Every field optional: the caller sends only what it is changing, and
     ``group_name: null`` is a real instruction — it clears the group."""
 
     name: str | None = None
     group_name: str | None = None
+    section: str | None = None
 
 
 class SubjectOut(BaseModel):

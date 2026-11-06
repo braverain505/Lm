@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 from ..core.errors import NotFoundError, ValidationError
 from ..core.security import create_portal_token
 from ..models import (
+    ClassArm,
     Result,
     School,
     SchoolResultPin,
@@ -402,6 +403,31 @@ def resolve_result_code(
     # No student code matched: fall back to the school-wide code, which is only
     # usable with an admission number.
     return resolve_school_pin(db, code=code, admission_no=admission_no or "")
+
+
+def current_section(
+    db: Session, *, school_id: uuid.UUID, student_id: uuid.UUID
+) -> str | None:
+    """Which section of the school the child is in right now, or None.
+
+    The portal uses it to draw the card the child's class is drawn in: a school
+    that keeps its sections separate gives primary and secondary different
+    cards. An unclassified child — and every child in a school that keeps one
+    structure — reads as None and gets the school's default card.
+    """
+    arm_id = db.scalar(
+        select(StudentEnrollment.class_arm_id)
+        .where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.student_id == student_id,
+        )
+        .order_by(StudentEnrollment.is_current.desc())
+        .limit(1)
+    )
+    if arm_id is None:
+        return None
+    arm = db.get(ClassArm, arm_id)
+    return arm.section if arm is not None else None
 
 
 def portal_token(school: School, student: Student) -> str:

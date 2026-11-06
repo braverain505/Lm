@@ -29,7 +29,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..core.errors import ConflictError, NotFoundError, ValidationError
-from ..models import AuditLog, ReportCardTemplate
+from ..models import AuditLog, ReportCardTemplate, School
 from ..schemas.report_card import (
     DEFAULT_THEME,
     LAYOUT_VERSION,
@@ -37,6 +37,7 @@ from ..schemas.report_card import (
     ReportCardTemplateIn,
     ReportCardTemplatePatch,
 )
+from . import sections_service
 
 # ---------------------------------------------------------------------------
 # The card the app drew before the designer existed, expressed as a layout.
@@ -191,8 +192,27 @@ def get_template(
     return row
 
 
-def resolve_default(db: Session, school_id: uuid.UUID) -> ReportCardTemplate | None:
-    """The school's default design, or None when it has never saved one."""
+def resolve_default(
+    db: Session, school_id: uuid.UUID, *, section: str | None = None
+) -> ReportCardTemplate | None:
+    """The school's default design, or None when it has never saved one.
+
+    With ``section``, a school that keeps its sections separate gets that
+    section's own design when it has one. Every other case — "same" mode, an
+    unclassified class, a section with no design of its own — is the school
+    default, so a card is always drawn rather than left blank.
+    """
+    if section is not None and sections_service.is_separate(db, school_id):
+        pinned = section_templates(db, school_id).get(section)
+        if pinned is not None:
+            row = db.scalar(
+                select(ReportCardTemplate).where(
+                    ReportCardTemplate.id == pinned,
+                    ReportCardTemplate.school_id == school_id,
+                )
+            )
+            if row is not None:
+                return row
     return db.scalar(
         select(ReportCardTemplate)
         .where(
@@ -203,14 +223,90 @@ def resolve_default(db: Session, school_id: uuid.UUID) -> ReportCardTemplate | N
     )
 
 
-def default_layout(db: Session, school_id: uuid.UUID) -> dict:
+def section_templates(db: Session, school_id: uuid.UUID) -> dict[str, uuid.UUID]:
+    """The designs the school pinned to its sections, section -> template id.
+
+    Read defensively — a stale or hand-edited id simply drops out and that
+    section falls back to the school default.
+    """
+    school = db.get(School, school_id)
+    stored = (school.settings or {}).get("report_cards") if school is not None else None
+    if not isinstance(stored, dict):
+        return {}
+    pinned: dict[str, uuid.UUID] = {}
+    for section in sections_service.SECTIONS:
+        raw = stored.get(section)
+        if not isinstance(raw, str) or not raw:
+            continue
+        try:
+            pinned[section] = uuid.UUID(raw)
+        except (ValueError, TypeError):
+            continue
+    return pinned
+
+
+def report_card_sections(db: Session, school_id: uuid.UUID) -> dict[str, dict]:
+    """Each section's card for the settings page.
+
+    ``template_id`` is the section's own design — stored whether or not it is
+    in force yet, so a school can set its sections up before flipping the
+    switch — and null when the section follows the school default. ``name`` is
+    the design its classes actually draw. ``applied`` says whether that is the
+    section's own: it is not while the school still keeps one structure for
+    every class.
+    """
+    pinned = section_templates(db, school_id)
+    separate = sections_service.is_separate(db, school_id)
+    out: dict[str, dict] = {}
+    for section in sections_service.SECTIONS:
+        own = pinned.get(section)
+        row = resolve_default(db, school_id, section=section)
+        out[section] = {
+            "template_id": own,
+            "name": row.name if row is not None else None,
+            "applied": bool(separate and own is not None),
+        }
+    return out
+
+
+def update_section_templates(
+    db: Session, school_id: uuid.UUID, mapping: dict
+) -> dict[str, dict]:
+    """Pin a design to each section, or clear it with null.
+
+    The design must belong to the school — ``get_template`` never looks outside
+    it. Storing is independent of term locking: a card design changes what is
+    drawn next time, not a result that has already been published.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+
+    resolved: dict[str, str] = {}
+    for section in sections_service.SECTIONS:
+        raw = mapping.get(section)
+        if raw is None or raw == "":
+            continue
+        row = get_template(db, school_id, raw)
+        resolved[section] = str(row.id)
+
+    settings = dict(school.settings or {})
+    settings["report_cards"] = resolved
+    school.settings = settings
+    db.flush()
+    return report_card_sections(db, school_id)
+
+
+def default_layout(
+    db: Session, school_id: uuid.UUID, *, section: str | None = None
+) -> dict:
     """The layout every renderer should use for this school.
 
     Falls back to ``BUILTIN_DEFAULT_LAYOUT`` when the school has no designs, so
     the exam office, a class teacher, a bulk PDF and the public portal all draw
     the same card in every state of the world.
     """
-    row = resolve_default(db, school_id)
+    row = resolve_default(db, school_id, section=section)
     if row is None:
         return builtin_layout()
     return normalise_layout(row.layout)

@@ -6,18 +6,26 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 
-import { api } from "@clearis/shared";
+import { api, SECTION_KEYS, SECTION_LABELS, type SectionKey } from "@clearis/shared";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   useActiveSchoolId,
   useArms,
   useOfferings,
   useRenameArm,
+  useScoresheet,
   useSessions,
   useSubjects,
 } from "@/hooks/use-api";
@@ -38,6 +46,11 @@ export default function ClassesPage() {
   const [editingArmId, setEditingArmId] = useState<string | null>(null);
   const [editArmName, setEditArmName] = useState("");
   const [editArmGroup, setEditArmGroup] = useState("");
+  const [editArmSection, setEditArmSection] = useState<SectionKey | null>(null);
+  // Which part of the school a class is in only matters once the school runs
+  // its sections differently, so the control and the warning appear then.
+  const { data: scoresheet } = useScoresheet();
+  const perSection = scoresheet?.mode === "separate";
   const [offeringsArmId, setOfferingsArmId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [subjectCode, setSubjectCode] = useState("");
@@ -85,6 +98,7 @@ export default function ClassesPage() {
         armId: editingArmId,
         name: editArmName.trim(),
         groupName: editArmGroup.trim() || null,
+        section: editArmSection,
       },
       {
         onSuccess: () => {
@@ -232,6 +246,15 @@ export default function ClassesPage() {
 
       {/* Class list */}
       <div className="space-y-4">
+        {perSection && arms.some((a) => !a.section) && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] leading-relaxed text-amber-700 dark:text-amber-300">
+            {arms.filter((a) => !a.section).length === 1
+              ? "1 class has no section"
+              : `${arms.filter((a) => !a.section).length} classes have no section`}
+            , so it follows the school-wide scoresheet. Use the pencil on a class
+            to say whether it is nursery, primary or secondary.
+          </div>
+        )}
         {loadingArms || !currentSession ? (
           <Skeleton className="h-32 w-full" />
         ) : arms.length === 0 ? (
@@ -276,6 +299,35 @@ export default function ClassesPage() {
                     Classes sharing a group are ranked as one in results. Leave
                     blank to rank this class on its own.
                   </p>
+                  {perSection && (
+                    <>
+                      <p className="text-xs font-medium text-muted-foreground/85">
+                        Section
+                      </p>
+                      <Select
+                        value={editArmSection ?? "none"}
+                        onValueChange={(value) =>
+                          setEditArmSection(value === "none" ? null : (value as SectionKey))
+                        }
+                      >
+                        <SelectTrigger aria-label="Class section">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No section</SelectItem>
+                          {SECTION_KEYS.map((key) => (
+                            <SelectItem key={key} value={key}>
+                              {SECTION_LABELS[key]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] leading-snug text-muted-foreground/75">
+                        Which scoresheet and report card this class uses. A class
+                        with no section follows the school-wide scoresheet.
+                      </p>
+                    </>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       type="submit"
@@ -316,6 +368,9 @@ export default function ClassesPage() {
                         <p className="text-xs text-muted-foreground/75">
                           {currentSession.name}
                           {arm.group_name ? ` · ${arm.group_name}` : ""}
+                          {perSection
+                            ? ` · ${arm.section ? SECTION_LABELS[arm.section] : "No section"}`
+                            : ""}
                         </p>
                       </div>
                     </div>
@@ -330,6 +385,7 @@ export default function ClassesPage() {
                       setEditingArmId(arm.id);
                       setEditArmName(arm.full_name);
                       setEditArmGroup(arm.group_name ?? "");
+                      setEditArmSection(arm.section ?? null);
                     }}
                   >
                     <Pencil className="h-4 w-4" />

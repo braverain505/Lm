@@ -129,6 +129,12 @@ import {
   ScheduleValidateOutSchema,
   ResultsPolicy,
   ResultsPolicySchema,
+  Scoresheet,
+  ScoresheetInput,
+  ScoresheetSchema,
+  SectionDesign,
+  SectionDesignsSchema,
+  SectionKey,
   SchoolBrief,
   SchoolBriefSchema,
   TermArchive,
@@ -477,6 +483,27 @@ export async function updateResultsPolicy(
     "/schools/me/results-policy",
     { method: "PATCH", body: JSON.stringify(body) },
     ResultsPolicySchema.parse,
+  );
+}
+
+export async function fetchScoresheet(schoolId: string): Promise<Scoresheet> {
+  return schoolFetch<Scoresheet>(
+    schoolId,
+    "/results/scoresheet",
+    {},
+    ScoresheetSchema.parse,
+  );
+}
+
+export async function updateScoresheet(
+  schoolId: string,
+  body: ScoresheetInput,
+): Promise<Scoresheet> {
+  return schoolFetch<Scoresheet>(
+    schoolId,
+    "/results/scoresheet",
+    { method: "PUT", body: JSON.stringify(body) },
+    ScoresheetSchema.parse,
   );
 }
 
@@ -880,13 +907,39 @@ export const fetchReportCardTemplates = (schoolId: string) =>
   );
 
 /** The design to draw on this school's cards. Always answers: an unsaved school
- * gets the built-in card with ``builtin: true``. */
-export const fetchReportCardDesign = (schoolId: string) =>
+ * gets the built-in card with ``builtin: true``. With ``section``, the design
+ * that section's classes draw — its own when the school keeps its sections
+ * separate, the school default otherwise. */
+export const fetchReportCardDesign = (schoolId: string, section?: SectionKey) =>
   schoolFetch<ReportCardDesign>(
     schoolId,
-    "/report-card-templates/default",
+    section
+      ? `/report-card-templates/default?section=${encodeURIComponent(section)}`
+      : "/report-card-templates/default",
     {},
     ReportCardDesignSchema.parse,
+  );
+
+/** Which design each section draws, and whether it is the section's own. */
+export const fetchSectionDesigns = (schoolId: string) =>
+  schoolFetch<Record<SectionKey, SectionDesign>>(
+    schoolId,
+    "/report-card-templates/section-defaults",
+    {},
+    SectionDesignsSchema.parse,
+  );
+
+/** Pin a design to each section, or clear one with null so it goes back to the
+ * school's default design. */
+export const updateSectionDesigns = (
+  schoolId: string,
+  designs: Partial<Record<SectionKey, string | null>>,
+) =>
+  schoolFetch<Record<SectionKey, SectionDesign>>(
+    schoolId,
+    "/report-card-templates/section-defaults",
+    { method: "PUT", body: JSON.stringify({ designs }) },
+    SectionDesignsSchema.parse,
   );
 
 export const createReportCardTemplate = (schoolId: string, body: ReportCardTemplateIn) =>
@@ -2366,6 +2419,10 @@ export const api = {
   fetchTermArchive,
   fetchResultsPolicy,
   updateResultsPolicy,
+  fetchScoresheet,
+  updateScoresheet,
+  fetchSectionDesigns,
+  updateSectionDesigns,
   fetchReportCardDesign,
   fetchReportCardTemplates,
   createReportCardTemplate,

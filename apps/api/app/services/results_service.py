@@ -10,6 +10,7 @@ Invariants enforced here:
 """
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Sequence
 from datetime import date, datetime, timezone
@@ -23,6 +24,7 @@ from ..core.errors import (
     ERR_RESULT_LOCKED,
     ERR_SCORE_NEGATIVE,
     ERR_SCORE_OVER_MAX,
+    ERR_SCORESHEET,
     ERR_WEIGHT_SUM,
     APIError,
     NotFoundError,
@@ -57,6 +59,7 @@ from ..models import (
     User,
 )
 from ..models.enums import ResultStatus
+from . import sections_service
 from .academics_service import get_arm, get_subject, get_term
 from .people_service import get_student, list_enrollments
 
@@ -192,9 +195,28 @@ def effective_components(
     term_id: uuid.UUID,
     *,
     class_arm_id: uuid.UUID | None = None,
+    section: str | None = None,
 ) -> list[AssessmentComponent]:
-    """Components applying to a scope: school-wide (NULL arm) base rows,
-    then arm-level overrides. Per name, the most specific scope wins."""
+    """Components applying to a scope.
+
+    Precedence, most specific first: an arm's own rows, then its section's
+    rows, then the school-wide rows. A section's set replaces the school-wide
+    one wholesale rather than merging by name — a school that marks primary
+    differently has decided those components *are* the primary scoresheet, so a
+    school-wide "Exam" must not leak into it. Arm rows still merge by name on
+    top of whichever set applies, as they always have.
+
+    ``section`` is looked up from the arm when only an arm is given. The whole
+    idea only applies to a school that has chosen separate sections; in "same"
+    mode every class uses the school-wide rows exactly as before.
+    """
+    if section is None and class_arm_id is not None:
+        arm = db.get(ClassArm, class_arm_id)
+        if arm is not None and arm.school_id == school_id:
+            section = arm.section
+
+    use_sections = section is not None and sections_service.is_separate(db, school_id)
+
     rows = list(
         db.scalars(
             select(AssessmentComponent).where(
@@ -204,43 +226,78 @@ def effective_components(
             )
         )
     )
-    base: dict[str, AssessmentComponent] = {}
     arm: dict[str, AssessmentComponent] = {}
+    school_rows: list[AssessmentComponent] = []
     for comp in rows:
-        if comp.class_arm_id is not None and comp.class_arm_id == class_arm_id:
-            arm[comp.name] = comp
-        elif comp.class_arm_id is None:
-            base[comp.name] = comp
+        if comp.class_arm_id is not None:
+            if comp.class_arm_id == class_arm_id:
+                arm[comp.name] = comp
+        else:
+            school_rows.append(comp)
+
+    # A section's own rows replace the school-wide set wholesale; without one
+    # — and always in "same" mode — the school-wide rows are the structure, and
+    # any section rows the school set aside are not mixed into them.
+    scoped = (
+        [comp for comp in school_rows if comp.section == section]
+        if use_sections
+        else []
+    )
+    base_rows = scoped or [comp for comp in school_rows if comp.section is None]
+
     merged: dict[str, AssessmentComponent] = {}
     merged.update(arm)
-    for name, comp in base.items():
-        merged.setdefault(name, comp)
+    for comp in base_rows:
+        merged.setdefault(comp.name, comp)
     return sorted(merged.values(), key=lambda c: (c.sort_order, c.name))
 
 
 def ensure_default_components(
     db: Session, school_id: uuid.UUID, term_id: uuid.UUID
 ) -> list[AssessmentComponent]:
-    """Create the standard CA/Exam fields for a term that has none."""
+    """Create a term's components when it has none.
+
+    The school's own scoresheet is used when it has saved one, so the structure
+    it defined once carries into every new term — the school-wide set always,
+    and each section's own set when the school keeps them separate. Until then
+    the built-in trio is created exactly as before — a school that never opens
+    the editor sees no change at all.
+    """
     components = effective_components(db, school_id, term_id)
     if components:
         return components
 
-    for sort_order, (name, max_score, weight) in enumerate(
-        (("1st CA", 20, 20), ("2nd CA", 30, 30), ("Exam", 70, 50))
-    ):
+    saved = scoresheet_for(db, school_id)
+    if saved is None:
+        _seed_components(db, school_id, term_id, None, DEFAULT_SCORESHEET)
+    else:
+        _seed_components(db, school_id, term_id, None, saved["default"])
+        if sections_service.is_separate(db, school_id):
+            for section, rows in saved["sections"].items():
+                _seed_components(db, school_id, term_id, section, rows)
+    db.flush()
+    return effective_components(db, school_id, term_id)
+
+
+def _seed_components(
+    db: Session,
+    school_id: uuid.UUID,
+    term_id: uuid.UUID,
+    section: str | None,
+    rows,
+) -> None:
+    for sort_order, row in enumerate(rows):
         db.add(
             AssessmentComponent(
                 school_id=school_id,
                 term_id=term_id,
-                name=name,
-                max_score=max_score,
-                weight=weight,
+                section=section,
+                name=row["name"],
+                max_score=row["max_score"],
+                weight=row["weight"],
                 sort_order=sort_order,
             )
         )
-    db.flush()
-    return effective_components(db, school_id, term_id)
 
 
 def validate_component_weights(components: list[AssessmentComponent]) -> None:
@@ -252,6 +309,427 @@ def validate_component_weights(components: list[AssessmentComponent]) -> None:
             f"Assessment component weights must sum to 100 (currently {total})",
             {"weight_sum": total},
         )
+
+
+# --- The school's scoresheet --------------------------------------------------
+# A school defines its assessment structure once — what the components are
+# called (1st CA, 2nd CA, 3rd CA, Exam, Project ...) and what each is marked
+# out of — and it is in force until the school changes it. It lives in
+# ``schools.settings["scoresheet"]`` so it travels with the tenant and needs no
+# schema change, and every new term is seeded from it by
+# ``ensure_default_components``.
+#
+# Each component's share of the final 100 is derived from its mark limit in
+# proportion to the others. That keeps the "one number per row" promise: a
+# school setting 1st CA 10, 2nd CA 10, 3rd CA 10, Exam 100 needs to understand
+# only that the exam is marked out of 100, and the result is still on the 0-100
+# scale grade bands, averages and positions all assume.
+DEFAULT_SCORESHEET: tuple[dict, ...] = (
+    {"name": "1st CA", "max_score": 20.0, "weight": 20.0},
+    {"name": "2nd CA", "max_score": 30.0, "weight": 30.0},
+    {"name": "Exam", "max_score": 70.0, "weight": 50.0},
+)
+
+MAX_SCORESHEET_COMPONENTS = 12
+
+
+def _current_term(db: Session, school_id: uuid.UUID) -> Term | None:
+    """The term a school is working in, if it has activated one."""
+    return db.scalar(
+        select(Term)
+        .where(Term.school_id == school_id, Term.is_current.is_(True))
+        .order_by(Term.term_no)
+    )
+
+
+def _term_has_published_results(
+    db: Session, school_id: uuid.UUID, term_id: uuid.UUID
+) -> bool:
+    """Whether a term's results are already out — the point past which its
+    scoresheet must not move."""
+    published = db.scalar(
+        select(func.count())
+        .select_from(Result)
+        .where(
+            Result.school_id == school_id,
+            Result.term_id == term_id,
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+    )
+    return bool(published)
+
+
+def _clean_rows(raw) -> list[dict] | None:
+    """One scoresheet's components, read defensively.
+
+    It is hand-editable JSON, so anything malformed — a missing name, a zero
+    mark, weights that no longer total 100 — falls back to the built-in
+    default rather than breaking score entry or a report card.
+    """
+    if not isinstance(raw, list) or not raw:
+        return None
+    rows: list[dict] = []
+    for order, entry in enumerate(raw):
+        if not isinstance(entry, dict):
+            return None
+        name = entry.get("name")
+        if not isinstance(name, str) or not name.strip():
+            return None
+        try:
+            max_score = float(entry.get("max_score"))
+            weight = float(entry.get("weight"))
+        except (TypeError, ValueError):
+            return None
+        if max_score <= 0 or weight <= 0:
+            return None
+        key = entry.get("key")
+        rows.append(
+            {
+                "key": key if isinstance(key, str) and key else uuid.uuid4().hex,
+                "name": " ".join(name.split()),
+                "max_score": round(max_score, 2),
+                "weight": round(weight, 2),
+                "sort_order": order,
+            }
+        )
+    if abs(round(sum(r["weight"] for r in rows), 2) - 100.0) > 0.01:
+        return None
+    return rows
+
+
+def _clean_scoresheet(raw) -> dict | None:
+    """The stored scoresheet as ``{"default": rows, "sections": {name: rows}}``.
+
+    A bare list is the shape written before sections existed and reads as a
+    school-wide scoresheet with no section of its own — the same structure
+    every class uses, which is exactly what it was.
+    """
+    if isinstance(raw, list):
+        rows = _clean_rows(raw)
+        return {"default": rows, "sections": {}} if rows else None
+    if not isinstance(raw, dict):
+        return None
+    default = _clean_rows(raw.get("default"))
+    if default is None:
+        return None
+    sections: dict[str, list[dict]] = {}
+    stored = raw.get("sections")
+    if isinstance(stored, dict):
+        for name in sections_service.SECTIONS:
+            rows = _clean_rows(stored.get(name))
+            if rows:
+                sections[name] = rows
+    return {"default": default, "sections": sections}
+
+
+def scoresheet_for(db: Session, school_id: uuid.UUID) -> dict | None:
+    """The school's own scoresheet, or None if it has never saved one."""
+    school = db.get(School, school_id)
+    raw = (school.settings or {}).get("scoresheet") if school else None
+    return _clean_scoresheet(raw)
+
+
+def scoresheet_rows_for(
+    db: Session, school_id: uuid.UUID, section: str | None
+) -> list[dict]:
+    """The rows in force for a section: its own set, else the school-wide one.
+
+    Mirrors ``effective_components`` for callers that want the structure before
+    a term has any components of its own.
+    """
+    saved = scoresheet_for(db, school_id)
+    if saved is None:
+        return list(DEFAULT_SCORESHEET)
+    if section is not None and sections_service.is_separate(db, school_id):
+        rows = saved["sections"].get(section)
+        if rows:
+            return rows
+    return saved["default"]
+
+
+def _derive_weights(marks: list[float]) -> list[float]:
+    """Each component's share of 100, in proportion to its mark limit.
+
+    Rounded to two places, with the rounding residue put on the largest
+    component so the set totals exactly 100 (``save_scores`` enforces that).
+    """
+    total = sum(marks)
+    weights = [round(mark / total * 100.0, 2) for mark in marks]
+    residue = round(100.0 - sum(weights), 2)
+    if residue:
+        index = max(range(len(weights)), key=lambda i: weights[i])
+        weights[index] = round(weights[index] + residue, 2)
+    return weights
+
+
+def _normalise_rows(rows: list[dict], *, where: str = "") -> list[dict]:
+    """Validate one scoresheet's components and derive their shares."""
+    if not rows:
+        raise APIError(
+            422, ERR_SCORESHEET,
+            f"The {where}scoresheet needs at least one component",
+        )
+    if len(rows) > MAX_SCORESHEET_COMPONENTS:
+        raise APIError(
+            422, ERR_SCORESHEET,
+            f"A scoresheet can have at most {MAX_SCORESHEET_COMPONENTS} components",
+        )
+
+    cleaned: list[dict] = []
+    seen: set[str] = set()
+    for raw in rows:
+        name = " ".join(str(raw.get("name") or "").split())
+        if not name:
+            raise APIError(422, ERR_SCORESHEET, f"Every {where}component needs a name")
+        if len(name) > 60:
+            raise APIError(
+                422, ERR_SCORESHEET,
+                f'"{name}" is too long — component names are at most 60 characters',
+            )
+        if name.casefold() in seen:
+            raise APIError(
+                422, ERR_SCORESHEET, f'"{name}" appears more than once'
+            )
+        seen.add(name.casefold())
+        try:
+            max_score = float(raw.get("max_score"))
+        except (TypeError, ValueError):
+            raise APIError(
+                422, ERR_SCORESHEET, f'"{name}" needs a mark limit'
+            )
+        if max_score <= 0 or max_score > 1000:
+            raise APIError(
+                422, ERR_SCORESHEET,
+                f'"{name}" must be marked out of a number between 1 and 1000',
+            )
+        key = raw.get("key")
+        cleaned.append(
+            {
+                "key": key if isinstance(key, str) and key else uuid.uuid4().hex,
+                "name": name,
+                "max_score": round(max_score, 2),
+            }
+        )
+
+    weights = _derive_weights([row["max_score"] for row in cleaned])
+    for order, (row, weight) in enumerate(zip(cleaned, weights)):
+        row["weight"] = weight
+        row["sort_order"] = order
+    return cleaned
+
+
+def _normalise_scoresheet(payload: dict) -> dict:
+    """Validate what a school saved: the school-wide scoresheet, and a set per
+    section when it keeps its sections separate."""
+    mode = payload.get("mode")
+    if mode not in sections_service.SECTION_MODES:
+        raise APIError(
+            422, ERR_SCORESHEET,
+            'Sections must be set to "same" or "separate"',
+        )
+
+    resolved: dict = {
+        "default": _normalise_rows(list(payload.get("default") or [])),
+        "sections": {},
+    }
+    raw_sections = payload.get("sections") or {}
+    if not isinstance(raw_sections, dict):
+        raise APIError(422, ERR_SCORESHEET, "Sections must be a set of scoresheets")
+    for section in sections_service.SECTIONS:
+        rows = raw_sections.get(section)
+        if rows is None:
+            continue
+        resolved["sections"][section] = _normalise_rows(
+            list(rows), where=f"{sections_service.SECTION_LABELS[section].lower()} "
+        )
+    return resolved
+
+
+def _sync_term_components(
+    db: Session,
+    school_id: uuid.UUID,
+    term_id: uuid.UUID,
+    rows: list[dict],
+    previous: list[dict],
+    *,
+    section: str | None = None,
+) -> None:
+    """Make one scope's school-wide components match its scoresheet.
+
+    ``section`` is the scope: None for the school-wide set, or the section
+    whose own set this is. Components are matched to existing rows by their
+    stable ``key`` (falling back to the name), so renaming a row updates the
+    component in place and the scores already entered against it survive. Rows
+    no longer in the scoresheet are deactivated, never deleted — their score
+    cells stay for the record. Arm-level overrides are left untouched.
+    """
+    existing = list(
+        db.scalars(
+            select(AssessmentComponent).where(
+                AssessmentComponent.school_id == school_id,
+                AssessmentComponent.term_id == term_id,
+                AssessmentComponent.class_arm_id.is_(None),
+                AssessmentComponent.section == section,
+            )
+        )
+    )
+    by_name = {comp.name: comp for comp in existing}
+    by_key = {row["key"]: row for row in previous}
+
+    matched: list[tuple[AssessmentComponent | None, dict]] = []
+    used_ids: set[int] = set()
+    for row in rows:
+        comp = None
+        before = by_key.get(row["key"])
+        if before is not None:
+            comp = by_name.get(before["name"])
+        if comp is None:
+            comp = by_name.get(row["name"])
+        if comp is not None:
+            used_ids.add(id(comp))
+        matched.append((comp, row))
+
+    # Deactivate what the school removed before touching names, so a rename
+    # cannot collide with the row it is replacing.
+    for comp in existing:
+        if id(comp) not in used_ids:
+            comp.is_active = False
+
+    # Park renamed components under a unique name so switching two rows' names
+    # (or reusing a deactivated row's name) cannot trip the uniqueness index.
+    for comp, row in matched:
+        if comp is not None and comp.name != row["name"]:
+            comp.name = f"__pending__{uuid.uuid4().hex[:12]}"
+    db.flush()
+
+    for comp, row in matched:
+        if comp is None:
+            db.add(
+                AssessmentComponent(
+                    school_id=school_id,
+                    term_id=term_id,
+                    class_arm_id=None,
+                    section=section,
+                    name=row["name"],
+                    max_score=row["max_score"],
+                    weight=row["weight"],
+                    sort_order=row["sort_order"],
+                    is_active=True,
+                )
+            )
+            continue
+        comp.name = row["name"]
+        comp.max_score = row["max_score"]
+        comp.weight = row["weight"]
+        comp.sort_order = row["sort_order"]
+        comp.is_active = True
+    db.flush()
+
+
+def scoresheet_state(db: Session, school_id: uuid.UUID) -> dict:
+    """What the school's scoresheet is, and where it applies right now.
+
+    Always answers with the school-wide set, each section's own set where the
+    school has one, and every report card design pinned to a section.
+    """
+    from . import report_card_service  # local: keeps the module graph acyclic
+
+    saved = scoresheet_for(db, school_id)
+    term = _current_term(db, school_id)
+    locked = bool(
+        term is not None
+        and saved is not None
+        and _term_has_published_results(db, school_id, term.id)
+    )
+
+    if saved is not None:
+        default = saved["default"]
+        sections = dict(saved["sections"])
+    else:
+        components = (
+            effective_components(db, school_id, term.id) if term is not None else []
+        )
+        if components:
+            default = [
+                {
+                    "key": str(comp.id),
+                    "name": comp.name,
+                    "max_score": float(comp.max_score),
+                    "weight": float(comp.weight),
+                    "sort_order": order,
+                }
+                for order, comp in enumerate(components)
+            ]
+        else:
+            default = [
+                {**row, "key": f"default-{order}", "sort_order": order}
+                for order, row in enumerate(DEFAULT_SCORESHEET)
+            ]
+        sections = {}
+
+    return {
+        "mode": sections_service.mode_for(db, school_id),
+        "default": default,
+        "sections": {
+            section: (
+                sections[section]
+                if section in sections
+                else [
+                    {**row, "sort_order": order}
+                    for order, row in enumerate(default)
+                ]
+            )
+            for section in sections_service.SECTIONS
+        },
+        "marks_total": round(sum(float(row["max_score"]) for row in default), 2),
+        "is_custom": saved is not None,
+        "applied_term_id": term.id if term is not None else None,
+        "applied_term_name": term.name if term is not None else None,
+        "locked": locked,
+        "report_cards": report_card_service.report_card_sections(db, school_id),
+    }
+
+
+def update_scoresheet(
+    db: Session, school_id: uuid.UUID, payload: dict
+) -> dict:
+    """Store the school's structure and put it in force for the current term.
+
+    Storing it is always allowed — it is what future terms will inherit. The
+    current term is updated too unless its results are already published, in
+    which case the change waits for the next term rather than altering marks a
+    school has handed out.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+
+    previous = scoresheet_for(db, school_id) or {"default": [], "sections": {}}
+    resolved = _normalise_scoresheet(payload)
+
+    settings = dict(school.settings or {})
+    settings["section_mode"] = payload["mode"]
+    settings["scoresheet"] = resolved
+    school.settings = settings
+    db.flush()
+
+    term = _current_term(db, school_id)
+    if term is None or _term_has_published_results(db, school_id, term.id):
+        return scoresheet_state(db, school_id)
+
+    _sync_term_components(
+        db, school_id, term.id, resolved["default"], previous["default"]
+    )
+    for section in sections_service.SECTIONS:
+        rows = resolved["sections"].get(section)
+        before = previous["sections"].get(section)
+        if not rows and not before:
+            continue
+        _sync_term_components(
+            db, school_id, term.id, rows or [], before or [], section=section
+        )
+
+    return scoresheet_state(db, school_id)
 
 
 # --- Per-school results policy ------------------------------------------------
@@ -2421,7 +2899,13 @@ def report_card(
             "id": str(term.academic_session_id),
             "name": session.name if session else str(term.academic_session_id),
         },
-        "class_arm": {"id": str(arm.id), "full_name": arm.full_name},
+        # The class's section rides along so an archived card can be redrawn in
+        # the design its own section prints with.
+        "class_arm": {
+            "id": str(arm.id),
+            "full_name": arm.full_name,
+            "section": arm.section,
+        },
         "academic_year": session.name if session else str(term.academic_session_id),
         "report_date": date.today(),
         "subjects": subject_rows,
@@ -2553,6 +3037,15 @@ def archive_term_results(
                 "name": session.name if session is not None else None,
             },
             "layout": report_card_service.default_layout(db, school_id),
+            # A school that keeps its sections separate prints its cards in more
+            # than one design, so every section's is frozen, not just the
+            # school-wide one.
+            "layouts": {
+                section: report_card_service.default_layout(
+                    db, school_id, section=section
+                )
+                for section in sections_service.SECTIONS
+            },
             # Dates (report_date, next_term_date) are Python ``date`` objects on
             # the card dict; normalise them the same way the HTTP response does
             # so the JSONB column accepts the payload.

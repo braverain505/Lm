@@ -216,6 +216,30 @@ class ReportCardTemplateBrief(BaseModel):
     builtin: bool = False
 
 
+class SectionDesignsIn(BaseModel):
+    """Which design each section draws, by section name.
+
+    Only the sections present are changed; a null clears the pin so that
+    section goes back to the school's default design.
+    """
+
+    designs: dict[str, uuid.UUID | None] = {}
+
+
+class SectionDesignOut(BaseModel):
+    """The design in force for one section.
+
+    ``template_id`` is the section's own design, stored whether or not it is in
+    force yet; null means the section follows the school default. ``name`` is
+    the design its classes actually draw, and ``applied`` says whether that is
+    this section's own.
+    """
+
+    template_id: uuid.UUID | None = None
+    name: str | None = None
+    applied: bool = False
+
+
 __all__ = [
     "DEFAULT_THEME",
     "LAYOUT_VERSION",

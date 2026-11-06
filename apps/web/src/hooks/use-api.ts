@@ -43,6 +43,7 @@ import type {
   ReadyRow,
   ReportCard,
   ResultsPolicy,
+  ScoresheetInput,
   ReportCardDesign,
   ReportCardTemplate,
   ReportCardTemplateIn,
@@ -104,6 +105,8 @@ import type {
   ReceiptEmailResult,
   Refund,
   RefundIn,
+  SectionDesigns,
+  SectionKey,
 } from "@clearis/shared";
 
 import { api, reviewResults, compileResults, type ResultAction } from "@clearis/shared";
@@ -327,9 +330,9 @@ export function useArms(sessionId: string | null) {
 }
 
 /**
- * Change a class's label and/or its class group. Only the fields passed are
- * sent, so clearing a group is `group_name: null` and leaving it alone is
- * simply omitting it.
+ * Change a class's label, its class group, and/or its section. Only the fields
+ * passed are sent, so clearing one is an explicit `null` and leaving it alone
+ * is simply omitting it.
  */
 export function useRenameArm() {
   const schoolId = useActiveSchoolId();
@@ -339,15 +342,22 @@ export function useRenameArm() {
       armId,
       name,
       groupName,
+      section,
     }: {
       armId: string;
       name?: string;
       groupName?: string | null;
+      section?: SectionKey | null;
     }) => {
       if (!schoolId) throw new Error("No active school");
-      const body: { name?: string; group_name?: string | null } = {};
+      const body: {
+        name?: string;
+        group_name?: string | null;
+        section?: SectionKey | null;
+      } = {};
       if (name !== undefined) body.name = name;
       if (groupName !== undefined) body.group_name = groupName;
+      if (section !== undefined) body.section = section;
       return api.schoolFetch<Arm>(schoolId, `/academics/arms/${armId}`, {
         method: "PATCH",
         body: JSON.stringify(body),
@@ -381,6 +391,65 @@ export function useComponents(termId: string | null, armId: string | null) {
         schoolId!,
         `/results/components?term_id=${termId}${q}`,
       );
+    },
+  });
+}
+
+export function useScoresheet() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["scoresheet", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchScoresheet(schoolId!),
+  });
+}
+
+export function useUpdateScoresheet() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: ScoresheetInput) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateScoresheet(schoolId, body);
+    },
+    onSuccess: () => {
+      // The structure drives the score grid and every card: refresh them all.
+      void queryClient.invalidateQueries({ queryKey: ["scoresheet", schoolId] });
+      void queryClient.invalidateQueries({ queryKey: ["components"] });
+      void queryClient.invalidateQueries({ queryKey: ["scorecard"] });
+      void queryClient.invalidateQueries({ queryKey: ["report-card"] });
+      void queryClient.invalidateQueries({ queryKey: ["report-cards"] });
+      // And the switch decides whether each section's own design applies.
+      void queryClient.invalidateQueries({ queryKey: ["section-designs", schoolId] });
+      void queryClient.invalidateQueries({ queryKey: ["report-card-design"] });
+    },
+  });
+}
+
+/** Which report card design each section draws. */
+export function useSectionDesigns() {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["section-designs", schoolId],
+    enabled: !!schoolId,
+    queryFn: async () => api.fetchSectionDesigns(schoolId!),
+  });
+}
+
+export function useUpdateSectionDesigns() {
+  const schoolId = useActiveSchoolId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (designs: Partial<Record<SectionKey, string | null>>) => {
+      if (!schoolId) throw new Error("No active school");
+      return api.updateSectionDesigns(schoolId, designs);
+    },
+    onSuccess: (saved: SectionDesigns) => {
+      queryClient.setQueryData(["section-designs", schoolId], saved);
+      void queryClient.invalidateQueries({ queryKey: ["scoresheet", schoolId] });
+      void queryClient.invalidateQueries({ queryKey: ["report-card-design"] });
+      void queryClient.invalidateQueries({ queryKey: ["report-card"] });
+      void queryClient.invalidateQueries({ queryKey: ["report-cards"] });
     },
   });
 }
@@ -675,12 +744,16 @@ export function useResultComment(studentId: string | null, termId: string | null
 // The design the renderers draw with. A school that has saved none gets the
 // built-in card (``builtin: true``), so this never has to be conditionally
 // fetched — the layout is always present.
-export function useReportCardDesign() {
+//
+// Pass a class's section to get the card that class draws: its section's own
+// design when the school keeps its sections separate, the school default
+// otherwise.
+export function useReportCardDesign(section?: SectionKey) {
   const schoolId = useActiveSchoolId();
   return useQuery({
-    queryKey: ["report-card-design", schoolId],
+    queryKey: ["report-card-design", schoolId, section ?? "default"],
     enabled: !!schoolId,
-    queryFn: async () => api.fetchReportCardDesign(schoolId!),
+    queryFn: async () => api.fetchReportCardDesign(schoolId!, section),
   });
 }
 

@@ -71,8 +71,15 @@ def result_check(body: SchoolPinCheck, request: Request, db: DbSession):
         school=_school_brief(school),
         # The school's own card design, so a parent's copy and the exam
         # office's copy are the same document. Read here (not per card) because
-        # it is school-wide and this response happens once per portal session.
-        report_template=report_card_service.default_layout(db, school.id),
+        # it is fixed for the portal session. A school that keeps its sections
+        # separate gets the design for the child's own section.
+        report_template=report_card_service.default_layout(
+            db,
+            school.id,
+            section=portal_service.current_section(
+                db, school_id=school.id, student_id=student.id
+            ),
+        ),
     )
 
 

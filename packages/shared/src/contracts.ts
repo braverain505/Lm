@@ -142,6 +142,23 @@ export const ResultsPolicySchema = z.object({
 });
 export type ResultsPolicy = z.infer<typeof ResultsPolicySchema>;
 
+// Which part of the school a class belongs to. A school that runs its sections
+// differently gives each its own scoresheet and its own report card design;
+// "same" keeps one structure for every class and is what every school has
+// until it says otherwise.
+export const SECTION_KEYS = ["nursery", "primary", "secondary"] as const;
+export const SectionKeySchema = z.enum(SECTION_KEYS);
+export type SectionKey = z.infer<typeof SectionKeySchema>;
+
+export const SECTION_LABELS: Record<SectionKey, string> = {
+  nursery: "Nursery",
+  primary: "Primary",
+  secondary: "Secondary",
+};
+
+export const SectionModeSchema = z.enum(["same", "separate"]);
+export type SectionMode = z.infer<typeof SectionModeSchema>;
+
 export const ArmSchema = z.object({
   id: z.string().uuid(),
   academic_session_id: z.string().uuid(),
@@ -150,6 +167,9 @@ export const ArmSchema = z.object({
   // Classes sharing a group are ranked as one in results ("SS 1" over its
   // Science/Arts/Commercial arms). Null = the class ranks on its own.
   group_name: z.string().nullable().default(null),
+  // Which part of the school the class belongs to. Null = the school has not
+  // classified it, so it follows the school-wide scoresheet and card.
+  section: SectionKeySchema.nullable().default(null),
 });
 export type Arm = z.infer<typeof ArmSchema>;
 
@@ -328,6 +348,71 @@ export const AssessmentComponentSchema = z.object({
 });
 export type AssessmentComponent = z.infer<typeof AssessmentComponentSchema>;
 
+// The school's own scoresheet: what the term's marks are made of, in force
+// until the school changes it. `weight` is derived server-side from the mark
+// limits, so the final result is always on the 0-100 scale.
+export const ScoresheetComponentSchema = z.object({
+  key: z.string(),
+  name: z.string(),
+  max_score: z.number(),
+  weight: z.number(),
+  sort_order: z.number(),
+});
+export type ScoresheetComponent = z.infer<typeof ScoresheetComponentSchema>;
+
+const SectionScoresheetsSchema = z.object({
+  nursery: z.array(ScoresheetComponentSchema),
+  primary: z.array(ScoresheetComponentSchema),
+  secondary: z.array(ScoresheetComponentSchema),
+});
+
+// The design a section draws. `template_id` is the section's own design —
+// stored even before the switch makes it apply — and `applied` says whether it
+// is the one its classes draw now.
+export const SectionDesignSchema = z.object({
+  template_id: z.string().uuid().nullable(),
+  name: z.string().nullable(),
+  applied: z.boolean(),
+});
+export type SectionDesign = z.infer<typeof SectionDesignSchema>;
+
+// Every section answers, so a caller never has to fill in a missing one.
+export const SectionDesignsSchema = z.object({
+  nursery: SectionDesignSchema,
+  primary: SectionDesignSchema,
+  secondary: SectionDesignSchema,
+});
+export type SectionDesigns = z.infer<typeof SectionDesignsSchema>;
+
+export const ScoresheetSchema = z.object({
+  mode: SectionModeSchema,
+  // The school-wide scoresheet: what every class uses in "same" mode, and the
+  // fallback for a section that has not been given one of its own.
+  default: z.array(ScoresheetComponentSchema),
+  sections: SectionScoresheetsSchema,
+  marks_total: z.number(),
+  is_custom: z.boolean(),
+  applied_term_id: z.string().uuid().nullable(),
+  applied_term_name: z.string().nullable(),
+  locked: z.boolean(),
+  report_cards: SectionDesignsSchema,
+});
+export type Scoresheet = z.infer<typeof ScoresheetSchema>;
+
+export const ScoresheetRowInputSchema = z.object({
+  key: z.string().optional(),
+  name: z.string(),
+  max_score: z.number(),
+});
+export type ScoresheetRowInput = z.infer<typeof ScoresheetRowInputSchema>;
+
+export const ScoresheetInputSchema = z.object({
+  mode: SectionModeSchema,
+  default: z.array(ScoresheetRowInputSchema),
+  sections: z.record(SectionKeySchema, z.array(ScoresheetRowInputSchema).nullable()),
+});
+export type ScoresheetInput = z.infer<typeof ScoresheetInputSchema>;
+
 export const ScoreCardRowSchema = z.object({
   enrollment_id: z.string().uuid(),
   student_id: z.string().uuid(),
@@ -472,7 +557,11 @@ export const ReportCardSchema = z.object({
   enrollment_id: z.string().uuid(),
   term: z.object({ id: z.string().uuid(), name: z.string() }),
   session: z.object({ id: z.string().uuid(), name: z.string() }),
-  class_arm: z.object({ id: z.string().uuid(), full_name: z.string() }),
+  class_arm: z.object({
+    id: z.string().uuid(),
+    full_name: z.string(),
+    section: SectionKeySchema.nullable().default(null),
+  }),
   academic_year: z.string(),
   report_date: z.string(),
   subjects: z.array(ReportSubjectRowSchema),
@@ -592,6 +681,9 @@ export const TermArchiveDetailSchema = TermArchiveSchema.extend({
       // Kept loose here because the layout contract is declared below; the
       // archive viewer parses it with ReportLayoutSchema before rendering.
       layout: z.record(z.unknown()).nullable().optional(),
+      // One design per section, for a school that prints its sections
+      // differently; `layout` stays the school-wide one.
+      layouts: z.record(z.string(), z.record(z.unknown())).optional(),
       students: z.array(ReportCardSchema).default([]),
     })
     .passthrough(),

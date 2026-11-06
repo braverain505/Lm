@@ -25,20 +25,30 @@ class AssessmentComponent(TenantScopedBase, Base):
     Versioned per term: NULL ``class_arm_id`` rows are the school-wide default
     for that term; arm rows override. Changing the component set touches only
     the target term, never past terms.
+
+    ``section`` narrows a school-wide row to one part of the school — nursery,
+    primary or secondary — so a school that marks its sections differently has
+    a full set per section rather than one mixed list. A school-wide row
+    (``section`` NULL) is the one every class uses when the school works from a
+    single scoresheet, and is the fallback for a section that has none of its
+    own.
     """
 
     __tablename__ = "assessment_components"
     __table_args__ = (
-        # One component per (school, term, scope, name). NULL class_arm_id rows
-        # are the school-wide default, and a NULL-arm default with the same name
-        # as an arm-level override must be allowed — so the uniqueness treats
-        # NULLs as NOT DISTINCT (Postgres 15+). A plain UniqueConstraint would
-        # let duplicate school-wide names slip through.
+        # One component per (school, term, scope, section, name). NULL
+        # class_arm_id rows are the school-wide default, and a NULL-arm default
+        # with the same name as an arm-level override must be allowed — so the
+        # uniqueness treats NULLs as NOT DISTINCT (Postgres 15+). A plain
+        # UniqueConstraint would let duplicate school-wide names slip through.
+        # ``section`` is part of the key for the same reason: a school in
+        # "separate sections" mode has a "1st CA" per section.
         Index(
             "uq_component_scope_name",
             "school_id",
             "term_id",
             "class_arm_id",
+            "section",
             "name",
             unique=True,
             postgresql_nulls_not_distinct=True,
@@ -51,6 +61,7 @@ class AssessmentComponent(TenantScopedBase, Base):
     class_arm_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("class_arms.id", ondelete="CASCADE")
     )
+    section: Mapped[str | None] = mapped_column(String(16))
     name: Mapped[str] = mapped_column(String(60), nullable=False)  # "CA", "Exam"
     max_score: Mapped[float] = mapped_column(Numeric(7, 2), nullable=False)
     weight: Mapped[float] = mapped_column(Numeric(7, 2), nullable=False)  # % towards 100
