@@ -91,7 +91,7 @@ export const SAMPLE_CARD: ReportCard = {
   enrollment_id: U(2),
   term: { id: U(3), name: "First Term" },
   session: { id: U(4), name: "2026/2027" },
-  class_arm: { id: U(5), full_name: "JSS 1 A" },
+  class_arm: { id: U(5), full_name: "JSS 1 A", section: "secondary" },
   academic_year: "2026/2027",
   report_date: "2026-12-11",
   subjects: [
