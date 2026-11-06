@@ -106,10 +106,22 @@ export default function TeachersPage() {
   const saveEdit = () => {
     if (!editFor) return;
     updateStaff.mutate(
-      { staffId: editFor, data: editForm },
+      {
+        staffId: editFor,
+        // A box left empty means "nothing on file", not an empty value — an
+        // empty email is not an address, so it goes as null and clears the
+        // field. Only the fields this form shows are sent; the rest of the
+        // record is left as it is.
+        data: {
+          full_name: editForm.full_name.trim(),
+          phone: editForm.phone.trim() || null,
+          email: editForm.email.trim() || null,
+          gender: editForm.gender || null,
+        },
+      },
       {
         onSuccess: () => { toast("Staff updated"); setEditFor(null); },
-        onError: () => toast("Failed to update staff", "error"),
+        onError: (err: Error) => toast(err.message || "Failed to update staff", "error"),
       },
     );
   };
@@ -762,7 +774,7 @@ function TeacherRow(props: TeacherRowProps) {
                 </select>
               </div>
               <div className="flex items-end gap-2">
-                <Button onClick={saveEdit} disabled={updateStaffPending}>
+                <Button onClick={saveEdit} disabled={updateStaffPending || !editForm.full_name.trim()}>
                   {updateStaffPending ? "Saving…" : "Save"}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setEditFor(null)}>Cancel</Button>

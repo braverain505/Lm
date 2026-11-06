@@ -2,7 +2,7 @@
 import uuid
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, computed_field, field_validator
 
 from ..core.validators import sanitize_string_field
 
@@ -53,10 +53,32 @@ class StaffCreate(BaseModel):
 
 
 class StaffUpdate(BaseModel):
+    """A partial edit of a staff member's own details.
+
+    The edit form posts every field it shows, blank ones included, so a blank
+    optional field means "nothing on file" — it clears the column rather than
+    failing to parse as an address. A field the form does not send at all is
+    left as it is.
+    """
+
     full_name: str | None = None
     phone: str | None = None
     email: EmailStr | None = None
+    gender: str | None = None
     employment_status: str | None = None
+
+    # Blank strings and None alike become None, so an emptied box is a clear.
+    _sanitize = sanitize_string_field("full_name", "phone", "gender", "email")
+
+    @field_validator("full_name")
+    @classmethod
+    def _a_name_is_required(cls, value: str | None) -> str:
+        # Only reached when the form did send the name — a field left out
+        # entirely keeps its default and never gets here. A name sent blank is
+        # a mistake, not a request to clear a column that cannot be empty.
+        if value is None or not value.strip():
+            raise ValueError("A staff member needs a name")
+        return value
 
 
 class StaffAccountCreate(BaseModel):

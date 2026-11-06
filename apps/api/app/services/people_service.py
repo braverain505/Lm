@@ -189,9 +189,24 @@ def update_staff(
     staff_id: uuid.UUID,
     **fields,
 ) -> Staff:
+    """Apply a partial edit to a staff member's own details.
+
+    A field the caller left out is not in ``fields`` at all and keeps its
+    value. A field sent as None was emptied on purpose — the school is saying
+    there is no such detail on file — so it clears the column, but only where
+    the column can be empty. A None aimed at a column that must hold a value is
+    ignored rather than written.
+    """
     staff = get_staff(db, school_id, staff_id)
+    columns = Staff.__table__.columns
     for key, value in fields.items():
-        if value is not None and hasattr(staff, key):
+        column = columns.get(key)
+        if column is None:
+            continue
+        if value is None:
+            if column.nullable:
+                setattr(staff, key, None)
+        else:
             setattr(staff, key, value)
     db.flush()
     return staff
