@@ -48,7 +48,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SessionTermProvider>
-      <div className="min-h-screen bg-background text-foreground">
+      <div className="relative min-h-screen bg-background text-foreground">
+        {/* ─── Ambient field ───
+            A single soft light source behind the workspace: three drifting
+            colour wells plus a faint grid that fades toward the edges. Purely
+            decorative, so it never intercepts a pointer and never prints. */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 overflow-hidden print:hidden"
+        >
+          <div className="aurora opacity-70" />
+          <div className="grid-fade opacity-40" />
+        </div>
+
         {/* ─── Desktop & Tablet: Main Navigation Sidebar ─── */}
         <div
           className="fixed inset-y-0 left-0 z-30 hidden md:block print:hidden"
@@ -87,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* ─── Main content ─── */}
         <motion.div
-          className="flex min-h-screen flex-col print:!pl-0"
+          className="relative z-10 flex min-h-screen flex-col print:!pl-0"
           initial={false}
           animate={{ paddingLeft: contentPaddingLeft }}
           transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}

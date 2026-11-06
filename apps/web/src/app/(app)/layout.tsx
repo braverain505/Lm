@@ -8,7 +8,7 @@ import { ReactNode, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Loader } from "@/components/ui/loader";
+import { OrbitLoader } from "@/components/ui/loader";
 import { useAuth } from "@/providers/auth-provider";
 import { api } from "@clearis/shared";
 
@@ -54,8 +54,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="aurora opacity-70" />
+        </div>
+        <div className="relative flex flex-col items-center gap-5">
+          <OrbitLoader size={46} label="Opening Clearis" />
+          <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-muted-foreground">
+            Clearis
+          </p>
+        </div>
       </div>
     );
   }

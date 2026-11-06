@@ -21,7 +21,7 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function DashboardCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="card-surface rounded-2xl border border-border/60 bg-card p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1 space-y-2">
           <Skeleton className="h-3 w-20 rounded-md" />
@@ -36,7 +36,7 @@ export function DashboardCardSkeleton() {
 
 export function DashboardChartSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="card-surface rounded-2xl border border-border/60 bg-card p-6">
       <div className="mb-4 space-y-1.5">
         <Skeleton className="h-4 w-32 rounded-md" />
         <Skeleton className="h-3 w-48 rounded-md" />
@@ -48,7 +48,7 @@ export function DashboardChartSkeleton() {
 
 export function DashboardListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="card-surface rounded-2xl border border-border/60 bg-card">
       <div className="border-b border-border/40 px-5 py-4">
         <Skeleton className="h-4 w-28 rounded-md" />
         <Skeleton className="mt-1.5 h-3 w-40 rounded-md" />
@@ -71,7 +71,7 @@ export function DashboardListSkeleton({ rows = 4 }: { rows?: number }) {
 
 export function DashboardQuickActionsSkeleton() {
   return (
-    <div className="rounded-2xl border border-white/60 bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+    <div className="card-surface rounded-2xl border border-border/60 bg-card p-6">
       <div className="mb-4 space-y-1.5">
         <Skeleton className="h-4 w-24 rounded-md" />
         <Skeleton className="h-3 w-36 rounded-md" />

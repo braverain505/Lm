@@ -1,89 +1,57 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
 import { useIsFetching } from "@tanstack/react-query";
+import { ReactNode, useEffect, useRef, useState } from "react";
+
 import { LoadingScreen } from "@/components/loading-screen";
+import { ProcessingBar } from "@/components/processing-indicator";
 
-interface LoadingProviderProps {
-  children: ReactNode;
-}
+// Show the branded splash only for the first batch of requests after a page
+// load; everything after that is background work and gets the thin top bar.
+const SPLASH_DELAY = 300; // ms
+const SPLASH_TIMEOUT = 8000; // never hold someone hostage to a slow boot
 
-// Delay to show loading screen only for meaningful loads (not instantaneous fetches)
-const MIN_LOADING_DELAY = 300; // ms
-const GLOBAL_LOADING_TIMEOUT = 5000; // Maximum time to show loading screen
-
-export function LoadingProvider({ children }: LoadingProviderProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
-  const [loadingTimeoutId, setLoadingTimeoutId] = useState<NodeJS.Timeout | null>(null);
-
-  // Use React Query's global fetching state
+export function LoadingProvider({ children }: { children: ReactNode }) {
   const isFetching = useIsFetching();
+  const booted = useRef(false);
+  const [bootFinished, setBootFinished] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
 
   useEffect(() => {
-    // Clear any existing timeout
-    if (loadingTimeoutId) {
-      clearTimeout(loadingTimeoutId);
-    }
+    if (bootFinished) return;
 
     if (isFetching > 0) {
-      // Start loading
-      setIsLoading(true);
-
-      // Show loading screen after a short delay to avoid flash for quick loads
-      const timeout = setTimeout(() => {
-        setShowLoadingScreen(true);
-      }, MIN_LOADING_DELAY);
-
-      setLoadingTimeoutId(timeout);
-
-      // Safety timeout - hide loading screen after max duration
-      const safetyTimeout = setTimeout(() => {
-        setShowLoadingScreen(false);
-        setIsLoading(false);
-      }, GLOBAL_LOADING_TIMEOUT);
-
-      setLoadingTimeoutId(prev => {
-        if (prev) clearTimeout(prev);
-        return safetyTimeout;
-      });
-    } else {
-      // Stop loading
-      setIsLoading(false);
-      setShowLoadingScreen(false);
-      setLoadingTimeoutId(null);
+      booted.current = true;
+      const delay = setTimeout(() => setShowSplash(true), SPLASH_DELAY);
+      const safety = setTimeout(() => setShowSplash(false), SPLASH_TIMEOUT);
+      return () => {
+        clearTimeout(delay);
+        clearTimeout(safety);
+      };
     }
 
-    return () => {
-      if (loadingTimeoutId) {
-        clearTimeout(loadingTimeoutId);
-      }
-    };
-  }, [isFetching]);
+    // The first burst of requests has settled.
+    if (booted.current) {
+      setShowSplash(false);
+      setBootFinished(true);
+    }
+  }, [isFetching, bootFinished]);
 
   return (
     <>
-      {showLoadingScreen && <LoadingScreen />}
+      <ProcessingBar />
+      {showSplash && !bootFinished && <LoadingScreen />}
       {children}
     </>
   );
 }
 
-// Hook to manually control loading state (for non-query loads)
+// Kept for call sites that manage a local loading flag by hand.
 export function useLoading() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const startLoading = () => {
-    setIsLoading(true);
-  };
+  const startLoading = () => setIsLoading(true);
+  const stopLoading = () => setIsLoading(false);
 
-  const stopLoading = () => {
-    setIsLoading(false);
-  };
-
-  return {
-    isLoading,
-    startLoading,
-    stopLoading,
-  };
+  return { isLoading, startLoading, stopLoading };
 }

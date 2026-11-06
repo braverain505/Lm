@@ -16,6 +16,7 @@
     /* ─── Surfaces ─── */
     --card: 0 0% 100%;
     --card-foreground: 224 24% 11%;
+    --surface-highlight: 0 0% 100%;
 
     /* ─── Brand — Toxic Violet ─── */
     --primary: 262 84% 52%;
@@ -139,6 +140,7 @@
 
     --card: 224 20% 13%;
     --card-foreground: 220 24% 98%;
+    --surface-highlight: 220 30% 98%;
 
     /* ─── Brand — Brighter Toxic Violet in Dark ─── */
     --primary: 262 88% 60%;
@@ -296,6 +298,97 @@
   background: rgba(20, 20, 28, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ─── Futuristic-minimal surface language ────────────────────────────────
+   Hairlines instead of heavy rules, a single soft light source at the top of
+   each surface, and tabular numerals so numbers stay calm as they change. */
+@layer utilities {
+  .surface {
+    background:
+      linear-gradient(180deg, hsl(var(--surface-highlight) / 0.55), transparent 140px),
+      hsl(var(--card));
+  }
+  .hairline {
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.62);
+  }
+  .edge-light {
+    box-shadow: inset 0 1px 0 hsl(var(--surface-highlight) / 0.7);
+  }
+  .metric {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+  }
+  .text-gradient {
+    background: linear-gradient(
+      120deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--foreground) / 0.6) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* One light source, from above: hairline rim + a faint top highlight. */
+  .card-surface {
+    box-shadow:
+      inset 0 1px 0 hsl(var(--surface-highlight) / 0.6),
+      0 1px 2px rgb(0 0 0 / 0.04);
+  }
+  .dark .card-surface {
+    box-shadow:
+      inset 0 1px 0 hsl(var(--surface-highlight) / 0.06),
+      0 1px 2px rgb(0 0 0 / 0.3);
+  }
+  /* A glass highlight across the top half of a solid primary button. */
+  .primary-sheen {
+    background-image: linear-gradient(
+      180deg,
+      hsl(0 0% 100% / 0.16),
+      transparent 58%
+    );
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.2);
+  }
+}
+
+/* Ambient field: three very low-opacity colour wells, slowly drifting.
+   Sits behind the app content; never intercepts a click. */
+.aurora {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 12% 8%, hsl(262 84% 60% / 0.14), transparent 70%),
+    radial-gradient(32% 38% at 88% 2%, hsl(190 92% 55% / 0.10), transparent 70%),
+    radial-gradient(42% 44% at 62% 100%, hsl(320 82% 62% / 0.08), transparent 72%);
+  filter: blur(8px);
+  animation: aurora-drift 18s ease-in-out infinite;
+}
+.dark .aurora {
+  background:
+    radial-gradient(38% 42% at 12% 8%, hsl(262 90% 62% / 0.20), transparent 70%),
+    radial-gradient(32% 38% at 88% 2%, hsl(190 92% 58% / 0.13), transparent 70%),
+    radial-gradient(42% 44% at 62% 100%, hsl(320 84% 62% / 0.10), transparent 72%);
+}
+
+/* Faint architectural grid, faded out toward the edges. */
+.grid-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black, transparent 78%);
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    animation: none;
+  }
 }
 
 /* Print */
