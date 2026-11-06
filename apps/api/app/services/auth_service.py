@@ -209,6 +209,10 @@ def login(
     if user.failed_login_count or user.locked_until:
         user.failed_login_count = 0
         user.locked_until = None
+    # Upgrade hashes written with an older (more expensive) work factor, so a
+    # user pays the slow check only on their first sign-in after a change here.
+    if security.password_needs_rehash(user.password_hash):
+        user.password_hash = security.hash_password(password)
     result = _issue_tokens(db, user, device=device, ip=ip)
     _log_auth(db, user, "login", ip=ip, details="Platform login" if user.is_superadmin else "School login")
     # committed by the router (single commit point per request)

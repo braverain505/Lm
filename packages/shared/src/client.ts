@@ -78,6 +78,8 @@ import {
   TeacherOutSchema,
   ReportCard,
   ReportCardSchema,
+  CommentWorklistRow,
+  CommentWorklistRowSchema,
   ReportCardDesign,
   ReportCardDesignSchema,
   ReportCardTemplate,
@@ -455,6 +457,8 @@ export type SchoolProfile = {
   address: string | null;
   state: string | null;
   country: string;
+  // The head teacher's signature for report cards (data URL + caption).
+  principal_signature?: { url: string; name: string | null } | null;
 };
 
 export async function fetchSchoolMe(schoolId: string): Promise<SchoolProfile> {
@@ -870,6 +874,15 @@ export const fetchReportCards = (schoolId: string, armId: string, termId: string
     `/results/report-cards?arm_id=${armId}&term_id=${termId}`,
     {},
     ReportCardSchema.array().parse,
+  );
+
+/** The class register with its remarks so far — published results not needed. */
+export const fetchCommentWorklist = (schoolId: string, armId: string, termId: string) =>
+  schoolFetch<CommentWorklistRow[]>(
+    schoolId,
+    `/results/comment-worklist?arm_id=${armId}&term_id=${termId}`,
+    {},
+    CommentWorklistRowSchema.array().parse,
   );
 
 // --- Archived report cards (previous versions of a reopened term) -------------
@@ -1453,11 +1466,17 @@ async function prepareImageForUpload(file: File): Promise<Blob> {
   }
 }
 
-export const uploadSchoolLogo = async (schoolId: string, file: File) => {
+async function uploadImageWithCaption(
+  schoolId: string,
+  path: string,
+  file: File,
+  fields: Record<string, string> = {},
+) {
   const prepared = await prepareImageForUpload(file);
   const body = new FormData();
   body.append("file", prepared);
-  const res = await fetchWithRefresh("/uploads/school-logo", {
+  for (const [key, value] of Object.entries(fields)) body.append(key, value);
+  const res = await fetchWithRefresh(path, {
     method: "POST",
     body,
     headers: { "X-School-Id": schoolId },
@@ -1471,7 +1490,39 @@ export const uploadSchoolLogo = async (schoolId: string, file: File) => {
     );
   }
   return (data as { photo_url: string }).photo_url;
-};
+}
+
+export const uploadSchoolLogo = (schoolId: string, file: File) =>
+  uploadImageWithCaption(schoolId, "/uploads/school-logo", file);
+
+/**
+ * The head teacher's signature, printed on every report card. `name` is the
+ * caption under it ("Mrs. A. Bello"); leave it empty to print "Principal".
+ */
+export const uploadPrincipalSignature = (
+  schoolId: string,
+  file: File,
+  name?: string,
+) =>
+  uploadImageWithCaption(
+    schoolId,
+    "/uploads/principal-signature",
+    file,
+    name?.trim() ? { name: name.trim() } : {},
+  );
+
+export const clearPrincipalSignature = (schoolId: string) =>
+  schoolFetch<{ removed: boolean }>(schoolId, "/uploads/principal-signature", {
+    method: "DELETE",
+  });
+
+/** Change the caption under an already-uploaded signature. */
+export const updatePrincipalSignatureName = (schoolId: string, name: string) =>
+  schoolFetch<{ url: string; name: string | null }>(
+    schoolId,
+    "/uploads/principal-signature",
+    { method: "PATCH", body: JSON.stringify({ name: name.trim() || null }) },
+  );
 
 export const fetchEnrollmentHistory = (schoolId: string, studentId: string) =>
   schoolFetch<EnrollmentHistoryRow[]>(
@@ -2396,6 +2447,9 @@ export const api = {
   superAdminResetAdmin,
   superAdminImpersonate,
   superAdminDeleteSchool,
+  uploadPrincipalSignature,
+  updatePrincipalSignatureName,
+  clearPrincipalSignature,
   impersonateEnter,
   impersonateExit,
   superAdminIssues,
@@ -2415,6 +2469,7 @@ export const api = {
   fetchReportIndex,
   fetchReportCard,
   fetchReportCards,
+  fetchCommentWorklist,
   fetchTermArchives,
   fetchTermArchive,
   fetchResultsPolicy,

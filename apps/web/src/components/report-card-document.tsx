@@ -140,22 +140,26 @@ function LogoFrame({ src, fallback }: { src?: string | null; fallback: string })
   );
 }
 
-/** One signatory line: rule, name, role, date. */
+/** One signatory line: the uploaded signature (if any), rule, name, role, date. */
 function Signature({
   who,
   role,
   date,
   showLine = true,
   showDate = true,
+  imageUrl,
 }: {
   who: string;
   role?: string;
   date?: string;
   showLine?: boolean;
   showDate?: boolean;
+  /** A data URL of the signatory's own signature, printed above the rule. */
+  imageUrl?: string | null;
 }) {
   return (
     <div className="rc-sign">
+      {imageUrl && <img className="rc-sign-image" src={imageUrl} alt="" />}
       {showLine && <div className="rc-sign-line" />}
       <div className="who">{who}</div>
       {role && <div className="role">{role}</div>}
@@ -520,7 +524,12 @@ function CommentsWidget({ widget, card }: { widget: ReportWidget; card: ReportCa
         <div className="rc-comment">
           <h4>{propText(widget, "principal_label", "Principal's Comment")}</h4>
           <p>{card.comments.principal ?? "—"}</p>
-          <Signature who="Principal" date={date} showLine={showLines} />
+          <Signature
+            who={card.school.principal_signature_name ?? "Principal"}
+            date={date}
+            showLine={showLines}
+            imageUrl={card.school.principal_signature_url}
+          />
         </div>
         {showVp && (
           <div className="rc-comment">
@@ -546,18 +555,42 @@ function CommentsWidget({ widget, card }: { widget: ReportWidget; card: ReportCa
 function SignaturesWidget({ widget, card }: { widget: ReportWidget; card: ReportCard }) {
   const showDates = prop(widget, "show_dates", true);
   const date = formatDay(card.report_date);
-  const names = [
-    propText(widget, "principal_label", "Principal"),
-    propText(widget, "vice_principal_label", "Vice Principal"),
-    propText(widget, "homeroom_label", "Homeroom Teacher"),
-  ].filter(Boolean);
-  if (names.length === 0) return null;
+  // Only the principal's line can carry an uploaded signature — the school
+  // keeps one signature, and it is the head teacher's.
+  const signatories = [
+    {
+      key: "principal",
+      label: propText(widget, "principal_label", "Principal"),
+      who: card.school.principal_signature_name ?? null,
+      imageUrl: card.school.principal_signature_url,
+    },
+    {
+      key: "vice_principal",
+      label: propText(widget, "vice_principal_label", "Vice Principal"),
+      who: null,
+      imageUrl: null,
+    },
+    {
+      key: "homeroom",
+      label: propText(widget, "homeroom_label", "Homeroom Teacher"),
+      who: null,
+      imageUrl: null,
+    },
+  ].filter((entry) => Boolean(entry.label));
+  if (signatories.length === 0) return null;
   return (
     <section className="rc-signblock">
       <h3>{propText(widget, "title", "Signatures")}</h3>
       <div className="rc-signgrid">
-        {names.map((name) => (
-          <Signature key={name} who={name} date={date} showDate={showDates} />
+        {signatories.map((entry) => (
+          <Signature
+            key={entry.key}
+            who={entry.who ?? entry.label}
+            role={entry.who ? entry.label : undefined}
+            date={date}
+            showDate={showDates}
+            imageUrl={entry.imageUrl}
+          />
         ))}
       </div>
     </section>

@@ -14,19 +14,18 @@ import {
   useSessions,
   useTerms,
   useArms,
-  useMyAssignments,
-  useReportCards,
+  useCommentWorklist,
 } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { cn } from "@/lib/utils";
-import type { ReportCard } from "@clearis/shared";
+import type { CommentWorklistRow } from "@clearis/shared";
 
 function StudentCommentRow({
   card,
   defaultOpen,
   userRole,
 }: {
-  card: ReportCard;
+  card: CommentWorklistRow;
   defaultOpen?: boolean;
   userRole?: string;
 }) {
@@ -85,11 +84,12 @@ function CommentsContent() {
   const current = sessions.find((s) => s.is_current) ?? sessions[0];
   const { data: terms = [] } = useTerms(current?.id ?? null);
   const { data: arms = [] } = useArms(current?.id ?? null);
-  const { data: myAssignments = [] } = useMyAssignments();
 
-  const myArmIds = new Set(myAssignments.map((a) => a.arm_id));
+  // A homeroom teacher writes remarks for the class they are the class teacher
+  // of, so that is the only arm they are offered — not every arm they happen
+  // to teach a subject in.
   const visibleArms = isHomeroomTeacher
-    ? arms.filter((a) => myArmIds.has(a.id))
+    ? arms.filter((a) => a.is_class_teacher)
     : arms;
 
   const [selectedArm, setSelectedArm] = useState(armId ?? "");
@@ -104,7 +104,9 @@ function CommentsContent() {
     terms[0]?.id ??
     "";
 
-  const { data: cards = [], isLoading } = useReportCards(
+  // The class register, not the published cards: remarks are written before
+  // the exam office publishes, so a class with no scores in yet still lists.
+  const { data: cards = [], isLoading } = useCommentWorklist(
     effectiveArm || null,
     effectiveTerm || null,
   );

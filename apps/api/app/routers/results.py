@@ -35,6 +35,7 @@ from ..schemas.results import (
     CommentBankUpdate,
     CommentGenerateRequest,
     CommentSaveRequest,
+    CommentWorklistRow,
     ComponentCreate,
     ComponentOut,
     ComponentUpdate,
@@ -399,6 +400,49 @@ def report_index(
     return [ReportIndexRow(**r) for r in rows]
 
 
+def _annotate_card_permissions(
+    db,
+    ctx,
+    card: dict,
+    *,
+    student_id: uuid.UUID,
+    term_id: uuid.UUID,
+) -> dict:
+    """Stamp a rendered card with what this caller may write on it.
+
+    Two different questions, deliberately answered differently:
+
+    * The **homeroom remark** is the class teacher's alone — see
+      :func:`results_service.can_comment_on` — so the card carries a per-role
+      map and the editor enables only the boxes its reader may fill.
+    * The **psychomotor record** is likewise the class teacher's alone; the
+      Exam Office and score-entry roles read it on the printed card.
+    """
+    has_comment_perm = RESULTS_COMMENT in ctx.permission_codes
+    is_homeroom = results_service.can_comment_on(
+        db,
+        ctx.school.id,
+        actor_user_id=ctx.user.id,
+        has_comment_perm=has_comment_perm,
+        student_id=student_id,
+        term_id=term_id,
+        role="homeroom",
+    )
+    card["can_comment_roles"] = {
+        role: (is_homeroom if role == "homeroom" else has_comment_perm)
+        for role in results_service.COMMENT_ROLES
+    }
+    card["can_comment"] = any(card["can_comment_roles"].values())
+    card["can_manage_psychomotor"] = results_service.is_homeroom_teacher(
+        db,
+        ctx.school.id,
+        actor_user_id=ctx.user.id,
+        student_id=student_id,
+        term_id=term_id,
+    )
+    return card
+
+
 @router.get("/report-card", response_model=ReportCard)
 def report_card(
     db: DbSession,
@@ -411,24 +455,7 @@ def report_card(
     card = results_service.report_card(
         db, ctx.school.id, student_id=student_id, term_id=term_id
     )
-    card["can_comment"] = results_service.can_comment_on(
-        db,
-        ctx.school.id,
-        actor_user_id=ctx.user.id,
-        has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
-        student_id=student_id,
-        term_id=term_id,
-    )
-    card["can_manage_psychomotor"] = (
-        RESULTS_ENTER in ctx.permission_codes
-        or results_service.is_homeroom_teacher(
-            db,
-            ctx.school.id,
-            actor_user_id=ctx.user.id,
-            student_id=student_id,
-            term_id=term_id,
-        )
-    )
+    _annotate_card_permissions(db, ctx, card, student_id=student_id, term_id=term_id)
     return ReportCard(**card)
 
 
@@ -591,25 +618,40 @@ def report_cards_bulk(
         db, ctx.school.id, arm_id=arm_id, term_id=term_id
     )
     for card in cards:
-        card["can_comment"] = results_service.can_comment_on(
+        _annotate_card_permissions(
             db,
-            ctx.school.id,
-            actor_user_id=ctx.user.id,
-            has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
+            ctx,
+            card,
             student_id=uuid.UUID(card["student"]["student_id"]),
             term_id=term_id,
         )
-        card["can_manage_psychomotor"] = (
-            RESULTS_ENTER in ctx.permission_codes
-            or results_service.is_homeroom_teacher(
-                db,
-                ctx.school.id,
-                actor_user_id=ctx.user.id,
-                student_id=uuid.UUID(card["student"]["student_id"]),
-                term_id=term_id,
-            )
-        )
     return [ReportCard(**c) for c in cards]
+
+
+@router.get("/comment-worklist", response_model=list[CommentWorklistRow])
+def comment_worklist(
+    db: DbSession,
+    arm_id: uuid.UUID,
+    term_id: uuid.UUID,
+    ctx=Depends(require_permission(RESULTS_VIEW)),
+):
+    """Every child in a class with their remarks so far — published or not.
+
+    The remarks workbench lists the class register, not the published cards:
+    a homeroom teacher writes their remarks as soon as the term's marks are in,
+    which is usually before the exam office publishes them.
+    """
+    return [
+        CommentWorklistRow(**row)
+        for row in results_service.comment_worklist(
+            db,
+            ctx.school.id,
+            arm_id=arm_id,
+            term_id=term_id,
+            actor_user_id=ctx.user.id,
+            has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
+        )
+    ]
 
 
 @router.get("/cumulative")
@@ -699,9 +741,17 @@ def _comment_out(row: ResultComment, student_id: uuid.UUID) -> ResultCommentOut:
     )
 
 
-def _require_comment_access(db, ctx, student_id: uuid.UUID, term_id: uuid.UUID) -> None:
-    """Result comments may be written only by principal / VP roles (hold the
-    ``results.comment`` permission) or by the student's homeroom teacher."""
+def _require_comment_access(
+    db, ctx, student_id: uuid.UUID, term_id: uuid.UUID, role: str = "homeroom"
+) -> None:
+    """One role's remark is written by one author.
+
+    The homeroom remark belongs to the student's homeroom (class) teacher alone
+    — leadership holds ``results.comment`` to write its own principal and
+    vice-principal remarks, and reads the homeroom one on the card. Refusing
+    here (not only in the UI) is what makes the rule real: a principal can
+    still call this endpoint, and gets a refusal for the homeroom box.
+    """
     allowed = results_service.can_comment_on(
         db,
         ctx.school.id,
@@ -709,12 +759,17 @@ def _require_comment_access(db, ctx, student_id: uuid.UUID, term_id: uuid.UUID) 
         has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
         student_id=student_id,
         term_id=term_id,
+        role=role,
     )
-    if not allowed:
+    if allowed:
+        return
+    if role == "homeroom":
         raise PermissionDeniedError(
-            "Only the principal, vice principal or the student's homeroom "
-            "teacher can write result comments"
+            "Only the student's homeroom teacher can write the homeroom remark"
         )
+    raise PermissionDeniedError(
+        f"Only the principal or vice principal can write the {role.replace('_', ' ')} remark"
+    )
 
 
 @router.get("/{student_id}/comment", response_model=ResultCommentOut)
@@ -746,7 +801,7 @@ def preview_result_comment(
     spent-out school can't draft at all). The writer can iterate on role/tone/
     focus, then save (edited or as-is)."""
     _require_active_term(db, ctx.school.id, payload.term_id)
-    _require_comment_access(db, ctx, student_id, payload.term_id)
+    _require_comment_access(db, ctx, student_id, payload.term_id, role=payload.role)
     body = ai_service.preview_result_comment(
         db,
         ctx.school.id,
@@ -777,9 +832,9 @@ def generate_result_comment(
     tid = payload.term_id if payload is not None else term_id
     if tid is None:
         raise NotFoundError("term_id is required")
-    _require_active_term(db, ctx.school.id, tid)
-    _require_comment_access(db, ctx, student_id, tid)
     role = payload.role if payload is not None else "principal"
+    _require_active_term(db, ctx.school.id, tid)
+    _require_comment_access(db, ctx, student_id, tid, role=role)
     focus = payload.focus if payload is not None else None
     tone = payload.tone if payload is not None else "professional"
     row = ai_service.generate_result_comment(
@@ -806,7 +861,7 @@ def save_result_comment(
     """Save a manually written/edited comment for one role. Stores with
     ``provider=manual`` so consumers can tell authored text from AI output."""
     _require_active_term(db, ctx.school.id, payload.term_id)
-    _require_comment_access(db, ctx, student_id, payload.term_id)
+    _require_comment_access(db, ctx, student_id, payload.term_id, role=payload.role)
     row = ai_service.save_manual_comment(
         db,
         ctx.school.id,
@@ -966,10 +1021,15 @@ def list_psychomotor(
 
 
 def _require_psychomotor_access(db, ctx, student_id: uuid.UUID, term_id: uuid.UUID) -> None:
-    """Psychomotor rows may be entered by anyone holding ``results.enter``
-    (score-entry roles) or by the student's homeroom (class) teacher."""
-    if RESULTS_ENTER in ctx.permission_codes:
-        return
+    """Psychomotor rows may be entered by the student's homeroom (class)
+    teacher and by nobody else.
+
+    It used to also admit every ``results.enter`` holder, which is every
+    subject teacher in the school: the record of a child's skills and conduct
+    could be written by a teacher who had them for one period a week. It is the
+    class teacher's judgement to make, so that is who may make it — the Exam
+    Office reads the result on the printed card.
+    """
     if results_service.is_homeroom_teacher(
         db,
         ctx.school.id,
@@ -979,8 +1039,7 @@ def _require_psychomotor_access(db, ctx, student_id: uuid.UUID, term_id: uuid.UU
     ):
         return
     raise PermissionDeniedError(
-        "Only score-entry roles or the student's homeroom teacher can enter "
-        "psychomotor results"
+        "Only the student's homeroom teacher can enter psychomotor results"
     )
 
 

@@ -203,6 +203,11 @@ class ReportSchoolRef(BaseModel):
     short_name: str | None = None
     motto: str | None = None
     logo_url: str | None = None
+    # The head teacher's uploaded signature (a data URL) and the caption under
+    # it. Carried on the card rather than read live, so an archived term keeps
+    # the signature it was printed with.
+    principal_signature_url: str | None = None
+    principal_signature_name: str | None = None
 
 
 class PsychomotorRow(BaseModel):
@@ -235,6 +240,33 @@ class ReportComments(BaseModel):
     principal: str | None = None
     vice_principal: str | None = None
     homeroom: str | None = None
+
+
+class WorklistStudentRef(BaseModel):
+    """Just enough of a student to label a row — no photo, no birth date."""
+
+    student_id: uuid.UUID
+    admission_no: str
+    full_name: str
+
+
+class CommentWorklistRow(BaseModel):
+    """One child's row in the remarks workbench.
+
+    Deliberately card-shaped (``student`` / ``term`` / ``comments`` /
+    ``can_comment``) even though it is not a report card: the workbench lists
+    the class register — children with no published results included — and
+    hands each row to the same comment editor the printed card uses.
+    """
+
+    enrollment_id: uuid.UUID
+    student: WorklistStudentRef
+    term: ReportRef
+    comments: ReportComments
+    can_comment: bool = False
+    # Per-role, because the three remarks have three different authors: the
+    # homeroom box belongs to the class teacher, the other two to leadership.
+    can_comment_roles: dict[str, bool] = {}
 
 
 class BestInSubjectRow(BaseModel):
@@ -304,6 +336,9 @@ class ReportCard(BaseModel):
     cumulative: CumulativeSummary | None = None
     can_comment: bool = False
     can_manage_psychomotor: bool = False
+    # Per-role write rights (``homeroom`` / ``principal`` / ``vice_principal``):
+    # the editor enables one box per entry rather than the whole card.
+    can_comment_roles: dict[str, bool] = {}
 
 
 class ReportIndexRow(BaseModel):

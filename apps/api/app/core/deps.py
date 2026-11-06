@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Annotated, Callable
 
 from fastapi import Depends, Header, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -109,17 +109,6 @@ def get_current_user(request: Request, db: DbSession) -> User:
     return user
 
 
-def _permission_codes(db: Session, role_id: uuid.UUID) -> set[str]:
-    rows = (
-        db.execute(
-            select(Permission.code)
-            .join(RolePermission, RolePermission.permission_id == Permission.id)
-            .where(RolePermission.role_id == role_id)
-        )
-        .scalars()
-        .all()
-    )
-    return set(rows)
 
 
 def get_school_context(
@@ -140,32 +129,47 @@ def get_school_context(
     except ValueError:
         raise NotMemberError()
 
-    membership = db.execute(
-        select(SchoolMembership).where(
+    # One round trip for membership + school + role + permission codes.
+    #
+    # This used to be four sequential queries (membership, school, role,
+    # permission join). Every authenticated request pays this cost, and the
+    # dashboard alone then makes ~30 more — so when the API and the database sit
+    # in different regions (each query is a WAN hop) the four became the tax on
+    # literally every screen. The permission codes ride along as a correlated
+    # array so the caller still gets the same set without a second statement.
+    permission_codes_sq = (
+        select(func.array_agg(Permission.code))
+        .select_from(RolePermission)
+        .join(Permission, Permission.id == RolePermission.permission_id)
+        .where(RolePermission.role_id == SchoolMembership.role_id)
+        .correlate(SchoolMembership)
+        .scalar_subquery()
+    )
+
+    row = db.execute(
+        select(SchoolMembership, School, Role.code, permission_codes_sq)
+        .join(School, School.id == SchoolMembership.school_id)
+        .outerjoin(Role, Role.id == SchoolMembership.role_id)
+        .where(
             SchoolMembership.user_id == user.id,
             SchoolMembership.school_id == school_uuid,
         )
-    ).scalar_one_or_none()
-    if membership is None:
+    ).first()
+    if row is None:
         raise NotMemberError()
+
+    membership, school, role_code, permission_codes = row
     if membership.status == "suspended":
         raise APIError(403, ERR_MEMBERSHIP_SUSPENDED, "Membership suspended")
 
-    school = db.get(School, school_uuid)
-    if school is None:
-        raise NotMemberError()
     if bool((school.settings or {}).get("suspended", False)):
         from .errors import SchoolSuspendedError
 
         raise SchoolSuspendedError()
 
-    perms: set[str] = set()
-    role_code = ""
-    if membership.role_id:
-        role = db.get(Role, membership.role_id)
-        if role:
-            role_code = role.code
-            perms = _permission_codes(db, role.id)
+    # ``array_agg`` is NULL when the role has no permissions at all.
+    perms: set[str] = set(permission_codes or ())
+    role_code = role_code or ""
 
     return MembershipContext(
         user=user,

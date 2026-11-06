@@ -61,11 +61,58 @@ from ..models import (
 from ..models.enums import ResultStatus
 from . import sections_service
 from .academics_service import get_arm, get_subject, get_term
+from .ai_service import COMMENT_ROLES
 from .people_service import get_student, list_enrollments
 
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# --- The head teacher's signature ------------------------------------------------
+# Stored in ``school.settings`` rather than a column of its own: it is branding,
+# like the motto beside it, and the settings blob is where per-school card
+# extras live — so no migration is needed to add it, and a school can change
+# its signature without an administrator touching the schema.
+PRINCIPAL_SIGNATURE_KEY = "principal_signature"
+
+
+def principal_signature(school: School) -> dict | None:
+    """The school's uploaded signature, or None.
+
+    ``{"url": <data URL>, "name": <caption or None>}``. Reads defensively: the
+    settings blob is user-shaped JSON, and a half-written or older value must
+    let a card print without a signature rather than fail it.
+    """
+    raw = (school.settings or {}).get(PRINCIPAL_SIGNATURE_KEY)
+    if not isinstance(raw, dict) or not raw.get("url"):
+        return None
+    name = raw.get("name")
+    caption = name.strip() if isinstance(name, str) and name.strip() else None
+    return {"url": raw["url"], "name": caption}
+
+
+def set_principal_signature(
+    db: Session, school: School, *, url: str, name: str | None = None
+) -> dict:
+    """Store the signature (a data URL) and the caption printed under it."""
+    settings = dict(school.settings or {})
+    settings[PRINCIPAL_SIGNATURE_KEY] = {
+        "url": url,
+        "name": (name or "").strip() or None,
+    }
+    school.settings = settings
+    db.flush()
+    return settings[PRINCIPAL_SIGNATURE_KEY]
+
+
+def clear_principal_signature(db: Session, school: School) -> None:
+    """Remove the signature — cards print the ruled line and caption as before."""
+    settings = dict(school.settings or {})
+    if settings.pop(PRINCIPAL_SIGNATURE_KEY, None) is None:
+        return
+    school.settings = settings
+    db.flush()
 
 
 # Psychomotor / affective achievement vocabulary + the numeric spine used to
@@ -2394,17 +2441,113 @@ def can_comment_on(
     has_comment_perm: bool,
     student_id: uuid.UUID,
     term_id: uuid.UUID,
+    role: str = "homeroom",
 ) -> bool:
-    """Whether the actor may write a result comment for this student × term.
+    """Whether the actor may write one *role's* remark for this student × term.
 
-    Allowed for roles holding ``results.comment`` (principal / VP) and for the
-    student's homeroom (class) teacher.
+    The homeroom remark belongs to the class teacher and to nobody else: only
+    the arm's homeroom (class) teacher may write it, whatever else they hold.
+    School leadership that holds ``results.comment`` — principal, VP — can read
+    it on the card but not write it, which is the point of the rule: the remark
+    on a child's report is written by the teacher who taught them.
+
+    The principal and vice-principal remarks are the other way round: they are
+    leadership's own lines and stay gated on ``results.comment``, so tightening
+    the homeroom rule does not leave those two boxes with no author.
     """
-    if has_comment_perm:
-        return True
-    return is_homeroom_teacher(
-        db, school_id, actor_user_id=actor_user_id, student_id=student_id, term_id=term_id
+    if role == "homeroom":
+        return is_homeroom_teacher(
+            db,
+            school_id,
+            actor_user_id=actor_user_id,
+            student_id=student_id,
+            term_id=term_id,
+        )
+    return has_comment_perm
+
+
+def is_arm_homeroom_teacher(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
+    arm: ClassArm,
+) -> bool:
+    """The one-query form of :func:`is_homeroom_teacher` for a whole class.
+
+    A remark is written class by class, so the workbench asks this once for the
+    arm instead of once per child: unlike the per-student helper there is no
+    enrollment lookup to do, only the arm's class teacher.
+    """
+    if arm.school_id != school_id or arm.class_teacher_id is None:
+        return False
+    teacher = db.get(Staff, arm.class_teacher_id)
+    return teacher is not None and teacher.user_id == actor_user_id
+
+
+def comment_worklist(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    arm_id: uuid.UUID,
+    term_id: uuid.UUID,
+    actor_user_id: uuid.UUID,
+    has_comment_perm: bool,
+) -> list[dict]:
+    """Every child in an arm, with the remarks written for them so far.
+
+    This is the *roster*, not the published cards. Comments are written before
+    the exam office publishes — a homeroom teacher starts writing as soon as the
+    term's marks are in, and often before any of them are published — so the
+    workbench must list the children whether or not they have published results
+    yet. Filtering on published cards, as the reports index does, empties the
+    page in exactly the weeks the remark is due.
+
+    Each row is shaped like a card's comment slice (``student`` / ``term`` /
+    ``comments`` / ``can_comment``) so the same comment editor renders from it.
+    """
+    arm = get_arm(db, school_id, arm_id)
+    term = get_term(db, school_id, term_id)
+    enrollments = _result_enrollments(db, school_id, arm_id)
+
+    written: dict[uuid.UUID, dict[str, str]] = {}
+    if enrollments:
+        rows = db.scalars(
+            select(ResultComment).where(
+                ResultComment.school_id == school_id,
+                ResultComment.term_id == term_id,
+                ResultComment.student_enrollment_id.in_([e.id for e in enrollments]),
+            )
+        )
+        for row in rows:
+            written.setdefault(row.student_enrollment_id, {})[row.role] = row.body
+
+    is_homeroom = is_arm_homeroom_teacher(
+        db, school_id, actor_user_id=actor_user_id, arm=arm
     )
+    can_comment_roles = {
+        role: (is_homeroom if role == "homeroom" else has_comment_perm)
+        for role in COMMENT_ROLES
+    }
+
+    out = []
+    for env in enrollments:
+        bodies = written.get(env.id, {})
+        out.append(
+            {
+                "enrollment_id": str(env.id),
+                "student": {
+                    "student_id": str(env.student_id),
+                    "admission_no": env.student.admission_no,
+                    "full_name": env.student.full_name,
+                },
+                "term": {"id": str(term.id), "name": term.name},
+                "comments": {role: bodies.get(role) for role in COMMENT_ROLES},
+                "can_comment": is_homeroom or has_comment_perm,
+                "can_comment_roles": can_comment_roles,
+            }
+        )
+    return out
 
 
 def list_psychomotor(
@@ -2758,6 +2901,7 @@ def report_card(
     school = db.get(School, school_id)
     school_settings = school.settings if school else {}
     motto = school_settings.get("motto") if isinstance(school_settings, dict) else None
+    signature = principal_signature(school) if school else None
 
     # Psychomotor / affective learning areas (dynamic list, averaged).
     psycho_rows = db.scalars(
@@ -2884,6 +3028,11 @@ def report_card(
             "short_name": school.short_name if school else None,
             "motto": motto,
             "logo_url": school.logo_url if school else None,
+            # Carried on the card (not read live by the renderer) so that an
+            # archived term keeps the signature it was printed with, and the
+            # parents' portal gets it without a second request.
+            "principal_signature_url": signature["url"] if signature else None,
+            "principal_signature_name": signature["name"] if signature else None,
         },
         "student": {
             "student_id": str(student.id),

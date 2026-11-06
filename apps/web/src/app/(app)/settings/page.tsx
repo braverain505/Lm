@@ -1,9 +1,9 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, Percent, Phone, Plus, Power, RotateCcw, ShieldCheck, Timer, Trash2, Unlock } from "lucide-react";
+import { Building2, CalendarRange, Globe, ImagePlus, KeyRound, LayoutTemplate, Lock, Mail, PenLine, Percent, Phone, Plus, Power, RotateCcw, ShieldCheck, Timer, Trash2, Unlock } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,6 +39,15 @@ export default function SettingsPage() {
 
   const [logoUploading, setLogoUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // The head teacher's signature, printed on every report card.
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureName, setSignatureName] = useState("");
+  const [signatureNameSaving, setSignatureNameSaving] = useState(false);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    setSignatureName(school?.principal_signature?.name ?? "");
+  }, [school?.principal_signature?.name]);
 
   // The school's card style lives on its saved report card design, so changing it
   // here writes the design (everyone's cards then match) rather than a browser
@@ -95,6 +104,50 @@ export default function SettingsPage() {
     } finally {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const onPickSignature = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !schoolId) return;
+    setSignatureUploading(true);
+    try {
+      await api.uploadPrincipalSignature(schoolId, file, signatureName);
+      void queryClient.invalidateQueries({ queryKey: ["school", schoolId] });
+      toast("Principal's signature saved — it prints on every report card");
+    } catch (e) {
+      toast(e instanceof Error && e.message ? e.message : "Failed to upload the signature", "error");
+    } finally {
+      setSignatureUploading(false);
+      if (signatureInputRef.current) signatureInputRef.current.value = "";
+    }
+  };
+
+  const saveSignatureName = async () => {
+    if (!schoolId || !school?.principal_signature) return;
+    setSignatureNameSaving(true);
+    try {
+      await api.updatePrincipalSignatureName(schoolId, signatureName);
+      void queryClient.invalidateQueries({ queryKey: ["school", schoolId] });
+      // Cards are rendered from the stored payload, so refresh the ones open.
+      void queryClient.invalidateQueries({ queryKey: ["report-cards"] });
+      void queryClient.invalidateQueries({ queryKey: ["report-card"] });
+      toast("Signature caption saved");
+    } catch (e) {
+      toast(e instanceof Error && e.message ? e.message : "Failed to save the caption", "error");
+    } finally {
+      setSignatureNameSaving(false);
+    }
+  };
+
+  const clearSignature = async () => {
+    if (!schoolId) return;
+    try {
+      await api.clearPrincipalSignature(schoolId);
+      void queryClient.invalidateQueries({ queryKey: ["school", schoolId] });
+      toast("Signature removed — cards print the ruled line only");
+    } catch (e) {
+      toast(e instanceof Error && e.message ? e.message : "Failed to remove the signature", "error");
     }
   };
 
@@ -459,6 +512,76 @@ export default function SettingsPage() {
                     />
                     {logoUploading && (
                       <p className="mt-1 text-[11px] text-muted-foreground/85">Uploading logo…</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/40 p-4">
+                  {school?.principal_signature?.url ? (
+                    <img
+                      src={school.principal_signature.url}
+                      alt="Principal signature"
+                      className="h-12 w-24 shrink-0 rounded-lg border bg-white object-contain"
+                    />
+                  ) : (
+                    <span className="flex h-12 w-24 shrink-0 items-center justify-center rounded-lg border border-dashed border-border bg-background text-muted-foreground/65">
+                      <PenLine className="h-5 w-5" />
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium">Principal&apos;s signature</p>
+                    <p className="text-[11px] text-muted-foreground/90">
+                      Printed above the principal&apos;s line on every report card. Scan or
+                      photograph the signature on plain white paper — JPEG, PNG or WebP up to 5 MB.
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-end gap-2">
+                      <div className="min-w-0">
+                        <Label htmlFor="signature-name" className="text-[11px]">
+                          Name under the signature
+                        </Label>
+                        <Input
+                          id="signature-name"
+                          value={signatureName}
+                          onChange={(e) => setSignatureName(e.target.value)}
+                          placeholder="e.g. Mrs. A. Bello"
+                          className="mt-1 h-8 max-w-56 text-[12px]"
+                        />
+                      </div>
+                      {school?.principal_signature && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 text-[11px]"
+                          onClick={saveSignatureName}
+                          disabled={
+                            signatureNameSaving ||
+                            signatureName === (school.principal_signature.name ?? "")
+                          }
+                        >
+                          {signatureNameSaving ? "Saving..." : "Save name"}
+                        </Button>
+                      )}
+                    </div>
+                    <input
+                      ref={signatureInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={onPickSignature}
+                      className="mt-2 block w-full max-w-56 text-[11px] text-muted-foreground file:mr-2 file:rounded-lg file:border-0 file:bg-primary/20 file:px-2.5 file:py-1 file:text-[11px] file:font-semibold file:text-primary hover:file:bg-primary/35"
+                    />
+                    {signatureUploading && (
+                      <p className="mt-1 text-[11px] text-muted-foreground/85">
+                        Uploading signature...
+                      </p>
+                    )}
+                    {school?.principal_signature && !signatureUploading && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSignature}
+                        className="mt-1 h-7 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove signature
+                      </Button>
                     )}
                   </div>
                 </div>

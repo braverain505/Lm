@@ -555,6 +555,17 @@
   margin-top: 8px;
 }
 
+/* The head teacher's uploaded signature, drawn above the ruled line. It is
+ * sized in mm-ish print units and kept inside the signatory column, so a
+ * phone photo of a signature does not push the card onto a second page. */
+.rc-sign-image {
+  display: block;
+  margin: 0 auto 2px;
+  max-height: 46px;
+  max-width: 150px;
+  object-fit: contain;
+}
+
 .rc-sign-line {
   height: 1px;
   border-top: 1px solid var(--rc-ink);

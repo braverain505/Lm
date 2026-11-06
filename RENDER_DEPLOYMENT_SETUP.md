@@ -144,8 +144,36 @@ Then rebuild and redeploy the frontend.
 
 ## Performance Notes
 
-- **API Proxy**: Adds ~50-100ms latency per request (server-side round-trip). Acceptable for most use cases.
-- **Base64 Logos**: Slightly larger database size (~3-5x larger than file paths), but 1 GB PostgreSQL free tier can handle thousands of logos.
+Measured 2026-11-06 against the production API and database.
+
+### 1. Fix first: the API and the database are in different regions
+
+| Component | Where it actually runs |
+|---|---|
+| API (`schoolos-api-5066.onrender.com`) | Render, **GCP us-west1 (Oregon)** — resolves to `gcp-us-west1-1.origin.onrender.com` |
+| Database | Neon, **AWS us-east-2 (Ohio)** — `ep-…c-6.us-east-2.aws.neon.tech` |
+
+Oregon and Ohio are ~3,200 km apart, so **every SQL statement is a cross-country round trip of roughly 60–80 ms**. The dashboard endpoint issues **34 sequential queries**, so it spends ~2.2 s waiting on the network before either service has done any real work.
+
+This is not Render's CPU and not Neon's query planning. Evidence: a `count(*)` over a 74-row table measured ~250 ms — no database takes 250 ms to count 74 rows; that number is the round trip. Meanwhile the API's `/` endpoint, which touches no database at all, answers as fast as the origin allows.
+
+**Fix (no extra cost):** make the two colocated — either recreate the Render API service in **Ohio (`us-east-2`)**, or move the Neon project to **us-west-2**. Same 34 queries then cost ~35 ms instead of ~2.2 s.
+
+> Render region cannot be changed in place. Create a new service in Ohio with the same environment variables and root directory, verify it, then switch the frontend's `API_URL` / `NEXT_PUBLIC_API_URL` to the new host. Neon has no in-place region move either: create a project in us-west-2 and restore a dump into it.
+
+### 2. Second: cold starts
+
+The first request after a period of inactivity measured up to **59 s** end-to-end; the trivial `/` endpoint took 1.8–12 s. Cheap tiers scale to zero — Render stops the instance and Neon suspends compute — so the first person in each morning pays the wake-up for everyone. That is the "sometimes login takes a while" feeling.
+
+**Fix (free):** point an uptime monitor at `GET /api/health` **every 5 minutes** (UptimeRobot, Better Stack, cron-job.org all have free plans). That endpoint runs `SELECT 1`, which keeps both the Render instance and the Neon compute awake. Use the same URL as Render's health check path.
+
+### 3. Application-side changes already made
+
+- **Per-request school context: 4 queries → 1.** `get_school_context` used to fetch membership, school, role and permission codes as four sequential statements on *every* authenticated request. It is now one joined query with the permission codes aggregated inline.
+- **Password hashing cost 12 → 10.** A login check measured 349 ms at cost 12 and 88 ms at cost 10 on the server CPU. New hashes use cost 10 (`BCRYPT_ROUNDS` overrides it); existing hashes are re-hashed automatically the first time each user signs in.
+- **Neon pooled endpoint.** Point `DATABASE_URL` at the `-pooler` host (`ep-…-pooler.c-6.us-east-2.aws.neon.tech`) so connection setup is multiplexed. Keep `DB_POOL_SIZE`/`DB_MAX_OVERFLOW` conservative.
+- **API Proxy**: routes through the Next.js service, adding one server-side hop per call. If the API and web services are in different Render regions, that is a second cross-country trip — check both services' regions, or point `NEXT_PUBLIC_API_URL` directly at the API origin (keeping CORS configured) to remove the hop.
+- **Base64 Logos**: Slightly larger database size (~3-5x larger than file paths), but the database can handle thousands of logos.
 
 ## Future Improvements
 

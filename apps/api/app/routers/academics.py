@@ -207,9 +207,17 @@ def delete_term(
 # --- Class arms ----------------------------------------------------------------
 @router.get("/sessions/{session_id}/arms", response_model=list[ArmOut])
 def list_arms(session_id: uuid.UUID, db: DbSession, ctx=Depends(require_permission(ACADEMICS_VIEW))):
+    """The session's class arms, each flagged with whether it is the caller's
+    own class (``is_class_teacher``)."""
+    my_staff_id = academics_service.staff_id_for_user(db, ctx.school.id, ctx.user.id)
     return [
-        ArmOut.model_validate(a)
-        for a in academics_service.list_arms(db, ctx.school.id, session_id)
+        ArmOut.model_validate(arm).model_copy(
+            update={
+                "is_class_teacher": my_staff_id is not None
+                and arm.class_teacher_id == my_staff_id
+            }
+        )
+        for arm in academics_service.list_arms(db, ctx.school.id, session_id)
     ]
 
 

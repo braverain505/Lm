@@ -84,7 +84,8 @@ export function PsychomotorEditor({
 }: {
   studentId: string;
   termId: string;
-  /** Override from the report card payload (results.enter OR homeroom teacher). */
+  /** Override from the report card payload (`can_manage_psychomotor`: the
+   * student's homeroom teacher). */
   allowed?: boolean;
 }) {
   const canEnter = useCanEnterResults();

@@ -561,7 +561,21 @@ function BankCurationPanel({ canEdit }: { canEdit: boolean }) {
   );
 }
 
-export function CommentManager({ card, userRole }: { card: ReportCard; userRole?: string }) {
+/**
+ * What the editor needs off a card: its student, its term, the remarks already
+ * written and who may write each one. A full `ReportCard` satisfies this, and
+ * so does a row of the remarks workbench — which is the point, since the
+ * workbench lists children who have no card yet.
+ */
+export type CommentTarget = {
+  student: Pick<ReportCard["student"], "student_id">;
+  term: Pick<ReportCard["term"], "id">;
+  comments: ReportCard["comments"];
+  can_comment?: boolean;
+  can_comment_roles?: Record<string, boolean>;
+};
+
+export function CommentManager({ card, userRole }: { card: CommentTarget; userRole?: string }) {
   const { student_id: studentId } = card.student;
 
   // Filter comment roles based on the user's role.
@@ -596,12 +610,12 @@ export function CommentManager({ card, userRole }: { card: ReportCard; userRole?
             studentId={studentId}
             termId={card.term.id}
             initialBody={card.comments[r.key] ?? null}
-            canEdit={card.can_comment}
+            canEdit={card.can_comment_roles?.[r.key] ?? card.can_comment ?? false}
           />
         ))}
       </div>
 
-      <BankCurationPanel canEdit={card.can_comment} />
+      <BankCurationPanel canEdit={card.can_comment ?? false} />
     </div>
   );
 }

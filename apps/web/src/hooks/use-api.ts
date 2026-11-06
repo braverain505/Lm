@@ -730,6 +730,20 @@ export function useReportCards(armId: string | null, termId: string | null) {
   });
 }
 
+/**
+ * The class register with its remarks so far — what the remarks workbench
+ * lists. Deliberately not `useReportCards`: cards exist only once results are
+ * published, while a homeroom teacher writes remarks before that.
+ */
+export function useCommentWorklist(armId: string | null, termId: string | null) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["comment-worklist", schoolId, armId, termId],
+    enabled: !!schoolId && !!armId && !!termId,
+    queryFn: async () => api.fetchCommentWorklist(schoolId!, armId!, termId!),
+  });
+}
+
 export function useResultComment(studentId: string | null, termId: string | null) {
   const schoolId = useActiveSchoolId();
   return useQuery({

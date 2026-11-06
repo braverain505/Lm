@@ -723,6 +723,24 @@ def unassign_subject(db: Session, school_id: uuid.UUID, assignment_id: uuid.UUID
     db.flush()
 
 
+def staff_id_for_user(
+    db: Session, school_id: uuid.UUID, user_id: uuid.UUID
+) -> uuid.UUID | None:
+    """The staff record behind a login in this school, or None.
+
+    None is the normal case for the platform owner, and for anyone who logs in
+    to a school they hold an account at but do not work at — so every caller
+    treats it as "not a member of staff here" rather than an error.
+    """
+    return db.scalar(
+        select(Staff.id).where(
+            Staff.school_id == school_id,
+            Staff.user_id == user_id,
+            Staff.is_deleted.is_(False),
+        )
+    )
+
+
 def list_my_assignments(
     db: Session, school_id: uuid.UUID, user_id: uuid.UUID
 ) -> list[dict]:
@@ -732,16 +750,10 @@ def list_my_assignments(
     on any arm/subject via the results workflow permissions) don't need this —
     it is genuinely only meaningful for teachers.
     """
-    staff = db.scalar(
-        select(Staff).where(
-            Staff.school_id == school_id,
-            Staff.user_id == user_id,
-            Staff.is_deleted.is_(False),
-        )
-    )
-    if staff is None:
+    staff_id = staff_id_for_user(db, school_id, user_id)
+    if staff_id is None:
         return []
-    return list_staff_assignments(db, school_id, staff.id)
+    return list_staff_assignments(db, school_id, staff_id)
 
 
 def list_staff_assignments(

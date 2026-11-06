@@ -79,6 +79,8 @@ export const SAMPLE_CARD: ReportCard = {
     short_name: "Brightfield",
     motto: "Knowledge, Character, Service",
     logo_url: null,
+    principal_signature_url: null,
+    principal_signature_name: null,
   },
   student: {
     student_id: U(1),
@@ -186,6 +188,7 @@ export const SAMPLE_CARD: ReportCard = {
   ],
   can_comment: false,
   can_manage_psychomotor: false,
+  can_comment_roles: { homeroom: false, principal: false, vice_principal: false },
 };
 
 /* ------------------------------------------------------------------ */

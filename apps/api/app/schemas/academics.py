@@ -79,6 +79,11 @@ class ArmOut(BaseModel):
     # class belongs to, so a school that runs its sections differently gives
     # each its own scoresheet and report card.
     section: str | None = None
+    # True when the *caller* is this arm's homeroom (class) teacher. Not
+    # derivable from their subject assignments — a class teacher need not teach
+    # a subject in their own class — so it is answered here, and the pages that
+    # are the class teacher's own (remarks, psychomotor) scope to it.
+    is_class_teacher: bool = False
 
 
 class ArmCreate(BaseModel):

@@ -22,6 +22,13 @@ from ..services import results_service
 router = APIRouter(prefix="/schools", tags=["schools"])
 
 
+class PrincipalSignatureOut(BaseModel):
+    """The head teacher's signature as stored — a data URL plus its caption."""
+
+    url: str
+    name: str | None = None
+
+
 class SchoolOut(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -40,6 +47,9 @@ class SchoolOut(BaseModel):
     address: str | None
     state: str | None
     country: str
+    # Lives in ``school.settings`` (branding, like the motto), so it is filled
+    # in by the route rather than read off a column.
+    principal_signature: PrincipalSignatureOut | None = None
 
 
 class CampusOut(BaseModel):
@@ -89,9 +99,17 @@ class Overview(BaseModel):
     terms: int
 
 
+def _school_out(school) -> SchoolOut:
+    out = SchoolOut.model_validate(school)
+    signature = results_service.principal_signature(school)
+    if signature is not None:
+        out.principal_signature = PrincipalSignatureOut(**signature)
+    return out
+
+
 @router.get("/me", response_model=SchoolOut)
 def school_me(ctx: ActiveSchool):
-    return SchoolOut.model_validate(ctx.school)
+    return _school_out(ctx.school)
 
 
 @router.patch("/me")
@@ -100,7 +118,7 @@ def update_school(payload: SchoolPatch, db: DbSession, ctx=Depends(require_permi
         if value is not None:
             setattr(ctx.school, key, value)
     db.commit()
-    return SchoolOut.model_validate(ctx.school)
+    return _school_out(ctx.school)
 
 
 @router.get("/me/results-policy", response_model=ResultsPolicy)

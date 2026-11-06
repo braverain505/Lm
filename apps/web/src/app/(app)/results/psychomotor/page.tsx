@@ -7,12 +7,7 @@ import { PsychomotorEditor } from "@/components/psychomotor-editor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  useArms,
-  useCanEnterResults,
-  useMyAssignments,
-  useRoster,
-} from "@/hooks/use-api";
+import { useArms, useRoster } from "@/hooks/use-api";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 
@@ -22,50 +17,46 @@ import { useSessionTerm } from "@/providers/session-context";
  *
  * This used to sit inside the Report Cards page, which is the Exam Office's
  * desk, so the only people who could reach it were the ones who least needed to
- * write it. It is its own page now: score-entry roles and a student's homeroom
- * teacher can keep the record up to date, and the Exam Office reads the result
- * on the printed card.
+ * write it. It is its own page now, and it belongs to the class teacher alone:
+ * a child's skills, practical ability and conduct are judged by the teacher who
+ * has them every day, not by whoever teaches one subject. The Exam Office reads
+ * the result on the printed card.
  *
- * The API applies the same rule per request (``results.enter`` or the student's
- * homeroom teacher), so this page's gate is a convenience, not the control.
+ * The API applies the same rule per request (the student's homeroom teacher, and
+ * nobody else), so this page's gate is a convenience, not the control.
  */
 export default function PsychomotorPage() {
   const { activeSchool } = useAuth();
   const role = activeSchool?.role?.code ?? "";
-  const canEnter = useCanEnterResults();
   const isHomeroomTeacher = role === "homeroom_teacher";
-  const canEdit = canEnter || isHomeroomTeacher;
 
   const { session, term, loadingTerms } = useSessionTerm();
   const { data: arms = [] } = useArms(session?.id ?? null);
-  const { data: myAssignments = [] } = useMyAssignments();
 
-  const isTeacherRole = role === "teacher" || isHomeroomTeacher;
+  // Only the classes this teacher is the class teacher of — the flag comes
+  // from the API, because a class teacher need not teach a subject there.
   const visibleArms = useMemo(
-    () =>
-      isTeacherRole
-        ? arms.filter((a) => myAssignments.some((m) => m.arm_id === a.id))
-        : arms,
-    [arms, isTeacherRole, myAssignments],
+    () => (isHomeroomTeacher ? arms.filter((a) => a.is_class_teacher) : arms),
+    [arms, isHomeroomTeacher],
   );
 
   const [armId, setArmId] = useState("");
   const [studentId, setStudentId] = useState("");
 
-  // Teachers land on a class they actually teach instead of an empty picker.
+  // Land on their own class instead of an empty picker.
   useEffect(() => {
-    if (isTeacherRole && visibleArms.length > 0 && !armId) {
+    if (isHomeroomTeacher && visibleArms.length > 0 && !armId) {
       setArmId(visibleArms[0].id);
     }
-  }, [isTeacherRole, visibleArms, armId]);
+  }, [isHomeroomTeacher, visibleArms, armId]);
 
   const { data: roster = [], isLoading: rosterLoading } = useRoster(armId || null);
 
-  if (!canEdit) {
+  if (!isHomeroomTeacher) {
     return (
       <NoAccess
         title="Psychomotor is the class teacher's record"
-        message="Only score-entry roles and a student's homeroom teacher keep this record. You can still review published report cards from the Report Cards page."
+        message="Only a student's homeroom teacher keeps this record. You can still review published report cards from the Report Cards page."
         backHref="/results"
         backLabel="Go to Results"
       />
@@ -105,10 +96,10 @@ export default function PsychomotorPage() {
                 </option>
               ))}
             </select>
-            {isTeacherRole && visibleArms.length === 0 && (
+            {visibleArms.length === 0 && (
               <p className="text-[12px] text-muted-foreground">
-                You have no classes assigned yet — ask an administrator to assign
-                you a subject.
+                You are not the homeroom teacher of any class yet — ask an
+                administrator to set the form teacher on your class.
               </p>
             )}
           </div>

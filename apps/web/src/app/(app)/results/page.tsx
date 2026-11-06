@@ -17,7 +17,9 @@ export default function ResultsPage() {
   const permissions = activeSchool?.permissions ?? [];
   const isTeacherRole = role === "teacher" || role === "homeroom_teacher";
   const isHomeroomTeacher = role === "homeroom_teacher";
-  const canComment = role === "principal" || role === "vp_academics" || role === "homeroom_teacher";
+  // The homeroom remark belongs to the class teacher, so this shortcut is
+  // theirs alone. Leadership's own remarks are written on the card in Reports.
+  const canComment = isHomeroomTeacher;
   const canEnterScores = permissions.includes("results.enter");
   // The approval workbench and report cards are separate desks: one pushes
   // results through review, the other prints the finished document. Show each
@@ -34,6 +36,9 @@ export default function ResultsPage() {
   const mySubjectIds = useMemo(() => new Set(myAssignments.map((a) => a.subject_id)), [myAssignments]);
   const visibleArms = isTeacherRole ? arms.filter((a) => myArmIds.has(a.id)) : arms;
   const visibleSubjectIds = isTeacherRole ? mySubjectIds : null;
+  // The remarks shortcut is the class teacher's, so it offers the class they
+  // are the class teacher of — which need not be one they teach a subject in.
+  const myClassArms = useMemo(() => arms.filter((a) => a.is_class_teacher), [arms]);
 
   const [armId, setArmId] = useState("");
   const [subjectId, setSubjectId] = useState("");
@@ -194,7 +199,7 @@ export default function ResultsPage() {
                   onChange={(e) => setArmId(e.target.value)}
                 >
                   <option value="">Choose arm…</option>
-                  {visibleArms.map((a) => (
+                  {myClassArms.map((a) => (
                     <option key={a.id} value={a.id}>{a.full_name}</option>
                   ))}
                 </select>

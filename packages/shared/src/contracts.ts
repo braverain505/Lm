@@ -170,6 +170,9 @@ export const ArmSchema = z.object({
   // Which part of the school the class belongs to. Null = the school has not
   // classified it, so it follows the school-wide scoresheet and card.
   section: SectionKeySchema.nullable().default(null),
+  // True when the logged-in user is this arm's homeroom (class) teacher — the
+  // remarks and psychomotor pages scope to these.
+  is_class_teacher: z.boolean().default(false),
 });
 export type Arm = z.infer<typeof ArmSchema>;
 
@@ -504,6 +507,12 @@ export const SchoolSchema = z.object({
   email: z.string().nullable(),
   phone: z.string().nullable(),
   logo_url: z.string().nullable(),
+  // The head teacher's signature uploaded in Settings — a data URL plus the
+  // caption printed under it. Absent/null until a school uploads one.
+  principal_signature: z
+    .object({ url: z.string(), name: z.string().nullable() })
+    .nullable()
+    .optional(),
 });
 export type School = z.infer<typeof SchoolSchema>;
 
@@ -545,6 +554,11 @@ export const ReportCardSchema = z.object({
     short_name: z.string().nullable(),
     motto: z.string().nullable(),
     logo_url: z.string().nullable(),
+    // The head teacher's signature uploaded in Settings, printed above the
+    // principal's line. Carried on the card so an archived term reprints with
+    // the signature it was printed with.
+    principal_signature_url: z.string().nullable().default(null),
+    principal_signature_name: z.string().nullable().default(null),
   }),
   student: z.object({
     student_id: z.string().uuid(),
@@ -648,8 +662,34 @@ export const ReportCardSchema = z.object({
     .optional(),
   can_comment: z.boolean().default(false),
   can_manage_psychomotor: z.boolean().default(false),
+  // Per-role write rights for the three remarks. The homeroom box belongs to
+  // the class teacher alone; the principal and vice-principal boxes belong to
+  // whoever holds results.comment. One box, one author.
+  can_comment_roles: z.record(z.string(), z.boolean()).default({}),
 });
 export type ReportCard = z.infer<typeof ReportCardSchema>;
+
+// --- The remarks workbench ------------------------------------------------------
+// One row per child in a class, for the homeroom teacher writing remarks. Not a
+// report card: it lists the class *register*, so a class with nothing published
+// yet still appears, and hands each row to the same comment editor the card uses.
+export const CommentWorklistRowSchema = z.object({
+  enrollment_id: z.string().uuid(),
+  student: z.object({
+    student_id: z.string().uuid(),
+    admission_no: z.string(),
+    full_name: z.string(),
+  }),
+  term: z.object({ id: z.string().uuid(), name: z.string() }),
+  comments: z.object({
+    principal: z.string().nullable(),
+    vice_principal: z.string().nullable(),
+    homeroom: z.string().nullable(),
+  }),
+  can_comment: z.boolean().default(false),
+  can_comment_roles: z.record(z.string(), z.boolean()).default({}),
+});
+export type CommentWorklistRow = z.infer<typeof CommentWorklistRowSchema>;
 
 // --- Archived report cards ------------------------------------------------------
 // One frozen version of a term's published cards, written before a reopened term

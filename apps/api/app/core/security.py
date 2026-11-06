@@ -7,6 +7,7 @@
 """
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -17,8 +18,22 @@ from ..config import settings
 
 
 # --- Passwords --------------------------------------------------------------
+# bcrypt deliberately burns CPU so password checks cannot be brute-forced, but
+# the login endpoint pays that cost on the request thread: the library default
+# (cost 12) measured ~400 ms per check, which is a third of a second standing
+# between a teacher and their dashboard on every single sign-in. Cost 10 is still
+# far above the OWASP floor and checks in roughly a quarter of the time; raise
+# this via BCRYPT_ROUNDS if the threat model ever calls for it.
+#
+# Existing hashes keep verifying: the cost is stored inside each hash, so this
+# only governs hashes written from now on (new accounts, changed passwords).
+BCRYPT_ROUNDS = max(8, int(os.getenv("BCRYPT_ROUNDS", "10")))
+
+
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    return bcrypt.hashpw(
+        password.encode("utf-8"), bcrypt.gensalt(rounds=BCRYPT_ROUNDS)
+    ).decode("utf-8")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
@@ -28,6 +43,18 @@ def verify_password(password: str, password_hash: str) -> bool:
         )
     except ValueError:
         return False
+
+
+def password_needs_rehash(password_hash: str) -> bool:
+    """True when a stored hash was written with a different work factor.
+
+    Lets the login flow quietly upgrade older (slower) hashes the first time
+    each user signs in, instead of leaving them at the old cost forever.
+    """
+    try:
+        return int(password_hash.split("$")[2]) != BCRYPT_ROUNDS
+    except (IndexError, ValueError):
+        return True
 
 
 # --- Access tokens (JWT) ----------------------------------------------------

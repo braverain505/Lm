@@ -151,11 +151,13 @@ export const PANEL_SECTIONS: NavSection[] = [
       // (and publish), so it belongs here. The API decides each stage on its own
       // permission, so this link never grants more than the caller already has.
       { href: "/approvals", label: "Process Results", icon: ListChecks, perm: "results.verify", roles: EXAM_OFFICE_ROLES },
-      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: [...EXAM_OFFICE_ROLES, "homeroom_teacher"] },
-      // Psychomotor is written by score-entry roles and a student's homeroom
-      // teacher — the same rule the API applies — so the permission alone
-      // decides, with no role list to drift out of sync.
-      { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.enter" },
+      // The homeroom remark is the class teacher's alone, so this desk is too.
+      // Leadership keeps its own principal / vice-principal remarks, but it
+      // writes them on the card, not here.
+      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["homeroom_teacher"] },
+      // Psychomotor is the homeroom teacher's record and nobody else's — the
+      // same rule the API applies per student.
+      { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.comment", roles: ["homeroom_teacher"] },
       { href: "/reports", label: "Report Cards", icon: FileText, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       // The broadsheet and the cumulative sheet are the exam office's reading
       // views of the same published results, so they carry the same permission
