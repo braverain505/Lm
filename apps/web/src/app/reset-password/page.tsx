@@ -3,7 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { api } from "@clearis/shared";
 import { motion } from "framer-motion";
-import { AlertCircle, ArrowRight, Loader2, Lock } from "lucide-react";
+import { AlertCircle, ArrowRight, Lock } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -192,7 +193,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background text-[13px] text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader size={20} tone="inherit" />
         </div>
       }
     >

@@ -10,12 +10,12 @@ import {
   Building2,
   Eye,
   EyeOff,
-  Loader2,
   Lock,
   LogIn,
   Ticket,
   UserRound,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -454,7 +454,7 @@ export default function LoginPage() {
                             }}
                           >
                             {forgotBusy ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader size={16} tone="inherit" />
                             ) : (
                               "Send"
                             )}

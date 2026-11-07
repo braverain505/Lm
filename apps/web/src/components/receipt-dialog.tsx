@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Loader2, Mail, Printer, Share2, X } from "lucide-react";
+import { Download, Mail, Printer, Share2, X } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -137,7 +138,7 @@ export function ReceiptDialog({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="outline" onClick={handleDownload} disabled={downloading || !receipt}>
-                {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {downloading ? <Loader size={16} tone="inherit" /> : <Download className="h-4 w-4" />}
                 PDF
               </Button>
               <Button size="sm" variant="outline" onClick={handleWhatsApp} disabled={!receipt}>
@@ -150,7 +151,7 @@ export function ReceiptDialog({
                 disabled={!receipt || emailReceipt.isPending}
                 title={guardianEmail ? `Send to ${guardianEmail}` : "No guardian email on file — you will be asked for one"}
               >
-                {emailReceipt.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {emailReceipt.isPending ? <Loader size={16} tone="inherit" /> : <Mail className="h-4 w-4" />}
                 Email
               </Button>
               <Button

@@ -16,7 +16,6 @@ import {
   LayoutGrid,
   Lightbulb,
   ListChecks,
-  Loader2,
   NotebookPen,
   School,
   Sparkles,
@@ -25,6 +24,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -735,7 +735,7 @@ export function CompilePanel({
                 className="gap-1"
               >
                 {isCompiling ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader size={14} tone="inherit" />
                 ) : (
                   <Zap className="h-3.5 w-3.5" />
                 )}

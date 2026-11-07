@@ -1,6 +1,7 @@
 "use client";
 
-import { BadgePercent, Loader2, Plus, Receipt, RotateCcw, Trash2 } from "lucide-react";
+import { BadgePercent, Plus, Receipt, RotateCcw, Trash2 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -82,7 +83,7 @@ function ApplyCreditNote({ note, onDone }: { note: CreditNote; onDone: () => voi
           apply.mutate({ noteId: note.id, invoiceId }, { onSuccess: onDone })
         }
       >
-        {apply.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
+        {apply.isPending ? <Loader size={14} tone="inherit" /> : "Apply"}
       </Button>
     </div>
   );
@@ -367,7 +368,7 @@ export default function ConcessionsPage() {
                       disabled={createDiscount.isPending}
                     >
                       {createDiscount.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader size={16} tone="inherit" />
                       ) : (
                         <Plus className="h-4 w-4" />
                       )}
@@ -494,7 +495,7 @@ export default function ConcessionsPage() {
                   </div>
                   <div className="flex items-end sm:col-span-3">
                     <Button type="submit" disabled={createNote.isPending} className="gap-1.5">
-                      {createNote.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {createNote.isPending && <Loader size={16} tone="inherit" />}
                       Issue credit note
                     </Button>
                   </div>
@@ -661,7 +662,7 @@ export default function ConcessionsPage() {
                   </label>
                   <div className="flex items-end lg:col-span-3">
                     <Button type="submit" disabled={createRefund.isPending} className="gap-1.5">
-                      {createRefund.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {createRefund.isPending && <Loader size={16} tone="inherit" />}
                       Record refund
                     </Button>
                   </div>

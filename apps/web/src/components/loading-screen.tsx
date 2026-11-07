@@ -2,11 +2,11 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 
-import { Loader } from "@/components/ui/loader";
+import { LoaderMark } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 interface LoadingScreenProps {
-  /** Optional line under the spinner. Omitted by default. */
+  /** Wordmark under the spinner. Defaults to the product name. */
   text?: string;
   className?: string;
   isLoading?: boolean;
@@ -14,15 +14,15 @@ interface LoadingScreenProps {
 }
 
 /**
- * The product's single loading treatment: the ring spinner.
+ * The product's single loading treatment: the double-ring spinner with the
+ * Clearis wordmark beneath it.
  *
  * Used for the first paint and for any background work (saving changes,
  * processing a result status, publishing) that runs long enough to be worth a
- * pause. There is deliberately only one mark — no branded wordmark, no
- * alternate animation — so "loading" looks the same everywhere in Clearis.
+ * pause.
  */
 export function LoadingScreen({
-  text,
+  text = "Clearis",
   className,
   isLoading = true,
   onComplete,
@@ -40,14 +40,7 @@ export function LoadingScreen({
             className,
           )}
         >
-          <div className="flex flex-col items-center gap-3">
-            <Loader className="h-9 w-9 border-[2.5px]" />
-            {text && (
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                {text}
-              </p>
-            )}
-          </div>
+          <LoaderMark size={46} text={text} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -58,7 +51,7 @@ export function LoadingScreen({
 export function LoadingOverlay() {
   return (
     <div className="fixed inset-0 z-[80] grid place-items-center bg-background/70 backdrop-blur-sm print:hidden">
-      <Loader className="h-9 w-9 border-[2.5px]" />
+      <LoaderMark size={46} />
     </div>
   );
 }

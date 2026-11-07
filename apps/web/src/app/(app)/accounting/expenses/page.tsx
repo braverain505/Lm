@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Loader2, Plus, Receipt, Trash2, XCircle } from "lucide-react";
+import { CheckCircle2, Plus, Receipt, Trash2, XCircle } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -267,7 +268,7 @@ export default function ExpensesPage() {
               </div>
               <div className="flex items-end gap-2 lg:col-span-3">
                 <Button type="submit" disabled={createExpense.isPending}>
-                  {createExpense.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {createExpense.isPending && <Loader size={16} tone="inherit" />}
                   Save expense
                 </Button>
                 <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>

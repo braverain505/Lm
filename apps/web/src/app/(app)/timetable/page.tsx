@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -91,7 +92,7 @@ export default function TimetablePage() {
           </select>
         </div>
         <Button onClick={handleGenerate} disabled={!sessionId || isPending} className="w-auto">
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+          {isPending ? <Loader size={16} tone="inherit" /> : <Calendar className="h-4 w-4" />}
           Generate schedule
         </Button>
       </div>

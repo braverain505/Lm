@@ -1,6 +1,7 @@
 "use client";
 
-import { Banknote, Check, Loader2, Plus } from "lucide-react";
+import { Banknote, Check, Plus } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -203,7 +204,7 @@ export default function CashbookPage() {
               </label>
               <div className="flex items-end">
                 <Button type="submit" disabled={createAccount.isPending}>
-                  {createAccount.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {createAccount.isPending && <Loader size={16} tone="inherit" />}
                   Add account
                 </Button>
               </div>

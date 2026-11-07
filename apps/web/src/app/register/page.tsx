@@ -8,9 +8,9 @@ import {
   ArrowRight,
   Check,
   ImagePlus,
-  Loader2,
   ShieldCheck,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -848,7 +848,7 @@ function CreatingWorkspace({
         />
 
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/15 ring-1 ring-primary/20">
-          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <Loader size={28} tone="brand" />
         </div>
 
         <h1 className="text-[22px] font-bold tracking-tight text-foreground">

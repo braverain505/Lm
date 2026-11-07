@@ -102,6 +102,11 @@ const config = {
           from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        /* The loader's two rings share this keyframe, one reversed. */
+        orbit: {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" },
+        },
       },
       animation: {
         "fade-in": "fade-in 0.2s ease-out",
@@ -109,6 +114,8 @@ const config = {
         "scale-in": "scale-in 0.12s ease-out",
         "slide-in-right": "slide-in-right 0.2s cubic-bezier(0.21, 1.02, 0.73, 1)",
         "slide-in-bottom": "slide-in-bottom 0.15s ease-out",
+        orbit: "orbit 1.1s linear infinite",
+        "orbit-reverse": "orbit 1.6s linear infinite reverse",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],

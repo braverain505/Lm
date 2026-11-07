@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Clock,
   Landmark,
-  Loader2,
   PieChart,
   Receipt,
   TrendingDown,
@@ -17,6 +16,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -373,7 +373,7 @@ export default function AccountingOverviewPage() {
                 {error && <p className="text-[11.5px] text-destructive">{error}</p>}
                 {created && <p className="text-[11.5px] text-success">{created}</p>}
                 <Button type="submit" size="sm" disabled={createAccountant.isPending}>
-                  {createAccountant.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {createAccountant.isPending && <Loader size={16} tone="inherit" />}
                   Create login
                 </Button>
               </form>

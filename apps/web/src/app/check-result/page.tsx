@@ -15,13 +15,13 @@ import {
   CalendarDays,
   Download,
   GraduationCap,
-  Loader2,
   Printer,
   ShieldCheck,
   Sparkles,
   TrendingUp,
   UserRound,
 } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -148,7 +148,7 @@ export default function CheckResultPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader size={16} tone="inherit" />
           Opening your result…
         </div>
       </div>
@@ -212,7 +212,7 @@ export default function CheckResultPage() {
             </Button>
             <Button size="sm" onClick={handleDownload} disabled={!card || downloading}>
               {downloading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader size={14} tone="inherit" />
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
@@ -350,7 +350,7 @@ export default function CheckResultPage() {
                 className="flex h-72 items-center justify-center rounded-3xl border border-border/80 bg-card"
               >
                 <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader size={16} tone="inherit" />
                   Loading report card…
                 </div>
               </motion.div>

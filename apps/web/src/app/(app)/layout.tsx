@@ -8,7 +8,7 @@ import { ReactNode, useEffect, useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Loader } from "@/components/ui/loader";
+import { LoaderMark } from "@/components/ui/loader";
 import { useAuth } from "@/providers/auth-provider";
 import { api } from "@clearis/shared";
 
@@ -55,7 +55,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader />
+        <LoaderMark size={46} />
       </div>
     );
   }

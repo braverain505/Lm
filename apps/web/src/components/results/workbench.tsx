@@ -1,7 +1,8 @@
 "use client";
 
 import type { WorkbenchRow } from "@clearis/shared";
-import { Check, CheckCheck, Loader2, RotateCcw, ShieldCheck, Upload, Wand2, X } from "lucide-react";
+import { Check, CheckCheck, RotateCcw, ShieldCheck, Upload, Wand2, X } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import type * as React from "react";
 
 import { ReadinessBar } from "@/components/readiness-bar";
@@ -328,7 +329,7 @@ export function SubjectRow({
           {isEntered(row) && (
             <Button size="sm" variant="outline" disabled={disabled} onClick={onCompile}>
               {pending === "compile" ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader size={14} tone="inherit" />
               ) : (
                 <Wand2 className="h-3.5 w-3.5" />
               )}
@@ -338,7 +339,7 @@ export function SubjectRow({
           {!rejecting && step && (
             <Button size="sm" disabled={disabled} onClick={() => onAction(step.action)}>
               {pending === step.action ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader size={14} tone="inherit" />
               ) : (
                 (() => {
                   const Icon = ACTION_ICON[step.action];
@@ -379,7 +380,7 @@ export function SubjectRow({
             disabled={!reason.trim() || disabled}
             onClick={onReject}
           >
-            {pending === "reject" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+            {pending === "reject" ? <Loader size={14} tone="inherit" /> : <RotateCcw className="h-3.5 w-3.5" />}
             Bounce to draft
           </Button>
           <Button size="sm" variant="ghost" onClick={onCancelReject}>

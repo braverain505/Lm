@@ -1,7 +1,8 @@
 "use client";
 
 import type { WorkbenchRow } from "@clearis/shared";
-import { Check, Loader2, Lock, Search } from "lucide-react";
+import { Check, Lock, Search } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ReadinessBar } from "@/components/readiness-bar";
@@ -219,7 +220,7 @@ export default function ProcessResultsPage() {
             </span>
           )}
           <Button onClick={processReady} disabled={busy || selectedTermClosed || readyCount === 0}>
-            {compiling.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+            {compiling.isPending ? <Loader size={14} tone="inherit" /> : <Check className="h-3.5 w-3.5" />}
             Process ready results{readyCount > 0 ? ` (${readyCount})` : ""}
           </Button>
         </div>

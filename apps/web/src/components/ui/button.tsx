@@ -65,7 +65,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isLoading || disabled}
         {...props}
       >
-        {isLoading ? <Loader tone="inherit" className="h-4 w-4" /> : children}
+        {isLoading ? <Loader size={16} tone="inherit" /> : children}
       </Comp>
     );
   },

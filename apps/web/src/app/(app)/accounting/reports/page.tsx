@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, Loader2, TrendingDown, TrendingUp } from "lucide-react";
+import { Download, TrendingDown, TrendingUp } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -83,7 +84,7 @@ export default function ReportsPage() {
           </div>
           <Button variant="outline" onClick={handleDownload} disabled={downloading || !ie}>
             {downloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader size={16} tone="inherit" />
             ) : (
               <Download className="h-4 w-4" />
             )}
