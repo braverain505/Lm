@@ -1,46 +1,49 @@
 "use client";
 
-import { useIsFetching } from "@tanstack/react-query";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { useIsFetching, useIsMutating } from "@tanstack/react-query";
+import { ReactNode, useEffect, useState } from "react";
 
 import { LoadingScreen } from "@/components/loading-screen";
-import { ProcessingBar } from "@/components/processing-indicator";
 
-// Show the branded splash only for the first batch of requests after a page
-// load; everything after that is background work and gets the thin top bar.
-const SPLASH_DELAY = 300; // ms
-const SPLASH_TIMEOUT = 8000; // never hold someone hostage to a slow boot
+// Wait a beat before covering the screen, so an instant cache hit or a fast
+// save does not flash a spinner. Everything that takes longer shows one.
+const SHOW_DELAY = 250; // ms
+const SAFETY_TIMEOUT = 8000; // never hold someone behind a spinner for longer
 
+/**
+ * One spinner for every loading activity in the product.
+ *
+ * React Query knows about both directions of work: `useIsFetching` covers every
+ * read (page data, refetches after a save) and `useIsMutating` covers every
+ * write (saving a change, changing a result's status, publishing). Watching
+ * both means a save shows the same spinner as a page load — no call site has to
+ * remember to opt in.
+ */
 export function LoadingProvider({ children }: { children: ReactNode }) {
-  const isFetching = useIsFetching();
-  const booted = useRef(false);
-  const [bootFinished, setBootFinished] = useState(false);
-  const [showSplash, setShowSplash] = useState(false);
+  const fetching = useIsFetching();
+  const mutating = useIsMutating();
+  const busy = fetching + mutating > 0;
+  const [showSpinner, setShowSpinner] = useState(false);
 
   useEffect(() => {
-    if (bootFinished) return;
-
-    if (isFetching > 0) {
-      booted.current = true;
-      const delay = setTimeout(() => setShowSplash(true), SPLASH_DELAY);
-      const safety = setTimeout(() => setShowSplash(false), SPLASH_TIMEOUT);
-      return () => {
-        clearTimeout(delay);
-        clearTimeout(safety);
-      };
+    if (!busy) {
+      setShowSpinner(false);
+      return;
     }
+    const delay = setTimeout(() => setShowSpinner(true), SHOW_DELAY);
+    return () => clearTimeout(delay);
+  }, [busy]);
 
-    // The first burst of requests has settled.
-    if (booted.current) {
-      setShowSplash(false);
-      setBootFinished(true);
-    }
-  }, [isFetching, bootFinished]);
+  // Safety valve: if a request hangs, the app must not stay covered forever.
+  useEffect(() => {
+    if (!showSpinner) return;
+    const timeout = setTimeout(() => setShowSpinner(false), SAFETY_TIMEOUT);
+    return () => clearTimeout(timeout);
+  }, [showSpinner]);
 
   return (
     <>
-      <ProcessingBar />
-      {showSplash && !bootFinished && <LoadingScreen />}
+      <LoadingScreen isLoading={showSpinner} />
       {children}
     </>
   );

@@ -353,6 +353,15 @@
 
 /* Ambient field: three very low-opacity colour wells, slowly drifting.
    Sits behind the app content; never intercepts a click. */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.06);
+  }
+}
 .aurora {
   position: absolute;
   inset: -20%;

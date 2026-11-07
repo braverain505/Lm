@@ -102,29 +102,6 @@ const config = {
           from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        /* ─── Motion signature ─────────────────────────────────────────────
-           Slow, linear, continuous motion for "something is happening" —
-           never bouncy. The product should read like an instrument.        */
-        "progress-sweep": {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(420%)" },
-        },
-        "pulse-soft": {
-          "0%, 100%": { opacity: "0.35", transform: "scale(0.82)" },
-          "50%": { opacity: "1", transform: "scale(1)" },
-        },
-        orbit: {
-          "0%": { transform: "rotate(0deg)" },
-          "100%": { transform: "rotate(360deg)" },
-        },
-        "aurora-drift": {
-          "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1)" },
-          "50%": { transform: "translate3d(2%, -2%, 0) scale(1.06)" },
-        },
-        sheen: {
-          "0%": { transform: "translateX(-120%)" },
-          "60%, 100%": { transform: "translateX(220%)" },
-        },
       },
       animation: {
         "fade-in": "fade-in 0.2s ease-out",
@@ -132,12 +109,6 @@ const config = {
         "scale-in": "scale-in 0.12s ease-out",
         "slide-in-right": "slide-in-right 0.2s cubic-bezier(0.21, 1.02, 0.73, 1)",
         "slide-in-bottom": "slide-in-bottom 0.15s ease-out",
-        "progress-sweep": "progress-sweep 1.4s cubic-bezier(0.5, 0, 0.5, 1) infinite",
-        "pulse-soft": "pulse-soft 1.8s ease-in-out infinite",
-        orbit: "orbit 1.1s linear infinite",
-        "orbit-reverse": "orbit 1.7s linear infinite reverse",
-        "aurora-drift": "aurora-drift 18s ease-in-out infinite",
-        sheen: "sheen 2.8s ease-in-out infinite",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "-apple-system", "sans-serif"],

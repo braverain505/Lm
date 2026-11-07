@@ -1,120 +1,52 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+
+import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 interface LoadingScreenProps {
+  /** Optional line under the spinner. Omitted by default. */
   text?: string;
   className?: string;
   isLoading?: boolean;
   onComplete?: () => void;
 }
 
-export function LoadingScreen({ text = "Clearis", className, isLoading = true, onComplete }: LoadingScreenProps) {
-  const [displayText, setDisplayText] = useState('');
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    let currentIndex = 0;
-    const typingInterval = setInterval(() => {
-      if (currentIndex <= text.length) {
-        setDisplayText(text.slice(0, currentIndex));
-        currentIndex++;
-      } else {
-        clearInterval(typingInterval);
-      }
-    }, 150);
-
-    return () => clearInterval(typingInterval);
-  }, [isLoading, text]);
-
+/**
+ * The product's single loading treatment: the ring spinner.
+ *
+ * Used for the first paint and for any background work (saving changes,
+ * processing a result status, publishing) that runs long enough to be worth a
+ * pause. There is deliberately only one mark — no branded wordmark, no
+ * alternate animation — so "loading" looks the same everywhere in Clearis.
+ */
+export function LoadingScreen({
+  text,
+  className,
+  isLoading = true,
+  onComplete,
+}: LoadingScreenProps) {
   return (
-    <AnimatePresence mode="wait" onExitComplete={onComplete}>
+    <AnimatePresence onExitComplete={onComplete}>
       {isLoading && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: 'easeInOut' }}
-          className={cn("fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm dark:bg-slate-950/80", className)}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className={cn(
+            "fixed inset-0 z-[80] grid place-items-center bg-background/70 backdrop-blur-sm print:hidden",
+            className,
+          )}
         >
-          <div className="flex flex-col items-center gap-8">
-            <div className="relative">
-              <motion.h1
-                className="text-6xl font-light tracking-wide text-slate-900 dark:text-white"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: 'easeOut' }}
-              >
-                {displayText}
-                <motion.span
-                  className="inline-block w-0.5 h-14 bg-slate-900 dark:bg-white ml-1 align-middle"
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                />
-              </motion.h1>
-
-              <motion.div
-                className="absolute -inset-4 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 blur-2xl"
-                animate={{
-                  opacity: [0.3, 0.6, 0.3],
-                  scale: [0.98, 1.02, 0.98],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-            </div>
-
-            <div className="relative w-64 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
-                initial={{ width: '0%' }}
-                animate={{ width: '100%' }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                animate={{ x: ['-100%', '200%'] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-            </div>
-
-            <motion.div
-              className="flex gap-2"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.4 }}
-            >
-              {[0, 1, 2].map((index) => (
-                <motion.div
-                  key={index}
-                  className="w-2 h-2 rounded-full bg-slate-400 dark:bg-slate-600"
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.5, 1, 0.5],
-                  }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    delay: index * 0.2,
-                    ease: 'easeInOut',
-                  }}
-                />
-              ))}
-            </motion.div>
+          <div className="flex flex-col items-center gap-3">
+            <Loader className="h-9 w-9 border-[2.5px]" />
+            {text && (
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                {text}
+              </p>
+            )}
           </div>
         </motion.div>
       )}
@@ -122,48 +54,11 @@ export function LoadingScreen({ text = "Clearis", className, isLoading = true, o
   );
 }
 
-// A simpler version for inline use (when page is already rendered)
+/** Same treatment, for surfaces that render it inline instead of globally. */
 export function LoadingOverlay() {
   return (
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-background/90 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4">
-        <motion.div
-          className="relative h-16 w-16 rounded-full"
-          animate={{
-            rotate: 360,
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            rotate: {
-              duration: 2,
-              repeat: Infinity,
-              ease: "linear",
-            },
-            scale: {
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            },
-          }}
-        >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary via-primary/65 to-primary" />
-          <div className="absolute inset-4 rounded-full bg-background" />
-        </motion.div>
-
-        <motion.div
-          className="text-lg font-semibold text-foreground"
-          animate={{
-            opacity: [0.5, 1, 0.5],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        >
-          Loading
-        </motion.div>
-      </div>
+    <div className="fixed inset-0 z-[80] grid place-items-center bg-background/70 backdrop-blur-sm print:hidden">
+      <Loader className="h-9 w-9 border-[2.5px]" />
     </div>
   );
 }

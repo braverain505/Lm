@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
-import { DotsLoader } from "@/components/ui/loader";
+import { Loader } from "@/components/ui/loader";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -65,7 +65,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isLoading || disabled}
         {...props}
       >
-        {isLoading ? <DotsLoader label="Working" /> : children}
+        {isLoading ? <Loader tone="inherit" className="h-4 w-4" /> : children}
       </Comp>
     );
   },
