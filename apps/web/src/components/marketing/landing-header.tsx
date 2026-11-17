@@ -54,15 +54,13 @@ export function LandingHeader() {
   const signedIn = !loading && Boolean(user);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-50 w-full transition-colors duration-200",
-        scrolled
-          ? "border-b border-border/70 bg-background/85 shadow-[0_10px_30px_-24px_hsl(var(--mk-navy)/0.45)] backdrop-blur-xl"
-          : "border-b border-transparent bg-transparent",
-      )}
-    >
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-4">
+      <div
+        className={cn(
+          "mk-glass-bar mx-auto flex h-16 w-full max-w-6xl items-center gap-3 rounded-full px-4 transition-shadow duration-300 sm:px-5",
+          scrolled && "shadow-[0_26px_60px_-34px_hsl(var(--primary)/0.55)]",
+        )}
+      >
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2 rounded-lg py-1"
@@ -86,7 +84,7 @@ export function LandingHeader() {
             <a
               key={link.href}
               href={link.href}
-              className="rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-foreground/70 transition-colors hover:bg-primary/10 hover:text-primary"
+              className="rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-foreground/65 transition-colors hover:bg-primary/10 hover:text-primary"
             >
               {link.label}
             </a>
@@ -101,7 +99,7 @@ export function LandingHeader() {
           <a
             href={APP_DOWNLOAD_URL}
             download={APP_DOWNLOAD_NAME}
-            className="mk-pill hidden items-center gap-1.5 bg-[hsl(var(--mk-yellow))]/[0.18] px-4 py-2 text-[12.5px] font-bold text-[hsl(35_86%_28%)] transition-colors hover:bg-[hsl(var(--mk-yellow))]/30 lg:inline-flex"
+            className="mk-chip hidden items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold text-primary transition-colors hover:bg-primary/10 lg:inline-flex"
           >
             <Download className="h-3.5 w-3.5" />
             Download app
@@ -124,7 +122,7 @@ export function LandingHeader() {
               >
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm" className="mk-pill h-10 px-5 font-bold shadow-md shadow-primary/25">
+              <Button asChild size="sm" className="mk-pill h-10 px-5 font-bold shadow-[0_12px_30px_-12px_hsl(var(--primary)/0.75)]">
                 <Link href="/register">
                   Get started
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -138,7 +136,7 @@ export function LandingHeader() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? "Close menu" : "Open menu"}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 text-foreground transition-colors hover:bg-muted/60 lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card/40 text-foreground backdrop-blur transition-colors hover:bg-primary/10 lg:hidden"
           >
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
@@ -152,16 +150,16 @@ export function LandingHeader() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: EASE }}
-            className="overflow-hidden border-b border-border/70 bg-background/95 backdrop-blur-xl lg:hidden"
+            className="mx-auto mt-2 w-full max-w-6xl overflow-hidden rounded-[26px] border border-border/60 bg-background/85 shadow-[0_30px_80px_-40px_hsl(var(--primary)/0.5)] backdrop-blur-2xl lg:hidden"
           >
-            <div className="mx-auto max-w-6xl px-4 pb-5 pt-2 sm:px-6">
+            <div className="mx-auto max-w-6xl px-4 pb-5 pt-3 sm:px-5">
               <nav aria-label="Sections" className="grid gap-0.5">
                 {LINKS.map((link) => (
                   <a
                     key={link.href}
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="rounded-lg px-3 py-2.5 text-[14px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                    className="rounded-xl px-3 py-2.5 text-[14px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                   >
                     {link.label}
                   </a>
@@ -171,7 +169,7 @@ export function LandingHeader() {
               <a
                 href={APP_DOWNLOAD_URL}
                 download={APP_DOWNLOAD_NAME}
-                className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-primary/35 bg-primary/[0.07] px-3 py-2.5 text-[13px] font-semibold text-primary"
+                className="mt-3 flex items-center justify-center gap-1.5 rounded-full border border-border/60 bg-card/40 px-3 py-2.5 text-[13px] font-semibold text-primary backdrop-blur"
               >
                 <Download className="h-4 w-4" />
                 Download the mobile app

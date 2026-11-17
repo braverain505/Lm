@@ -7,20 +7,20 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { APP_DOWNLOAD_NAME, APP_DOWNLOAD_URL } from "@/lib/app-download";
 
-import { AuroraBackdrop, EASE, Reveal } from "./landing-shared";
+import { EASE, Reveal } from "./landing-shared";
 import { LandingProductSlider } from "./landing-product-slider";
 
 const PROMISES = ["Set up in minutes", "Nothing to install", "Roles from day one"];
 
 export function LandingHero() {
   return (
-    <section className="mk-hero-wash relative isolate overflow-hidden pb-20 pt-16 sm:pb-28 sm:pt-24">
-      <AuroraBackdrop />
+    <section className="mk-mesh mk-grain relative isolate overflow-hidden pb-20 pt-16 sm:pb-28 sm:pt-24">
+      <div aria-hidden className="mk-grid-lines pointer-events-none absolute inset-0" />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11.5px] font-bold uppercase tracking-[0.1em] text-primary">
+            <span className="mk-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-[0.12em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               One platform for the whole school
             </span>
@@ -29,7 +29,7 @@ export function LandingHero() {
           <Reveal delay={0.05}>
             <h1 className="mt-7 text-[38px] font-extrabold leading-[1.02] tracking-[-0.035em] text-foreground sm:text-[56px] lg:text-[68px]">
               Run your school from{" "}
-              <span className="relative z-0 text-primary mk-swash">one clear platform</span>.
+              <span className="mk-sheen-text">one clear platform</span>.
             </h1>
           </Reveal>
 
@@ -45,7 +45,7 @@ export function LandingHero() {
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
                 asChild
-                className="mk-pill h-[52px] w-full px-7 text-[15px] font-bold shadow-lg shadow-primary/25 sm:w-auto"
+                className="mk-pill h-[52px] w-full px-7 text-[15px] font-bold shadow-[0_18px_45px_-16px_hsl(var(--primary)/0.85)] sm:w-auto"
               >
                 <Link href="/register">
                   Get started free
@@ -55,14 +55,14 @@ export function LandingHero() {
               <Button
                 asChild
                 variant="outline"
-                className="mk-pill h-[52px] w-full border-border bg-card px-7 text-[15px] font-semibold sm:w-auto"
+                className="mk-glass mk-pill h-[52px] w-full border-border/60 px-7 text-[15px] font-semibold sm:w-auto"
               >
                 <Link href="/login">Sign in</Link>
               </Button>
               <Button
                 asChild
                 variant="outline"
-                className="mk-pill h-[52px] w-full border-transparent bg-[hsl(var(--mk-yellow))]/[0.16] px-7 text-[15px] font-semibold text-[hsl(35_86%_30%)] hover:bg-[hsl(var(--mk-yellow))]/25 hover:text-[hsl(35_86%_24%)] sm:w-auto"
+                className="mk-chip mk-pill h-[52px] w-full border-border/60 px-7 text-[15px] font-semibold text-primary hover:bg-primary/10 hover:text-primary sm:w-auto"
               >
                 <a href={APP_DOWNLOAD_URL} download={APP_DOWNLOAD_NAME}>
                   <Download className="mr-1.5 h-4 w-4" />
@@ -77,9 +77,9 @@ export function LandingHero() {
               {PROMISES.map((promise) => (
                 <span
                   key={promise}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-[12.5px] font-medium text-foreground/80"
+                  className="mk-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-medium text-foreground/75"
                 >
-                  <BadgeCheck className="h-3.5 w-3.5 text-[hsl(var(--mk-green))]" />
+                  <BadgeCheck className="h-3.5 w-3.5 text-primary" />
                   {promise}
                 </span>
               ))}
@@ -93,8 +93,8 @@ export function LandingHero() {
           transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
           className="mx-auto mt-14 max-w-5xl sm:mt-16"
         >
-          <div className="mk-lift-lg rounded-[28px] border border-border/80 bg-card p-2 sm:p-3">
-            <div className="overflow-hidden rounded-[22px] border border-border/60 bg-background">
+          <div className="mk-glass mk-bloom rounded-[28px] p-2 sm:p-3">
+            <div className="overflow-hidden rounded-[22px] border border-border/50 bg-background/80">
               <LandingProductSlider />
             </div>
           </div>

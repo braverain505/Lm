@@ -51,7 +51,7 @@ function AppDownloadButton({ className, label = "Download the app" }: { classNam
       asChild
       variant="outline"
       className={cn(
-        "mk-pill border-transparent bg-[hsl(var(--mk-yellow))]/[0.18] font-semibold text-[hsl(35_86%_28%)] hover:bg-[hsl(var(--mk-yellow))]/30 hover:text-[hsl(35_86%_22%)]",
+        "mk-chip mk-pill border-border/60 font-semibold text-primary hover:bg-primary/10 hover:text-primary",
         className,
       )}
     >
@@ -81,7 +81,7 @@ function TrustStrip() {
           {TRUST.map(({ icon: Icon, label }) => (
             <span
               key={label}
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-[12.5px] font-semibold text-foreground/75"
+              className="mk-chip inline-flex items-center gap-2 rounded-full px-4 py-2 text-[12.5px] font-semibold text-foreground/75"
             >
               <Icon className="h-4 w-4 text-primary" />
               {label}
@@ -134,7 +134,7 @@ function ProblemSection() {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PAINS.map(({ icon: Icon, title, body }, index) => (
             <Reveal key={title} delay={index * 0.06}>
-              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+              <div className="mk-glass h-full rounded-3xl p-5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-destructive/25 bg-destructive/10">
                   <Icon className="h-4 w-4 text-destructive" />
                 </span>
@@ -228,7 +228,7 @@ function PlatformSection() {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SEATS.map(({ icon: Icon, title, items }, index) => (
             <Reveal key={title} delay={index * 0.06}>
-              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+              <div className="mk-glass h-full rounded-3xl p-5 transition-transform duration-200 hover:-translate-y-0.5">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12">
                   <Icon className="h-4 w-4 text-primary" />
                 </span>
@@ -258,10 +258,10 @@ function PlatformSection() {
  * desks rather than four identical cards.
  */
 const TILE_TONES = [
-  "bg-primary/10 text-primary",
-  "bg-[hsl(var(--mk-yellow))]/[0.18] text-[hsl(35_86%_32%)]",
-  "bg-[hsl(var(--mk-green))]/[0.14] text-[hsl(144_66%_28%)]",
-  "bg-[hsl(var(--mk-teal))]/[0.14] text-[hsl(184_84%_26%)]",
+  "bg-primary/12 text-primary",
+  "bg-primary/[0.08] text-primary/90",
+  "bg-chart-5/12 text-chart-5",
+  "bg-primary/[0.06] text-primary/80",
 ];
 
 const DESKS: {
@@ -329,7 +329,7 @@ function FeaturesSection() {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {DESKS.map(({ icon: DeskIcon, desk, beta, features }, index) => (
             <Reveal key={desk} delay={index * 0.06}>
-              <div className="mk-lift h-full rounded-3xl border border-border/70 bg-card p-6">
+              <div className="mk-glass h-full rounded-3xl p-6">
                 <div className="flex items-center gap-3">
                   <span
                     className={cn(
@@ -343,7 +343,7 @@ function FeaturesSection() {
                     {desk}
                   </p>
                   {beta && (
-                    <span className="rounded-full bg-[hsl(var(--mk-yellow))]/25 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[hsl(35_86%_30%)]">
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">
                       Beta
                     </span>
                   )}
@@ -363,7 +363,7 @@ function FeaturesSection() {
         </div>
 
         <Reveal delay={0.1}>
-          <div className="mk-lift mt-8 flex flex-col items-start justify-between gap-4 rounded-3xl border border-border/70 bg-card p-6 sm:flex-row sm:items-center">
+          <div className="mk-glass mt-8 flex flex-col items-start justify-between gap-4 rounded-3xl p-6 sm:flex-row sm:items-center">
             <p className="text-[14px] text-muted-foreground">
               Every screen is scoped to your school and re-checked against your role on each request.
             </p>
@@ -597,7 +597,7 @@ function HowItWorksSection() {
         <div className="mt-12 grid gap-4 md:grid-cols-3">
           {STEPS.map((step, index) => (
             <Reveal key={step.title} delay={index * 0.07}>
-              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+              <div className="mk-glass h-full rounded-3xl p-5">
                 <span className="text-[40px] font-bold leading-none text-primary/15">
                   0{index + 1}
                 </span>
@@ -613,7 +613,7 @@ function HowItWorksSection() {
         </div>
 
         <Reveal delay={0.1}>
-          <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl border border-border/70 bg-card p-6 sm:flex-row sm:justify-between">
+          <div className="mk-glass mt-8 flex flex-col items-center gap-4 rounded-3xl p-6 sm:flex-row sm:justify-between">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12">
                 <Download className="h-4 w-4 text-primary" />
@@ -727,56 +727,50 @@ function FaqSection() {
 
 function FinalCta() {
   return (
-    <section className="relative isolate overflow-hidden bg-primary py-20 text-primary-foreground sm:py-24">
-      {/* A soft light pattern over the blue, the way the market's landing pages do it. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.14]"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 1px 1px, hsl(var(--primary-foreground)) 1px, transparent 0)",
-          backgroundSize: "22px 22px",
-          maskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%)",
-          WebkitMaskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%)",
-        }}
-      />
-      <div className="relative mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
+    <section className="relative isolate overflow-hidden px-4 pb-24 pt-20 sm:px-6 sm:pb-28">
+      <div aria-hidden className="mk-mesh absolute inset-0 -z-10" />
+      <div aria-hidden className="mk-grid-lines pointer-events-none absolute inset-0 -z-10" />
+
+      <div className="mx-auto w-full max-w-4xl">
         <Reveal>
-          <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-[-0.03em] text-white sm:text-[44px]">
-            Bring your school onto one clear platform.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-white/80">
-            Start with the workspace, add your first class, and let the term run
-            itself.
-          </p>
-          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button
-              asChild
-              className="mk-pill h-[52px] w-full bg-white px-7 text-[15px] font-bold text-[hsl(var(--mk-navy))] shadow-lg shadow-black/15 hover:bg-white/90 sm:w-auto"
-            >
-              <Link href="/register">
-                Get started free
-                <ArrowRight className="ml-1.5 h-4 w-4" />
+          <div className="mk-glass mk-bloom overflow-hidden rounded-[32px] px-6 py-14 text-center sm:px-14">
+            <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-[-0.035em] text-foreground sm:text-[44px]">
+              Bring your school onto{" "}
+              <span className="mk-sheen-text">one clear platform</span>.
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-muted-foreground">
+              Start with the workspace, add your first class, and let the term run
+              itself.
+            </p>
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                asChild
+                className="mk-pill h-[52px] w-full px-7 text-[15px] font-bold shadow-[0_18px_45px_-16px_hsl(var(--primary)/0.85)] sm:w-auto"
+              >
+                <Link href="/register">
+                  Get started free
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="mk-chip mk-pill h-[52px] w-full border-border/60 px-7 text-[15px] font-semibold sm:w-auto"
+              >
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <AppDownloadButton className="h-[52px] w-full px-7 text-[15px] sm:w-auto" />
+            </div>
+            <p className="mt-6 text-[12.5px] text-muted-foreground/85">
+              Parent or student?{" "}
+              <Link
+                href="/check-result"
+                className="font-bold text-primary underline-offset-4 hover:underline"
+              >
+                Check a published result
               </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="mk-pill h-[52px] w-full border-white/40 bg-transparent px-7 text-[15px] font-semibold text-white backdrop-blur-sm hover:border-white/70 hover:bg-white/10 hover:text-white sm:w-auto"
-            >
-              <Link href="/login">Sign in</Link>
-            </Button>
-            <AppDownloadButton className="h-[52px] w-full px-7 text-[15px] sm:w-auto" />
+            </p>
           </div>
-          <p className="mt-6 text-[12.5px] text-white/70">
-            Parent or student?{" "}
-            <Link
-              href="/check-result"
-              className="font-bold text-[hsl(var(--mk-yellow))] underline-offset-4 hover:underline"
-            >
-              Check a published result
-            </Link>
-          </p>
         </Reveal>
       </div>
     </section>

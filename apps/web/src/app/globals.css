@@ -409,139 +409,139 @@
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Marketing skin — the public front door
+   Marketing skin — glass, in the product's own violet
    ────────────────────────────────────────────────────────────────────────────
-   The product keeps its restrained "soft chrome" and violet brand. The landing
-   pages wear a different skin, the one the school-software market reads as
-   friendly and current: a vivid blue on white, a deep navy for headings, a warm
-   yellow accent, pill controls and deep, soft shadows over generous white space.
+   The landing pages keep the brand the logo is made of — the product's violet on
+   soft chrome — and express it in a cooler register: frosted glass panels over a
+   violet mesh, hairline borders, specular top edges and one soft bloom per band.
 
-   Everything is scoped to `.mk-site`, so redefining the same tokens the product
-   uses restyles the whole landing — every `bg-card`, `text-primary`,
-   `border-border` underneath picks the new palette up — without a class-by-class
-   rewrite and without touching a single authenticated screen.
+   Scoped to `.mk-site` so nothing here can reach an authenticated screen. No
+   tokens are redefined: the site inherits the app's palette exactly, which is
+   the point — the front door and the product must look like the same company.
    ════════════════════════════════════════════════════════════════════════════ */
 .mk-site {
-  --background: 0 0% 100%;
-  --background-subtle: 221 60% 98%;
-  --foreground: 249 63% 15%;
-  --foreground-secondary: 246 32% 30%;
-  --foreground-tertiary: 240 14% 45%;
-
-  --card: 0 0% 100%;
-  --card-foreground: 249 63% 15%;
-
-  --primary: 221 84% 46%;
-  --primary-foreground: 0 0% 100%;
-  --primary-hover: 221 84% 40%;
-  --primary-subtle: 221 90% 96%;
-  --primary-border: 221 84% 88%;
-
-  --secondary: 221 48% 96%;
-  --secondary-foreground: 249 63% 15%;
-
-  --muted: 221 48% 97%;
-  --muted-foreground: 235 16% 42%;
-  --accent: 221 70% 94%;
-  --accent-foreground: 221 84% 34%;
-
-  --border: 221 40% 90%;
-  --border-strong: 221 30% 78%;
-  --border-subtle: 221 40% 93%;
-  --input: 221 30% 88%;
-  --ring: 221 84% 52%;
-
-  --success: 152 62% 38%;
-  --warning: 38 92% 50%;
-
-  /* The accent set eSkooly leans on for icon tiles and highlights. */
-  --mk-yellow: 40 100% 54%;
-  --mk-green: 144 66% 42%;
-  --mk-teal: 184 84% 40%;
-  --mk-navy: 249 63% 15%;
-  --mk-blue-soft: 221 84% 96%;
-  --mk-blue-tint: 221 84% 44%;
-
-  --radius: 1rem;
-
   font-family: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.dark .mk-site {
-  --background: 249 42% 7%;
-  --background-subtle: 248 34% 10%;
-  --foreground: 220 30% 97%;
-  --foreground-secondary: 220 20% 84%;
-  --foreground-tertiary: 222 14% 66%;
-
-  --card: 248 32% 11%;
-  --card-foreground: 220 30% 97%;
-  --primary: 221 90% 62%;
-  --primary-foreground: 249 63% 10%;
-  --primary-hover: 221 90% 68%;
-  --primary-subtle: 221 60% 18%;
-  --primary-border: 221 50% 30%;
-
-  --secondary: 248 24% 16%;
-  --secondary-foreground: 220 30% 97%;
-  --muted: 248 22% 14%;
-  --muted-foreground: 222 14% 68%;
-  --accent: 248 28% 18%;
-  --accent-foreground: 221 90% 82%;
-
-  --border: 248 20% 22%;
-  --border-strong: 248 18% 34%;
-  --border-subtle: 248 20% 19%;
-  --input: 248 20% 24%;
-  --ring: 221 90% 62%;
-}
-
-/* Pill controls: the marketing site never shows a square button. */
-.mk-site .mk-pill,
-.mk-site .mk-pill > * {
-  border-radius: 9999px;
-}
-
-/* Two depths of card lift, both blue-tinted rather than grey — eSkooly's look. */
-.mk-site .mk-lift {
-  box-shadow:
-    0 1px 2px hsl(var(--mk-navy) / 0.04),
-    0 12px 32px -14px hsl(var(--primary) / 0.22);
-}
-.mk-site .mk-lift-lg {
-  box-shadow:
-    0 2px 6px hsl(var(--mk-navy) / 0.05),
-    0 34px 80px -28px hsl(var(--primary) / 0.35);
-}
-
-/* The hero's soft blue wash, fading into white. */
-.mk-site .mk-hero-wash {
-  background:
-    radial-gradient(ellipse 60% 46% at 50% -6%, hsl(var(--primary) / 0.16), transparent 70%),
-    radial-gradient(ellipse 40% 30% at 88% 8%, hsl(var(--mk-teal) / 0.10), transparent 72%),
-    linear-gradient(to bottom, hsl(var(--mk-blue-soft)) 0%, hsl(var(--background)) 62%);
-}
-.dark .mk-site .mk-hero-wash {
-  background:
-    radial-gradient(ellipse 60% 46% at 50% -6%, hsl(var(--primary) / 0.22), transparent 70%),
-    radial-gradient(ellipse 40% 30% at 88% 8%, hsl(var(--mk-teal) / 0.12), transparent 72%),
-    linear-gradient(to bottom, hsl(var(--background-subtle)) 0%, hsl(var(--background)) 62%);
-}
-
-/* The yellow underline swash under a hero phrase. */
-.mk-site .mk-swash {
+/* ── Frosted panel ─────────────────────────────────────────────────────────
+   The base surface of the redesign: translucent card, saturated blur, a hairline
+   border and a specular highlight along the top edge so it reads as glass
+   rather than as a grey box. */
+.mk-site .mk-glass {
   position: relative;
-  white-space: nowrap;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--card) / 0.78) 0%,
+    hsl(var(--card) / 0.55) 100%
+  );
+  border: 1px solid hsl(var(--border) / 0.6);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.7),
+    0 1px 2px hsl(var(--foreground) / 0.05),
+    0 30px 70px -34px hsl(var(--primary) / 0.35);
 }
-.mk-site .mk-swash::after {
+.dark .mk-site .mk-glass {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--card) / 0.82) 0%,
+    hsl(var(--card) / 0.5) 100%
+  );
+  border-color: hsl(var(--border) / 0.55);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.07),
+    0 30px 80px -34px hsl(0 0% 0% / 0.8);
+}
+
+/* The nav bar: stronger when it is floating over content. */
+.mk-site .mk-glass-bar {
+  background: hsl(var(--background) / 0.62);
+  border: 1px solid hsl(var(--border) / 0.55);
+  backdrop-filter: blur(24px) saturate(170%);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.55),
+    0 20px 50px -30px hsl(var(--primary) / 0.35);
+}
+.dark .mk-site .mk-glass-bar {
+  background: hsl(var(--background) / 0.55);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% 100% / 0.06),
+    0 24px 60px -30px hsl(0 0% 0% / 0.8);
+}
+
+/* A small glass chip — labels, trust marks, promises. */
+.mk-site .mk-chip {
+  border: 1px solid hsl(var(--border) / 0.65);
+  background: hsl(var(--card) / 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.55);
+}
+.dark .mk-site .mk-chip {
+  background: hsl(var(--card) / 0.45);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.06);
+}
+
+/* ── Backdrop ──────────────────────────────────────────────────────────────
+   Three violet blooms and a fine grid, fading before they reach the text. This
+   is what gives the glass something to refract. */
+.mk-site .mk-mesh {
+  background:
+    radial-gradient(ellipse 46% 38% at 16% -4%, hsl(var(--primary) / 0.22), transparent 68%),
+    radial-gradient(ellipse 38% 32% at 84% 4%, hsl(var(--chart-5) / 0.16), transparent 70%),
+    radial-gradient(ellipse 70% 42% at 50% 104%, hsl(var(--primary) / 0.10), transparent 70%),
+    linear-gradient(180deg, hsl(var(--background-subtle)) 0%, hsl(var(--background)) 58%);
+}
+.dark .mk-site .mk-mesh {
+  background:
+    radial-gradient(ellipse 46% 38% at 16% -4%, hsl(var(--primary) / 0.30), transparent 68%),
+    radial-gradient(ellipse 38% 32% at 84% 4%, hsl(var(--chart-5) / 0.18), transparent 70%),
+    radial-gradient(ellipse 70% 42% at 50% 104%, hsl(var(--primary) / 0.14), transparent 70%),
+    linear-gradient(180deg, hsl(var(--background-subtle)) 0%, hsl(var(--background)) 58%);
+}
+
+/* A hairline grid, masked to the top of the band. */
+.mk-site .mk-grid-lines {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.75) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.75) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 68% 60% at 50% 0%, black, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse 68% 60% at 50% 0%, black, transparent 76%);
+  opacity: 0.45;
+}
+
+/* A faint grain over the blooms — the difference between "gradient" and "glass". */
+.mk-site .mk-grain::after {
   content: "";
   position: absolute;
-  left: 2%;
-  right: 2%;
-  bottom: 0.06em;
-  height: 0.22em;
-  border-radius: 999px;
-  background: hsl(var(--mk-yellow) / 0.55);
-  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* ── Type and accents ────────────────────────────────────────────────────── */
+
+/* The hero's phrase: violet with a cool sheen, not a flat colour. */
+.mk-site .mk-sheen-text {
+  background: linear-gradient(100deg, hsl(var(--primary)) 0%, hsl(268 92% 66%) 45%, hsl(var(--chart-5)) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* A one-pixel violet rule that fades out at both ends. */
+.mk-site .mk-hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.45), transparent);
+}
+
+/* The floating bloom under a glass panel. */
+.mk-site .mk-bloom {
+  box-shadow: 0 60px 140px -60px hsl(var(--primary) / 0.55);
 }

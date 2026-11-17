@@ -53,7 +53,7 @@ export function SectionLabel({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary",
+        "mk-chip inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary",
         className,
       )}
     >
@@ -103,7 +103,7 @@ export function AuroraBackdrop({ className }: { className?: string }) {
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
       <div className="absolute -left-[18%] -top-[28%] h-[620px] w-[620px] rounded-full bg-primary/[0.12] blur-[130px]" />
-      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-[hsl(var(--mk-teal))]/[0.10] blur-[120px]" />
+      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-chart-5/[0.10] blur-[120px]" />
       <div
         className="absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_70%)]"
         style={{
