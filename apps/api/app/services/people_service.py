@@ -24,6 +24,7 @@ from ..models import (
     SubjectAssignment,
     User,
 )
+from ..models.enums import EnrollmentStatus
 from ..schemas.people import StaffAssignmentOut, StaffOut
 from .academics_service import get_arm, get_session
 
@@ -593,8 +594,28 @@ def update_student(db: Session, school_id: uuid.UUID, student_id: uuid.UUID, **f
 
 
 def delete_student(db: Session, school_id: uuid.UUID, student_id: uuid.UUID) -> None:
+    """Delete a pupil: flag the record and close their enrolments.
+
+    Flagging alone left the job half-done, and the class kept showing the pupil:
+    the enrollment stayed current and active, and every class view that reads
+    enrollments — roster, attendance, score grid, report-card index — went on
+    listing a child the school had deleted.
+
+    Marks and computed results are deliberately **kept**. A term already sat
+    remains on file; it simply stops belonging to anyone on the roll. Deleting
+    an enrollment row instead would cascade those marks away, which is not
+    something a delete button should decide silently.
+
+    Undoing this is the app's own restore (``is_deleted=False``) plus enrolling
+    the pupil again, so the enrolment closure loses nothing.
+    """
     student = get_student(db, school_id, student_id)
     student.is_deleted = True
+    for enrollment in db.scalars(
+        select(StudentEnrollment).where(StudentEnrollment.student_id == student.id)
+    ):
+        enrollment.status = EnrollmentStatus.WITHDRAWN.value
+        enrollment.is_current = False
     db.flush()
 
 
@@ -653,11 +674,22 @@ def list_enrollments(
     reopened after its students were promoted away (``is_current=False``,
     ``status='completed'``). Filtering those out would show an empty score grid
     and an empty report-card index for the very term being corrected.
+
+    A **deleted** pupil is excluded either way. The two cases look alike in the
+    enrollment row and are not alike at all: a promoted pupil is still on the
+    roll and their old term is being corrected, while a deleted pupil has left
+    the school and must not reappear in a grid, a roster or a report-card index
+    just because their old enrollment is still on file.
     """
     get_arm(db, school_id, arm_id)
-    query = select(StudentEnrollment).where(
-        StudentEnrollment.school_id == school_id,
-        StudentEnrollment.class_arm_id == arm_id,
+    query = (
+        select(StudentEnrollment)
+        .join(Student, Student.id == StudentEnrollment.student_id)
+        .where(
+            StudentEnrollment.school_id == school_id,
+            StudentEnrollment.class_arm_id == arm_id,
+            Student.is_deleted.is_(False),
+        )
     )
     if not include_inactive:
         query = query.where(

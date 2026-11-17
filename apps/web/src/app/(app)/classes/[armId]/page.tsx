@@ -110,7 +110,15 @@ export default function ClassRosterPage() {
 
   const onDelete = async (studentId: string) => {
     const name = studentName(studentId);
-    if (!window.confirm(`Delete ${name}? This permanently removes their record and enrollments.`)) return;
+    // Says what actually happens: the pupil leaves every class list, and the
+    // marks they sat are kept on file rather than cascading away with them.
+    if (
+      !window.confirm(
+        `Delete ${name}? They leave this class and stop appearing in class lists, ` +
+          `attendance and score grids. Any marks already recorded stay on file.`,
+      )
+    )
+      return;
     clearFeedback();
     try {
       await deleteStudent.mutateAsync(studentId);
