@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pageMeta, visiblePanel } from "./nav-config";
+import { activeHref, pageMeta, visiblePanel } from "./nav-config";
 
 /**
  * A page nobody can navigate to is a page that does not exist, which is how the
@@ -40,6 +40,60 @@ describe("result sheets in the navigation", () => {
     expect(section!.items.map((item) => item.href)).toEqual(
       expect.arrayContaining(["/reports", "/reports/broadsheet", "/reports/cumulative"]),
     );
+  });
+});
+
+describe("the teacher's own scoresheet", () => {
+  it("offers View Scoresheet to the roles that enter marks", () => {
+    for (const role of ["teacher", "homeroom_teacher"]) {
+      expect(hrefsFor(["results.view", "results.enter"], role)).toContain("/results/scoresheet");
+    }
+  });
+
+  it("keeps it away from leadership, who read grids through the results desk", () => {
+    const hrefs = hrefsFor(["results.view", "results.verify"], "principal");
+    expect(hrefs).not.toContain("/results/scoresheet");
+  });
+
+  it("names the page rather than inheriting the score-entry title", () => {
+    // `/results/scoresheet` is not `/results/score`, whatever startsWith says.
+    expect(pageMeta("/results/scoresheet")).toEqual({
+      title: "View Scoresheet",
+      breadcrumb: "Academics",
+    });
+    expect(pageMeta("/results/score")).toEqual({ title: "Score Entry", breadcrumb: "Academics" });
+  });
+});
+
+describe("which nav item a page belongs to", () => {
+  const hrefs = ["/dashboard", "/results", "/results/score", "/results/scoresheet"];
+
+  it("picks the page itself, not the section it sits in", () => {
+    expect(activeHref("/results/scoresheet", hrefs)).toBe("/results/scoresheet");
+    expect(activeHref("/results/score", hrefs)).toBe("/results/score");
+    expect(activeHref("/results", hrefs)).toBe("/results");
+  });
+
+  it("does not light up the score grid for the scoresheet page", () => {
+    // The bug this guards: "/results/scoresheet".startsWith("/results/score").
+    expect(activeHref("/results/scoresheet", hrefs)).not.toBe("/results/score");
+  });
+
+  it("keeps a page lit for its own sub-routes", () => {
+    expect(activeHref("/results/comments", ["/results", "/results/comments"])).toBe("/results/comments");
+  });
+
+  it("treats the root as the dashboard", () => {
+    expect(activeHref("/", hrefs)).toBe("/dashboard");
+  });
+
+  it("ignores a query string and a trailing slash", () => {
+    expect(activeHref("/classes/", ["/classes"])).toBe("/classes");
+    expect(activeHref("/results", ["/classes?view=subjects", "/results"])).toBe("/results");
+  });
+
+  it("lights nothing when the page is not in the list", () => {
+    expect(activeHref("/billing", hrefs)).toBeNull();
   });
 });
 

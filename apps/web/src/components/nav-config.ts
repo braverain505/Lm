@@ -10,6 +10,7 @@ import {
   Calculator,
   CalendarCheck,
   ClipboardCheck,
+  Eye,
   FileText,
   GraduationCap,
   HelpCircle,
@@ -90,6 +91,14 @@ const EXAM_OFFICE_ROLES = [
   "exam_officer",
 ];
 
+/**
+ * The teacher's own scoresheet — the two roles that enter marks, and so the two
+ * with marks of their own to look at. Leadership reads grids through the results
+ * desk, and the API serves a grid only to the teacher assigned to that class ×
+ * subject, so this link is for the class teacher or nobody.
+ */
+const TEACHER_SHEET_ROLES = ["teacher", "homeroom_teacher"];
+
 export interface NavItem {
   href: string;
   label: string;
@@ -116,6 +125,7 @@ export const RAIL_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, perm: null },
   { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: RESULTS_DESK_ROLES },
   { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
+  { href: "/results/scoresheet", label: "View Scoresheet", icon: Eye, perm: "results.view", roles: TEACHER_SHEET_ROLES },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
   { href: "/timetable", label: "Timetable", icon: CalendarCheck, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
   { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
@@ -137,6 +147,7 @@ export const PANEL_SECTIONS: NavSection[] = [
     items: [
       { href: "/results", label: "Results", icon: ClipboardCheck, perm: "results.view", roles: RESULTS_DESK_ROLES },
       { href: "/results/score", label: "Enter Scores", icon: NotebookPen, perm: "results.enter", roles: ["teacher", "homeroom_teacher"] },
+  { href: "/results/scoresheet", label: "View Scoresheet", icon: Eye, perm: "results.view", roles: TEACHER_SHEET_ROLES },
       { href: "/attendance", label: "Attendance", icon: CalendarCheck, perm: "attendance.view" },
       { href: "/classes", label: "Classes", icon: BookOpen, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
@@ -276,6 +287,41 @@ export function flattenNav(sections: NavSection[]): NavItem[] {
   return sections.flatMap((s) => s.items);
 }
 
+/**
+ * Which one nav item a pathname belongs to — the one to highlight.
+ *
+ * A plain ``pathname.startsWith(href)`` lights up every link the pathname
+ * happens to start with, and two of them is a navigation that lies about where
+ * the reader is: ``/results/scoresheet`` starts with ``/results/score``, and
+ * every results page starts with ``/results``. So match on whole path segments
+ * and let the longest href win, which is always the most specific page.
+ *
+ * Query strings are ignored (``/classes?view=subjects`` is the ``/classes``
+ * page), as is a trailing slash. ``/`` is the dashboard, which is where that
+ * route lands after sign-in.
+ */
+export function activeHref(pathname: string, hrefs: string[]): string | null {
+  const path = trimSlash(pathname.split("?")[0]) || "/";
+  if (path === "/") return hrefs.find((href) => trimSlash(href.split("?")[0]) === "/dashboard") ?? null;
+
+  let best: string | null = null;
+  let bestLength = -1;
+  for (const href of hrefs) {
+    const target = trimSlash(href.split("?")[0]);
+    if (!target) continue;
+    const matches = path === target || path.startsWith(`${target}/`);
+    if (matches && target.length > bestLength) {
+      best = href;
+      bestLength = target.length;
+    }
+  }
+  return best;
+}
+
+function trimSlash(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
 // ─── Page metadata ──────────────────────────────────────────────────────────
 
 interface PageMeta {
@@ -289,6 +335,8 @@ const PAGE_META: Record<string, PageMeta> = {
   "/teachers": { title: "Teachers & Staff", breadcrumb: "Administration" },
   "/classes": { title: "Classes", breadcrumb: "Academics" },
   "/results": { title: "Results", breadcrumb: "Academics" },
+  "/results/score": { title: "Score Entry", breadcrumb: "Academics" },
+  "/results/scoresheet": { title: "View Scoresheet", breadcrumb: "Academics" },
   "/results/psychomotor": { title: "Psychomotor & Affective", breadcrumb: "Academics" },
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
   "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },

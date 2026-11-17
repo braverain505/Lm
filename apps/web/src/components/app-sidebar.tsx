@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { pageMeta, visibleNav } from "@/components/nav-config";
+import { activeHref, pageMeta, visibleNav } from "@/components/nav-config";
 import { Avatar } from "@/components/ui/avatar";
 import { useSessionTerm } from "@/providers/session-context";
 import { useAuth } from "@/providers/auth-provider";
@@ -34,6 +34,9 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
 
   const permissions = activeSchool?.permissions ?? [];
   const sections = visibleNav(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
+  // One item is the current page, and it is the most specific one that matches:
+  // /results/scoresheet is not /results/score, and neither of them is /results.
+  const current = activeHref(pathname, sections.flatMap((section) => section.items.map((item) => item.href)));
   const { title } = pageMeta(pathname);
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
@@ -42,8 +45,7 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
     await signOut();
   }
 
-  const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" || pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => href === current;
 
   return (
     <aside

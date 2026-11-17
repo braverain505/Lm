@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { visibleRail } from "@/components/nav-config";
+import { activeHref, visibleRail } from "@/components/nav-config";
 import { Avatar } from "@/components/ui/avatar";
 import { useAuth } from "@/providers/auth-provider";
 import { useQuery } from "@tanstack/react-query";
@@ -34,8 +34,8 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();
 
-  const isActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" || pathname === "/" : pathname.startsWith(href);
+  const current = activeHref(pathname, railItems.map((item) => item.href));
+  const isActive = (href: string) => href === current;
 
   return (
     <nav className="flex h-full w-[68px] flex-col items-center border-r border-rail-border bg-rail py-4">
