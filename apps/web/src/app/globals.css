@@ -407,3 +407,141 @@
   .receipt-print-area { position: absolute; inset: 0; border: none; box-shadow: none; }
   .rc-sheet { position: relative; inset: auto; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Marketing skin — the public front door
+   ────────────────────────────────────────────────────────────────────────────
+   The product keeps its restrained "soft chrome" and violet brand. The landing
+   pages wear a different skin, the one the school-software market reads as
+   friendly and current: a vivid blue on white, a deep navy for headings, a warm
+   yellow accent, pill controls and deep, soft shadows over generous white space.
+
+   Everything is scoped to `.mk-site`, so redefining the same tokens the product
+   uses restyles the whole landing — every `bg-card`, `text-primary`,
+   `border-border` underneath picks the new palette up — without a class-by-class
+   rewrite and without touching a single authenticated screen.
+   ════════════════════════════════════════════════════════════════════════════ */
+.mk-site {
+  --background: 0 0% 100%;
+  --background-subtle: 221 60% 98%;
+  --foreground: 249 63% 15%;
+  --foreground-secondary: 246 32% 30%;
+  --foreground-tertiary: 240 14% 45%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 249 63% 15%;
+
+  --primary: 221 84% 46%;
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 221 84% 40%;
+  --primary-subtle: 221 90% 96%;
+  --primary-border: 221 84% 88%;
+
+  --secondary: 221 48% 96%;
+  --secondary-foreground: 249 63% 15%;
+
+  --muted: 221 48% 97%;
+  --muted-foreground: 235 16% 42%;
+  --accent: 221 70% 94%;
+  --accent-foreground: 221 84% 34%;
+
+  --border: 221 40% 90%;
+  --border-strong: 221 30% 78%;
+  --border-subtle: 221 40% 93%;
+  --input: 221 30% 88%;
+  --ring: 221 84% 52%;
+
+  --success: 152 62% 38%;
+  --warning: 38 92% 50%;
+
+  /* The accent set eSkooly leans on for icon tiles and highlights. */
+  --mk-yellow: 40 100% 54%;
+  --mk-green: 144 66% 42%;
+  --mk-teal: 184 84% 40%;
+  --mk-navy: 249 63% 15%;
+  --mk-blue-soft: 221 84% 96%;
+  --mk-blue-tint: 221 84% 44%;
+
+  --radius: 1rem;
+
+  font-family: var(--font-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark .mk-site {
+  --background: 249 42% 7%;
+  --background-subtle: 248 34% 10%;
+  --foreground: 220 30% 97%;
+  --foreground-secondary: 220 20% 84%;
+  --foreground-tertiary: 222 14% 66%;
+
+  --card: 248 32% 11%;
+  --card-foreground: 220 30% 97%;
+  --primary: 221 90% 62%;
+  --primary-foreground: 249 63% 10%;
+  --primary-hover: 221 90% 68%;
+  --primary-subtle: 221 60% 18%;
+  --primary-border: 221 50% 30%;
+
+  --secondary: 248 24% 16%;
+  --secondary-foreground: 220 30% 97%;
+  --muted: 248 22% 14%;
+  --muted-foreground: 222 14% 68%;
+  --accent: 248 28% 18%;
+  --accent-foreground: 221 90% 82%;
+
+  --border: 248 20% 22%;
+  --border-strong: 248 18% 34%;
+  --border-subtle: 248 20% 19%;
+  --input: 248 20% 24%;
+  --ring: 221 90% 62%;
+}
+
+/* Pill controls: the marketing site never shows a square button. */
+.mk-site .mk-pill,
+.mk-site .mk-pill > * {
+  border-radius: 9999px;
+}
+
+/* Two depths of card lift, both blue-tinted rather than grey — eSkooly's look. */
+.mk-site .mk-lift {
+  box-shadow:
+    0 1px 2px hsl(var(--mk-navy) / 0.04),
+    0 12px 32px -14px hsl(var(--primary) / 0.22);
+}
+.mk-site .mk-lift-lg {
+  box-shadow:
+    0 2px 6px hsl(var(--mk-navy) / 0.05),
+    0 34px 80px -28px hsl(var(--primary) / 0.35);
+}
+
+/* The hero's soft blue wash, fading into white. */
+.mk-site .mk-hero-wash {
+  background:
+    radial-gradient(ellipse 60% 46% at 50% -6%, hsl(var(--primary) / 0.16), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 88% 8%, hsl(var(--mk-teal) / 0.10), transparent 72%),
+    linear-gradient(to bottom, hsl(var(--mk-blue-soft)) 0%, hsl(var(--background)) 62%);
+}
+.dark .mk-site .mk-hero-wash {
+  background:
+    radial-gradient(ellipse 60% 46% at 50% -6%, hsl(var(--primary) / 0.22), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 88% 8%, hsl(var(--mk-teal) / 0.12), transparent 72%),
+    linear-gradient(to bottom, hsl(var(--background-subtle)) 0%, hsl(var(--background)) 62%);
+}
+
+/* The yellow underline swash under a hero phrase. */
+.mk-site .mk-swash {
+  position: relative;
+  white-space: nowrap;
+}
+.mk-site .mk-swash::after {
+  content: "";
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  bottom: 0.06em;
+  height: 0.22em;
+  border-radius: 999px;
+  background: hsl(var(--mk-yellow) / 0.55);
+  z-index: -1;
+}

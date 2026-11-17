@@ -42,7 +42,7 @@ import { Button } from "@/components/ui/button";
 import { APP_DOWNLOAD_NAME, APP_DOWNLOAD_URL } from "@/lib/app-download";
 import { cn } from "@/lib/utils";
 
-import { AuroraBackdrop, EASE, Reveal, SectionHeading, SectionLabel } from "./landing-shared";
+import { EASE, Reveal, SectionHeading, SectionLabel } from "./landing-shared";
 
 /** One shared "get the app" affordance so every placement stays identical. */
 function AppDownloadButton({ className, label = "Download the app" }: { className?: string; label?: string }) {
@@ -50,7 +50,10 @@ function AppDownloadButton({ className, label = "Download the app" }: { classNam
     <Button
       asChild
       variant="outline"
-      className={cn("border-primary/40 bg-primary/[0.07] text-primary hover:bg-primary/12 hover:text-primary", className)}
+      className={cn(
+        "mk-pill border-transparent bg-[hsl(var(--mk-yellow))]/[0.18] font-semibold text-[hsl(35_86%_28%)] hover:bg-[hsl(var(--mk-yellow))]/30 hover:text-[hsl(35_86%_22%)]",
+        className,
+      )}
     >
       <a href={APP_DOWNLOAD_URL} download={APP_DOWNLOAD_NAME}>
         <Download className="mr-1.5 h-4 w-4" />
@@ -72,15 +75,15 @@ const TRUST = [
 
 function TrustStrip() {
   return (
-    <section className="border-y border-border/70 bg-muted/25">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
+    <section className="border-y border-border/70 bg-background">
+      <div className="mx-auto w-full max-w-6xl px-4 py-7 sm:px-6">
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
           {TRUST.map(({ icon: Icon, label }) => (
             <span
               key={label}
-              className="inline-flex items-center gap-2 text-[12.5px] font-medium text-muted-foreground"
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-[12.5px] font-semibold text-foreground/75"
             >
-              <Icon className="h-4 w-4 text-primary/80" />
+              <Icon className="h-4 w-4 text-primary" />
               {label}
             </span>
           ))}
@@ -249,6 +252,18 @@ function PlatformSection() {
 
 /* ──────────────────────────────── Features ──────────────────────────────── */
 
+/**
+ * The four tinted icon tiles a desk card wears, cycled by position: blue, warm
+ * yellow, green and teal. One hue per desk is what makes the grid read as four
+ * desks rather than four identical cards.
+ */
+const TILE_TONES = [
+  "bg-primary/10 text-primary",
+  "bg-[hsl(var(--mk-yellow))]/[0.18] text-[hsl(35_86%_32%)]",
+  "bg-[hsl(var(--mk-green))]/[0.14] text-[hsl(144_66%_28%)]",
+  "bg-[hsl(var(--mk-teal))]/[0.14] text-[hsl(184_84%_26%)]",
+];
+
 const DESKS: {
   icon: LucideIcon;
   desk: string;
@@ -314,24 +329,31 @@ function FeaturesSection() {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {DESKS.map(({ icon: DeskIcon, desk, beta, features }, index) => (
             <Reveal key={desk} delay={index * 0.06}>
-              <div className="h-full rounded-2xl border border-border/70 bg-card p-5 shadow-card">
-                <div className="flex items-center gap-2">
-                  <DeskIcon className="h-4 w-4 text-primary" />
+              <div className="mk-lift h-full rounded-3xl border border-border/70 bg-card p-6">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl",
+                      TILE_TONES[index % TILE_TONES.length],
+                    )}
+                  >
+                    <DeskIcon className="h-5 w-5" />
+                  </span>
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-foreground">
                     {desk}
                   </p>
                   {beta && (
-                    <span className="rounded-full border border-warning/40 bg-warning/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-warning">
+                    <span className="rounded-full bg-[hsl(var(--mk-yellow))]/25 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[hsl(35_86%_30%)]">
                       Beta
                     </span>
                   )}
                 </div>
 
-                <div className="mt-4 space-y-2.5">
+                <div className="mt-5 space-y-2.5">
                   {features.map(({ icon: Icon, name }) => (
                     <div key={name} className="flex items-center gap-2.5">
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
-                      <p className="text-[12.5px] font-medium text-foreground">{name}</p>
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+                      <p className="text-[13px] font-medium text-foreground">{name}</p>
                     </div>
                   ))}
                 </div>
@@ -341,18 +363,18 @@ function FeaturesSection() {
         </div>
 
         <Reveal delay={0.1}>
-          <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/70 bg-muted/30 p-5 sm:flex-row sm:items-center">
-            <p className="text-[13.5px] text-muted-foreground">
+          <div className="mk-lift mt-8 flex flex-col items-start justify-between gap-4 rounded-3xl border border-border/70 bg-card p-6 sm:flex-row sm:items-center">
+            <p className="text-[14px] text-muted-foreground">
               Every screen is scoped to your school and re-checked against your role on each request.
             </p>
             <div className="flex shrink-0 flex-wrap gap-2">
-              <Button asChild className="h-10 px-5 text-[13.5px]">
+              <Button asChild className="mk-pill h-11 px-6 text-[13.5px] font-semibold">
                 <Link href="/register">
                   Create your workspace
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Link>
               </Button>
-              <AppDownloadButton className="h-10 px-5 text-[13.5px]" />
+              <AppDownloadButton className="h-11 px-6 text-[13.5px]" />
             </div>
           </div>
         </Reveal>
@@ -705,35 +727,53 @@ function FaqSection() {
 
 function FinalCta() {
   return (
-    <section className="relative isolate overflow-hidden border-t border-border/70 py-20 sm:py-24">
-      <AuroraBackdrop className="opacity-80" />
+    <section className="relative isolate overflow-hidden bg-primary py-20 text-primary-foreground sm:py-24">
+      {/* A soft light pattern over the blue, the way the market's landing pages do it. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.14]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, hsl(var(--primary-foreground)) 1px, transparent 0)",
+          backgroundSize: "22px 22px",
+          maskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 70% at 50% 40%, black, transparent 75%)",
+        }}
+      />
       <div className="relative mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
         <Reveal>
-          <h2 className="text-[30px] font-bold leading-[1.1] tracking-tight text-foreground sm:text-[40px]">
+          <h2 className="text-[32px] font-extrabold leading-[1.05] tracking-[-0.03em] text-white sm:text-[44px]">
             Bring your school onto one clear platform.
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
+          <p className="mx-auto mt-4 max-w-xl text-[15.5px] leading-relaxed text-white/80">
             Start with the workspace, add your first class, and let the term run
             itself.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
               asChild
-              className="h-12 w-full px-6 text-[14.5px] font-semibold shadow-md shadow-primary/25 sm:w-auto"
+              className="mk-pill h-[52px] w-full bg-white px-7 text-[15px] font-bold text-[hsl(var(--mk-navy))] shadow-lg shadow-black/15 hover:bg-white/90 sm:w-auto"
             >
               <Link href="/register">
                 Get started free
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-12 w-full px-6 text-[14.5px] sm:w-auto">
+            <Button
+              asChild
+              variant="outline"
+              className="mk-pill h-[52px] w-full border-white/40 bg-transparent px-7 text-[15px] font-semibold text-white backdrop-blur-sm hover:border-white/70 hover:bg-white/10 hover:text-white sm:w-auto"
+            >
               <Link href="/login">Sign in</Link>
             </Button>
-            <AppDownloadButton className="h-12 w-full px-6 text-[14.5px] sm:w-auto" />
+            <AppDownloadButton className="h-[52px] w-full px-7 text-[15px] sm:w-auto" />
           </div>
-          <p className="mt-5 text-[12.5px] text-muted-foreground/85">
+          <p className="mt-6 text-[12.5px] text-white/70">
             Parent or student?{" "}
-            <Link href="/check-result" className="font-semibold text-primary hover:text-primary/90">
+            <Link
+              href="/check-result"
+              className="font-bold text-[hsl(var(--mk-yellow))] underline-offset-4 hover:underline"
+            >
               Check a published result
             </Link>
           </p>

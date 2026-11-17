@@ -38,7 +38,7 @@ const softwareJsonLd = {
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="mk-site min-h-screen bg-background">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-card focus:px-4 focus:py-2 focus:text-[13px] focus:font-semibold focus:text-foreground focus:shadow-pop"

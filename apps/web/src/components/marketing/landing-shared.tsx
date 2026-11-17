@@ -42,7 +42,7 @@ export function Reveal({
   );
 }
 
-/** Small uppercase kicker that opens a section. */
+/** Small kicker that opens a section — a soft blue pill, never a bare label. */
 export function SectionLabel({
   children,
   className,
@@ -53,7 +53,7 @@ export function SectionLabel({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/70 px-3 py-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground backdrop-blur",
+        "inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] text-primary",
         className,
       )}
     >
@@ -80,11 +80,11 @@ export function SectionHeading({
         className,
       )}
     >
-      <h2 className="text-[26px] font-bold leading-[1.15] tracking-tight text-foreground sm:text-[32px] lg:text-[38px]">
+      <h2 className="text-[30px] font-extrabold leading-[1.06] tracking-[-0.025em] text-foreground sm:text-[38px] lg:text-[46px]">
         {title}
       </h2>
       {description && (
-        <p className="mt-4 text-[14.5px] leading-relaxed text-muted-foreground sm:text-[15.5px]">
+        <p className="mt-4 text-[15px] leading-relaxed text-muted-foreground sm:text-[16.5px]">
           {description}
         </p>
       )}
@@ -93,8 +93,8 @@ export function SectionHeading({
 }
 
 /**
- * The brand backdrop: two soft primary glows over a faint grid, masked so the
- * grid fades out before it reaches the content.
+ * The brand backdrop for light bands: two soft blue glows over a faint grid,
+ * masked so the grid fades before it reaches the content.
  */
 export function AuroraBackdrop({ className }: { className?: string }) {
   return (
@@ -102,13 +102,13 @@ export function AuroraBackdrop({ className }: { className?: string }) {
       aria-hidden
       className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
     >
-      <div className="absolute -left-[18%] -top-[28%] h-[620px] w-[620px] rounded-full bg-primary/[0.09] blur-[130px]" />
-      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-chart-5/[0.09] blur-[120px]" />
+      <div className="absolute -left-[18%] -top-[28%] h-[620px] w-[620px] rounded-full bg-primary/[0.12] blur-[130px]" />
+      <div className="absolute -right-[12%] top-[6%] h-[520px] w-[520px] rounded-full bg-[hsl(var(--mk-teal))]/[0.10] blur-[120px]" />
       <div
-        className="absolute inset-0 opacity-[0.4] [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_70%)]"
+        className="absolute inset-0 opacity-[0.35] [mask-image:radial-gradient(ellipse_at_50%_0%,black,transparent_70%)]"
         style={{
           backgroundImage:
-            "linear-gradient(to right, hsl(var(--border) / 0.8) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.8) 1px, transparent 1px)",
+            "linear-gradient(to right, hsl(var(--border) / 0.9) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--border) / 0.9) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }}
       />

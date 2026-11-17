@@ -58,7 +58,7 @@ export function LandingHeader() {
       className={cn(
         "sticky top-0 z-50 w-full transition-colors duration-200",
         scrolled
-          ? "border-b border-border/70 bg-background/80 backdrop-blur-xl"
+          ? "border-b border-border/70 bg-background/85 shadow-[0_10px_30px_-24px_hsl(var(--mk-navy)/0.45)] backdrop-blur-xl"
           : "border-b border-transparent bg-transparent",
       )}
     >
@@ -86,7 +86,7 @@ export function LandingHeader() {
             <a
               key={link.href}
               href={link.href}
-              className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="rounded-full px-3.5 py-2 text-[13.5px] font-semibold text-foreground/70 transition-colors hover:bg-primary/10 hover:text-primary"
             >
               {link.label}
             </a>
@@ -101,14 +101,14 @@ export function LandingHeader() {
           <a
             href={APP_DOWNLOAD_URL}
             download={APP_DOWNLOAD_NAME}
-            className="hidden items-center gap-1.5 rounded-lg border border-primary/35 bg-primary/[0.07] px-3 py-2 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/12 lg:inline-flex"
+            className="mk-pill hidden items-center gap-1.5 bg-[hsl(var(--mk-yellow))]/[0.18] px-4 py-2 text-[12.5px] font-bold text-[hsl(35_86%_28%)] transition-colors hover:bg-[hsl(var(--mk-yellow))]/30 lg:inline-flex"
           >
             <Download className="h-3.5 w-3.5" />
             Download app
           </a>
 
           {signedIn ? (
-            <Button asChild size="sm" className="h-9 px-4">
+            <Button asChild size="sm" className="mk-pill h-10 px-5">
               <Link href="/dashboard">
                 <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" />
                 Dashboard
@@ -120,11 +120,11 @@ export function LandingHeader() {
                 asChild
                 variant="ghost"
                 size="sm"
-                className="hidden h-9 px-3 text-muted-foreground hover:text-foreground sm:inline-flex"
+                className="mk-pill hidden h-10 px-4 text-[13px] font-semibold text-foreground/70 hover:text-primary sm:inline-flex"
               >
                 <Link href="/login">Sign in</Link>
               </Button>
-              <Button asChild size="sm" className="h-9 px-4 shadow-sm shadow-primary/20">
+              <Button asChild size="sm" className="mk-pill h-10 px-5 font-bold shadow-md shadow-primary/25">
                 <Link href="/register">
                   Get started
                   <ArrowRight className="ml-1 h-3.5 w-3.5" />

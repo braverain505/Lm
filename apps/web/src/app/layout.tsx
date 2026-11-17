@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 
 import { Providers } from "@/providers/providers";
 import "./globals.css";
@@ -8,6 +8,19 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+});
+
+/**
+ * The marketing site's type. The product keeps Inter; the public front door uses
+ * a rounder geometric grotesque, which is the shape the rest of the SaaS market
+ * (eSkooly among them) reads as friendly and modern. Loaded once here so the
+ * landing pages can wear it through `.mk-site` without its own layout.
+ */
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +55,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${inter.variable}`}>
+      <body className={`${inter.className} ${inter.variable} ${jakarta.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>
