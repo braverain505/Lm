@@ -97,7 +97,7 @@ export default function StudentsPage() {
 
   // --- Add student form ------------------------------------------------------
   const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState({ admission_no: "", first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
+  const [form, setForm] = useState({ admission_no: "", first_name: "", middle_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,7 +212,7 @@ export default function StudentsPage() {
 
   // --- Edit student -----------------------------------------------------------
   const [editFor, setEditFor] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
+  const [editForm, setEditForm] = useState({ first_name: "", middle_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
   const [editPhotoUploading, setEditPhotoUploading] = useState(false);
   const editPhotoInputRef = useRef<HTMLInputElement>(null);
   const updateStudent = useUpdateStudent();
@@ -224,6 +224,7 @@ export default function StudentsPage() {
     // the name.
     setEditForm({
       first_name: student.first_name,
+      middle_name: student.middle_name ?? "",
       last_name: student.last_name,
       gender: student.gender,
       state: student.state ?? "",
@@ -269,7 +270,7 @@ export default function StudentsPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["students"] });
       setAddOpen(false);
-      setForm({ admission_no: "", first_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
+      setForm({ admission_no: "", first_name: "", middle_name: "", last_name: "", gender: "male", state: "", photo_url: "" });
       toast("Student created successfully");
     },
     onError: (err: Error) => toast(err.message || "Failed to create student", "error"),
@@ -433,6 +434,10 @@ export default function StudentsPage() {
                 <div className="space-y-1.5">
                   <Label>First name</Label>
                   <Input placeholder="Aisha" value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Middle name (optional)</Label>
+                  <Input placeholder="Ngozi" value={form.middle_name} onChange={(e) => setForm({ ...form, middle_name: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Last name</Label>
@@ -617,6 +622,14 @@ export default function StudentsPage() {
                     value={editForm.first_name}
                     onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
                     required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Middle name (optional)</Label>
+                  <Input
+                    value={editForm.middle_name}
+                    onChange={(e) => setEditForm({ ...editForm, middle_name: e.target.value })}
+                    placeholder="Leave blank for a two-part name"
                   />
                 </div>
                 <div className="space-y-1.5">

@@ -584,11 +584,38 @@ def create_student(
     return student
 
 
+# Fields a pupil may legitimately be emptied of. A name part is one: a child
+# recorded as "Ada Ngozi Okafor" whose middle name was never really theirs must
+# be able to lose it. Skipping ``None`` for every field made clearing impossible —
+# the old value came straight back.
+NULLABLE_STUDENT_FIELDS = frozenset(
+    {
+        "middle_name",
+        "photo_url",
+        "state",
+        "lga",
+        "blood_group",
+        "medical_notes",
+        "address",
+    }
+)
+
+
 def update_student(db: Session, school_id: uuid.UUID, student_id: uuid.UUID, **fields) -> Student:
+    """Update the parts the caller sent, including the ones they cleared.
+
+    Every key here was present in the request (the router passes
+    ``exclude_unset``), so a ``None`` means the client emptied that field, not
+    that it was left alone. Non-nullable fields ignore ``None`` rather than
+    breaking the row — the form requires them anyway.
+    """
     student = get_student(db, school_id, student_id)
     for key, value in fields.items():
-        if value is not None and hasattr(student, key):
-            setattr(student, key, value)
+        if not hasattr(student, key):
+            continue
+        if value is None and key not in NULLABLE_STUDENT_FIELDS:
+            continue
+        setattr(student, key, value)
     db.flush()
     return student
 
