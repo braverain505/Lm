@@ -106,6 +106,13 @@ export interface NavItem {
   perm: string | null;
   platformAdmin?: boolean;
   roles?: string[];
+  /**
+   * Only for the class teacher of a class in the current session. The psychomotor
+   * record is the one thing whose owner is an *assignment*, not a role: schools
+   * set a teacher as their form teacher and usually leave them on the plain
+   * ``teacher`` role, so a role list hid it from most of the people it belongs to.
+   */
+  homeroom?: boolean;
 }
 
 export interface NavSection {
@@ -166,10 +173,10 @@ export const PANEL_SECTIONS: NavSection[] = [
       // The homeroom remark is the class teacher's alone, so this desk is too.
       // Leadership keeps its own principal / vice-principal remarks, but it
       // writes them on the card, not here.
-      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", roles: ["homeroom_teacher"] },
+      { href: "/results/comments", label: "Teacher Comments", icon: MessageSquareText, perm: "results.comment", homeroom: true },
       // Psychomotor is the homeroom teacher's record and nobody else's — the
       // same rule the API applies per student.
-      { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.comment", roles: ["homeroom_teacher"] },
+      { href: "/results/psychomotor", label: "Psychomotor", icon: Activity, perm: "results.comment", homeroom: true },
       { href: "/reports", label: "Report Cards", icon: FileText, perm: REPORT_CARD_PERM, roles: REPORT_CARD_ROLES },
       // The broadsheet and the cumulative sheet are the exam office's reading
       // views of the same published results, so they carry the same permission
@@ -258,30 +265,56 @@ export const PANEL_SECTIONS: NavSection[] = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function matchesPerm(item: NavItem, permissions: string[], isSuperadmin: boolean, roleCode?: string): boolean {
+function matchesPerm(
+  item: NavItem,
+  permissions: string[],
+  isSuperadmin: boolean,
+  roleCode?: string,
+  isHomeroomTeacher = false,
+): boolean {
   return (
     (!item.perm || permissions.includes(item.perm)) &&
     (!item.platformAdmin || isSuperadmin) &&
-    (!item.roles || (roleCode ? item.roles.includes(roleCode) : false))
+    (!item.roles || (roleCode ? item.roles.includes(roleCode) : false)) &&
+    (!item.homeroom || isHomeroomTeacher)
   );
 }
 
 /** Permission-filtered rail items. */
-export function visibleRail(permissions: string[], isSuperadmin = false, roleCode?: string): NavItem[] {
-  return RAIL_ITEMS.filter((item) => matchesPerm(item, permissions, isSuperadmin, roleCode));
+export function visibleRail(
+  permissions: string[],
+  isSuperadmin = false,
+  roleCode?: string,
+  isHomeroomTeacher = false,
+): NavItem[] {
+  return RAIL_ITEMS.filter((item) =>
+    matchesPerm(item, permissions, isSuperadmin, roleCode, isHomeroomTeacher),
+  );
 }
 
 /** Permission-filtered panel sections. */
-export function visiblePanel(permissions: string[], isSuperadmin = false, roleCode?: string): NavSection[] {
+export function visiblePanel(
+  permissions: string[],
+  isSuperadmin = false,
+  roleCode?: string,
+  isHomeroomTeacher = false,
+): NavSection[] {
   return PANEL_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter((item) => matchesPerm(item, permissions, isSuperadmin, roleCode)),
+    items: section.items.filter((item) =>
+      matchesPerm(item, permissions, isSuperadmin, roleCode, isHomeroomTeacher),
+    ),
   })).filter((section) => section.items.length > 0);
 }
 
 /** Backward compat — same as visiblePanel. */
-export function visibleNav(permissions: string[], isSuperadmin = false, roleCode?: string): NavSection[] {
-  return visiblePanel(permissions, isSuperadmin, roleCode);
+export function visibleNav(
+  permissions: string[],
+  isSuperadmin = false,
+  roleCode?: string,
+  isHomeroomTeacher = false,
+): NavSection[] {
+  return visiblePanel(permissions, isSuperadmin, roleCode, isHomeroomTeacher);
 }
 
 export function flattenNav(sections: NavSection[]): NavItem[] {

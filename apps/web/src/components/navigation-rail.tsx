@@ -29,7 +29,12 @@ export function NavigationRail({ onTogglePanel, panelOpen }: NavigationRailProps
   });
 
   const permissions = activeSchool?.permissions ?? [];
-  const railItems = visibleRail(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
+  const railItems = visibleRail(
+    permissions,
+    user?.is_superadmin ?? false,
+    activeSchool?.role?.code ?? undefined,
+    activeSchool?.is_homeroom_teacher ?? false,
+  );
   const canManageSchool = permissions.includes("school.manage");
 
   const initials = (user?.full_name ?? "U").slice(0, 2).toUpperCase();

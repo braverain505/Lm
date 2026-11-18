@@ -27,8 +27,9 @@ import { useSessionTerm } from "@/providers/session-context";
  */
 export default function PsychomotorPage() {
   const { activeSchool } = useAuth();
-  const role = activeSchool?.role?.code ?? "";
-  const isHomeroomTeacher = role === "homeroom_teacher";
+  // The class teacher's record belongs to whoever the school set as form teacher,
+  // whatever role label they carry — the API has always decided it that way.
+  const isHomeroomTeacher = activeSchool?.is_homeroom_teacher ?? false;
 
   const { session, term, loadingTerms } = useSessionTerm();
   const { data: arms = [] } = useArms(session?.id ?? null);

@@ -9,8 +9,10 @@ import { activeHref, pageMeta, visiblePanel } from "./nav-config";
  * roles the API already trusts with `results.report_card`.
  */
 
-const hrefsFor = (permissions: string[], role: string) =>
-  visiblePanel(permissions, false, role).flatMap((section) => section.items.map((i) => i.href));
+const hrefsFor = (permissions: string[], role: string, homeroom = false) =>
+  visiblePanel(permissions, false, role, homeroom).flatMap((section) =>
+    section.items.map((i) => i.href),
+  );
 
 describe("result sheets in the navigation", () => {
   it("lists the broadsheet and cumulative results for the exam office", () => {
@@ -116,5 +118,34 @@ describe("result sheet page titles", () => {
 
   it("still names the report cards desk", () => {
     expect(pageMeta("/reports").title).toBe("Report Cards");
+  });
+});
+
+
+describe("the class teacher's own records", () => {
+  const teacherPerms = ["results.view", "results.enter", "results.comment"];
+
+  it("shows psychomotor to a class teacher who carries the plain teacher role", () => {
+    // The rule is the assignment, not the label: schools set the form teacher in
+    // the class and usually leave them on the ordinary teacher role.
+    const hrefs = hrefsFor(teacherPerms, "teacher", true);
+    expect(hrefs).toContain("/results/psychomotor");
+    expect(hrefs).toContain("/results/comments");
+  });
+
+  it("hides them from a teacher who is nobody's class teacher", () => {
+    const hrefs = hrefsFor(teacherPerms, "teacher", false);
+    expect(hrefs).not.toContain("/results/psychomotor");
+    expect(hrefs).not.toContain("/results/comments");
+  });
+
+  it("hides them even when the role label says homeroom_teacher but no class is theirs", () => {
+    const hrefs = hrefsFor(teacherPerms, "homeroom_teacher", false);
+    expect(hrefs).not.toContain("/results/psychomotor");
+  });
+
+  it("keeps them away from leadership, who hold the permission but teach no class", () => {
+    const hrefs = hrefsFor(["results.comment", "results.report_card"], "principal", false);
+    expect(hrefs).not.toContain("/results/psychomotor");
   });
 });

@@ -240,7 +240,7 @@ export default function ResultsPage() {
           {/* Psychomotor — the class teacher's own record, not a report-card
               artifact, so it has its own page rather than living behind the
               exam office's Report Cards screen. */}
-          {permissions.includes("results.enter") && (
+          {activeSchool?.is_homeroom_teacher && (
             <Card className="premium-card">
               <CardHeader>
                 <CardTitle className="text-[15px]">Psychomotor &amp; affective</CardTitle>

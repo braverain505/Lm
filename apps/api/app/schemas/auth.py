@@ -66,6 +66,9 @@ class MembershipOut(BaseModel):
     role: dict | None
     permissions: list[str]
     ai_enabled: bool = False
+    # The class teacher of a class in the current session — the rule the API has
+    # always used, exposed so the navigation can agree with it.
+    is_homeroom_teacher: bool = False
     suspended: bool = False
 
 

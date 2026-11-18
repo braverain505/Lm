@@ -33,6 +33,9 @@ export const MembershipOutSchema = z.object({
   role: z.object({ code: z.string(), name: z.string() }).nullable(),
   permissions: z.array(z.string()),
   ai_enabled: z.boolean(),
+  // The class teacher of a class in the current session. The navigation uses
+  // this rather than the role label, which most real form teachers do not carry.
+  is_homeroom_teacher: z.boolean().default(false),
   suspended: z.boolean(),
 });
 export type MembershipOut = z.infer<typeof MembershipOutSchema>;

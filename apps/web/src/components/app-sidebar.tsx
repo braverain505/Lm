@@ -33,7 +33,12 @@ export function AppSidebar({ collapsed, onToggle, onNavigate, embedded }: Sideba
   });
 
   const permissions = activeSchool?.permissions ?? [];
-  const sections = visibleNav(permissions, user?.is_superadmin ?? false, activeSchool?.role?.code ?? undefined);
+  const sections = visibleNav(
+    permissions,
+    user?.is_superadmin ?? false,
+    activeSchool?.role?.code ?? undefined,
+    activeSchool?.is_homeroom_teacher ?? false,
+  );
   // One item is the current page, and it is the most specific one that matches:
   // /results/scoresheet is not /results/score, and neither of them is /results.
   const current = activeHref(pathname, sections.flatMap((section) => section.items.map((item) => item.href)));

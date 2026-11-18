@@ -24,12 +24,15 @@ from ..core.errors import (
     ValidationError,
 )
 from ..models import (
+    AcademicSession,
+    ClassArm,
     ImpersonationSession,
     PasswordResetToken,
     RefreshToken,
     Role,
     School,
     SchoolMembership,
+    Staff,
     User,
 )
 from .tenancy_service import create_school
@@ -467,6 +470,40 @@ def exit_impersonation(
 
 
 # --- /auth/me ----------------------------------------------------------------
+def homeroom_teacher_of(db: Session, school_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+    """Whether this user is the class teacher of any class in the current session.
+
+    This — not the role label — is what the product means by "homeroom teacher".
+    A school sets a teacher as their class's form teacher in the class itself, and
+    most of them keep the ordinary ``teacher`` role; gating on the role code hid
+    the psychomotor record from the very people whose record it is. The API has
+    always decided by the assignment (``results_service.is_homeroom_teacher``);
+    this exposes the same rule to the navigation.
+    """
+    staff_id = db.scalar(
+        select(Staff.id).where(
+            Staff.school_id == school_id,
+            Staff.user_id == user_id,
+            Staff.is_deleted.is_(False),
+        )
+    )
+    if staff_id is None:
+        return False
+    return (
+        db.scalar(
+            select(ClassArm.id)
+            .join(AcademicSession, AcademicSession.id == ClassArm.academic_session_id)
+            .where(
+                ClassArm.school_id == school_id,
+                ClassArm.class_teacher_id == staff_id,
+                AcademicSession.is_current.is_(True),
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
 def user_memberships(db: Session, user_id: uuid.UUID) -> list[dict]:
     """All schools the user belongs to, with role + permission codes per school."""
     from .rbac_service import permissions_for_role
@@ -496,6 +533,7 @@ def user_memberships(db: Session, user_id: uuid.UUID) -> list[dict]:
                 "role": {"code": role.code, "name": role.name} if role else None,
                 "permissions": perms,
                 "ai_enabled": bool((school.settings or {}).get("ai_enabled", False)),
+                "is_homeroom_teacher": homeroom_teacher_of(db, school.id, user_id),
                 "suspended": bool((school.settings or {}).get("suspended", False)),
             }
         )
