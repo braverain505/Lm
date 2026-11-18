@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import type { ProgressPayload } from "@/lib/progress";
+
 import type {
   AcademicSession,
   Arm,
@@ -690,6 +692,24 @@ export function useScoreCard(armId: string | null, subjectId: string | null, ter
       api.schoolFetch<ScoreCard>(
         schoolId!,
         `/results/scorecard?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`,
+      ),
+  });
+}
+
+/**
+ * Progress tracking for one class. Premium: the API refuses with 403
+ * ERR_PREMIUM_REQUIRED when the school has not subscribed, which the page turns
+ * into the upsell rather than an error toast.
+ */
+export function useProgress(armId: string | null, sessionId: string | null) {
+  const schoolId = useActiveSchoolId();
+  return useQuery({
+    queryKey: ["progress", schoolId, armId, sessionId],
+    enabled: !!schoolId && !!armId && !!sessionId,
+    queryFn: async () =>
+      api.schoolFetch<ProgressPayload>(
+        schoolId!,
+        `/results/progress?arm_id=${armId}&session_id=${sessionId}`,
       ),
   });
 }

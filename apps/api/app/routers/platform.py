@@ -49,6 +49,23 @@ def toggle_school_ai(
     return SchoolAdminOut(**row)
 
 
+@router.patch("/schools/{school_id}/progress", response_model=SchoolAdminOut)
+def toggle_school_progress(
+    school_id: uuid.UUID,
+    payload: SchoolAiUpdate,
+    db: DbSession,
+    _admin=Depends(require_platform_admin),
+):
+    """Enable or disable the premium student progress tracking plan for one school."""
+    school = platform_service.set_school_progress(db, school_id, payload.enabled)
+    db.commit()
+    row = next(
+        (r for r in platform_service.list_schools(db) if r["id"] == str(school.id)),
+        None,
+    )
+    return SchoolAdminOut(**row)
+
+
 @router.patch("/schools/{school_id}/status", response_model=SchoolAdminOut)
 def set_school_status(
     school_id: uuid.UUID,

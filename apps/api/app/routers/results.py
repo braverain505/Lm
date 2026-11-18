@@ -55,7 +55,13 @@ from ..schemas.results import (
     TermArchiveOut,
     WorkbenchRow,
 )
-from ..services import ai_service, comment_bank_service, portal_service, results_service
+from ..services import (
+    ai_service,
+    comment_bank_service,
+    portal_service,
+    progress_service,
+    results_service,
+)
 from ..services.academics_service import get_arm, get_term, require_active_term
 
 router = APIRouter(prefix="/results", tags=["results"])
@@ -652,6 +658,26 @@ def comment_worklist(
             has_comment_perm=RESULTS_COMMENT in ctx.permission_codes,
         )
     ]
+
+
+@router.get("/progress")
+def progress(
+    db: DbSession,
+    arm_id: uuid.UUID,
+    session_id: uuid.UUID,
+    ctx=Depends(require_permission(RESULTS_REPORT_CARD)),
+):
+    """Student progress tracking for one class: where each pupil is moving.
+
+    Premium: sold separately from the management plan, so the billing toggle is
+    checked before the work is done. Reads marks at any status — this is the
+    office's monitoring view, and each term reports its own status — while the
+    published cards remain the frozen record.
+    """
+    progress_service.require_progress(ctx.school)
+    return progress_service.progress_for_arm(
+        db, ctx.school.id, arm_id=arm_id, session_id=session_id
+    )
 
 
 @router.get("/cumulative")

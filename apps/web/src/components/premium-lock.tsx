@@ -16,7 +16,16 @@ export function useAiEnabled(): boolean {
   return activeSchool?.ai_enabled ?? false;
 }
 
-export function PremiumLock({ compact = false }: { compact?: boolean }) {
+export function PremiumLock({
+  compact = false,
+  title = "Clearis AI is a premium feature",
+  description = "Your school hasn't activated the AI plan yet. Once your subscription is confirmed, your Clearis administrator will switch it on and every AI tool becomes available automatically.",
+}: {
+  compact?: boolean;
+  /** The feature being refused, so the same lock can guard more than AI. */
+  title?: string;
+  description?: string;
+}) {
   const { user } = useAuth();
   const isPlatformAdmin = user?.is_superadmin ?? false;
 
@@ -37,12 +46,8 @@ export function PremiumLock({ compact = false }: { compact?: boolean }) {
         <Sparkles className="h-7 w-7 text-amber-600 dark:text-amber-400" />
       </div>
       <Badge variant="warning">Premium</Badge>
-      <h2 className="text-xl font-semibold">Clearis AI is a premium feature</h2>
-      <p className="max-w-md text-sm text-muted-foreground">
-        Your school hasn&apos;t activated the AI plan yet. Once your subscription
-        is confirmed, your Clearis administrator will switch it on and every AI
-        tool becomes available automatically.
-      </p>
+      <h2 className="text-xl font-semibold">{title}</h2>
+      <p className="max-w-md text-sm text-muted-foreground">{description}</p>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <Lock className="h-3.5 w-3.5" />
         {isPlatformAdmin

@@ -18,6 +18,7 @@ class SchoolAdminOut(BaseModel):
     students: int
     class_arms: int
     ai_enabled: bool
+    progress_enabled: bool = False
     suspended: bool
 
 

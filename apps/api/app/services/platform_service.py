@@ -63,6 +63,7 @@ def list_schools(db: Session) -> list[dict]:
             "students": student_counts.get(s.id, 0),
             "class_arms": arm_counts.get(s.id, 0),
             "ai_enabled": school_ai_enabled(s),
+            "progress_enabled": bool((s.settings or {}).get("progress_enabled", False)),
             "suspended": school_suspended(s),
         }
         for s in schools
@@ -74,6 +75,16 @@ def set_school_ai(db: Session, school_id: uuid.UUID, enabled: bool) -> School:
     school = _require_school(db, school_id)
     settings = dict(school.settings or {})
     settings["ai_enabled"] = bool(enabled)
+    school.settings = settings
+    db.flush()
+    return school
+
+
+def set_school_progress(db: Session, school_id: uuid.UUID, enabled: bool) -> School:
+    """Enable/disable the premium student progress tracking plan for a school."""
+    school = _require_school(db, school_id)
+    settings = dict(school.settings or {})
+    settings["progress_enabled"] = bool(enabled)
     school.settings = settings
     db.flush()
     return school

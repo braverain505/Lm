@@ -153,6 +153,7 @@ export const PANEL_SECTIONS: NavSection[] = [
       { href: "/classes?view=subjects", label: "Subjects", icon: BookOpen, perm: "academics.manage", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/timetable", label: "Timetable", icon: CalendarCheck, perm: "academics.view", roles: ["super_admin", "admin", "principal", "vp_academics"] },
       { href: "/readiness", label: "Readiness", icon: BarChart3, perm: "results.view", roles: EXAM_OFFICE_ROLES },
+      { href: "/results/progress", label: "Progress Tracking", icon: TrendingUp, perm: REPORT_CARD_PERM, roles: EXAM_OFFICE_ROLES },
     ],
   },
   {
@@ -339,6 +340,7 @@ const PAGE_META: Record<string, PageMeta> = {
   "/results/scoresheet": { title: "View Scoresheet", breadcrumb: "Academics" },
   "/results/psychomotor": { title: "Psychomotor & Affective", breadcrumb: "Academics" },
   "/readiness": { title: "Result Readiness", breadcrumb: "Academics" },
+  "/results/progress": { title: "Progress Tracking", breadcrumb: "Academics" },
   "/approvals": { title: "Process Results", breadcrumb: "Result Generation" },
   "/reports": { title: "Report Cards", breadcrumb: "Result Generation" },
   "/reports/broadsheet": { title: "Broadsheet", breadcrumb: "Result Generation" },
