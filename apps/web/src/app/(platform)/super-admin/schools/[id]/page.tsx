@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, AlertTriangle, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, Trash2, UserPlus, UserX } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Eye, KeyRound, Mail, MapPin, Pencil, Phone, RefreshCw, ShieldAlert, Sparkles, Trash2, Undo2, UserPlus, UserX } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +24,8 @@ import {
   useSaDeleteSchool,
   useSaResetAdmin,
   useSaSchool,
+  useSaSchoolResults,
+  useSaUnpublishResults,
   useSaUpdateSubscription,
 } from "@/hooks/use-superadmin";
 import { useAuth } from "@/providers/auth-provider";
@@ -37,6 +39,25 @@ export default function SchoolDetailPage() {
   const { data, isLoading } = useSaSchool(schoolId);
   const { refreshMe } = useAuth();
   const queryClient = useQueryClient();
+  const { data: resultTerms = [] } = useSaSchoolResults(schoolId);
+  const unpublishResults = useSaUnpublishResults(schoolId);
+  const [resultsNotice, setResultsNotice] = useState<string | null>(null);
+
+  async function handleUnpublish(term: { term_id: string; term_name: string; published: number }) {
+    const reason = window.prompt(
+      `Unpublish ${term.term_name}'s ${term.published} published result(s)?\n\n` +
+        "Parents or students who already saw a card will see different numbers after the school re-publishes. " +
+        "The published cards are archived first, so the version that was out is kept.\n\n" +
+        "Give a reason (at least 10 characters) — it is written to every affected result and to the audit log:",
+    );
+    if (!reason || reason.trim().length < 10) return;
+    try {
+      const outcome = await unpublishResults.mutateAsync({ term_id: term.term_id, reason: reason.trim() });
+      setResultsNotice(outcome.message);
+    } catch (error) {
+      setResultsNotice(error instanceof Error ? error.message : "Unpublishing failed.");
+    }
+  }
 
   const toggleAi = useSetSchoolAi();
   const toggleSuspended = useSetSchoolSuspended();
@@ -329,6 +350,50 @@ export default function SchoolDetailPage() {
                   </div>
                 ))}
               </div>
+            )}
+          </Panel>
+
+          <Panel
+            title="Results"
+            subtitle="Publishing is the school's. Unpublishing is Clearis platform staff only — it archives the cards and returns the term's results to draft."
+          >
+            {resultTerms.length === 0 ? (
+              <EmptyState message="This school has no results yet." />
+            ) : (
+              <div className="divide-y">
+                {resultTerms.map((term) => {
+                  const inFlight = (term.counts.submitted || 0) + (term.counts.verified || 0) + (term.counts.approved || 0);
+                  return (
+                    <div key={term.term_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {term.term_name} <span className="font-normal text-muted-foreground">· {term.session_name}</span>
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {term.published} published
+                          {term.counts.draft ? ` · ${term.counts.draft} draft` : ""}
+                          {inFlight ? ` · ${inFlight} in review` : ""}
+                          {term.archive_version ? ` · archive v${term.archive_version}` : ""}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={term.published === 0 || unpublishResults.isPending}
+                        onClick={() => void handleUnpublish(term)}
+                      >
+                        <Undo2 className="mr-1.5 h-3.5 w-3.5" />
+                        Unpublish
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {resultsNotice && (
+              <p className="mt-3 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                {resultsNotice}
+              </p>
             )}
           </Panel>
 

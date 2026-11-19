@@ -359,7 +359,11 @@ export function ScoresheetEditor({ canManageDesigns = false }: { canManageDesign
                       <strong>{freeNames.join(", ")}</strong> can change now and
                       applies immediately.
                     </>
-                  )}
+                  )}{" "}
+                  If a locked section genuinely must change, ask Clearis to
+                  unpublish that term&apos;s results — they archive the published
+                  cards first and return the results to draft so the term can be
+                  corrected and published again.
                 </p>
               );
             })()}

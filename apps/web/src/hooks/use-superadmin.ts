@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
+  PlatformTermResults,
   SaAnnouncementCreate,
   SaAnnouncement,
   SaBulkStudentCreate,
@@ -25,6 +26,28 @@ import { useAuth } from "@/providers/auth-provider";
 function usePlatformEnabled() {
   const { user } = useAuth();
   return !!user?.is_superadmin;
+}
+
+// --- A school's results (unpublishing is platform-only) -----------------------
+export function useSaSchoolResults(schoolId: string) {
+  const enabled = usePlatformEnabled();
+  return useQuery({
+    queryKey: ["sa", "school-results", schoolId],
+    enabled: enabled && !!schoolId,
+    queryFn: async () => api.fetchSchoolResults(schoolId),
+  });
+}
+
+export function useSaUnpublishResults(schoolId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { term_id: string; reason: string }) =>
+      api.unpublishSchoolResults(schoolId, body),
+    onSuccess: () => {
+      // The term's state changed on both sides of the platform.
+      void queryClient.invalidateQueries({ queryKey: ["sa"] });
+    },
+  });
 }
 
 // --- Overview ---------------------------------------------------------------

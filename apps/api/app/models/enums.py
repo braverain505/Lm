@@ -138,5 +138,6 @@ class AuditAction(str, Enum):
     SUBMIT = "submit"
     APPROVE = "approve"
     PUBLISH = "publish"
+    UNPUBLISH = "unpublish"
     REJECT = "reject"
     OTHER = "other"

@@ -1,7 +1,7 @@
 """Clearis platform administration schemas (global admin dashboard)."""
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import uuid
 
@@ -56,3 +56,21 @@ class TeacherOut(BaseModel):
     role_code: str
     status: str
     created_at: datetime
+
+
+class UnpublishResultsIn(BaseModel):
+    term_id: uuid.UUID
+    # The reason is required: it lands on every affected result row's journal and
+    # in the archive, so the platform can answer for the decision later.
+    reason: str = Field(min_length=10, max_length=500)
+
+
+class PublishedTermOut(BaseModel):
+    term_id: uuid.UUID
+    term_name: str
+    term_status: str
+    session_id: uuid.UUID
+    session_name: str = ""
+    counts: dict[str, int]
+    published: int
+    archive_version: int | None = None

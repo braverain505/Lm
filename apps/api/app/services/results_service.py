@@ -3423,3 +3423,135 @@ def reset_term_for_reopen(
         )
     db.flush()
     return len(rows)
+
+# --- Unpublishing (platform administration) ---------------------------------------
+def published_summary(db: Session, school_id: uuid.UUID) -> list[dict]:
+    """Per term: how many results are out, and how much work is in flight.
+
+    The platform admin needs this before unpublishing: the action archives the
+    published cards and sends them back to draft, so the office should see what
+    they are about to invalidate.
+    """
+    school = db.get(School, school_id)
+    if school is None:
+        raise NotFoundError("School not found")
+    terms = list(
+        db.scalars(
+            select(Term)
+            .join(AcademicSession, AcademicSession.id == Term.academic_session_id)
+            .where(Term.school_id == school_id)
+            .order_by(AcademicSession.name.desc(), Term.term_no)
+        )
+    )
+    out: list[dict] = []
+    for term in terms:
+        counts = dict(
+            db.execute(
+                select(Result.status, func.count())
+                .where(Result.school_id == school_id, Result.term_id == term.id)
+                .group_by(Result.status)
+            ).all()
+        )
+        if not counts:
+            continue
+        archive = latest_term_archive(db, school_id, term_id=term.id)
+        out.append(
+            {
+                "term_id": str(term.id),
+                "term_name": term.name,
+                "term_status": term.status,
+                "session_id": str(term.academic_session_id),
+                "session_name": db.get(AcademicSession, term.academic_session_id).name
+                if db.get(AcademicSession, term.academic_session_id)
+                else "",
+                "counts": counts,
+                "published": counts.get(ResultStatus.PUBLISHED.value, 0),
+                "archive_version": archive.version if archive else None,
+            }
+        )
+    return out
+
+
+def unpublish_term_results(
+    db: Session,
+    school_id: uuid.UUID,
+    *,
+    term_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    reason: str,
+) -> dict:
+    """Take a term's published results back to draft, for a platform admin only.
+
+    This is the deliberate way out of a published term whose structure has to
+    change (an exam office that published before the scoresheet was right), and it
+    is guarded rather than offered to schools: published cards are the document
+    parents hold.
+
+    What it does, in order:
+      1. archives every published card as a new version (``term_result_archives``),
+         so the version that was out is still there afterwards;
+      2. returns *published* rows to ``draft`` and clears their publish stamps —
+         the score cells are untouched, so the grid still opens on the marks the
+         school entered;
+      3. journals each row as ``unpublish`` with the reason given.
+
+    Rows that are merely submitted/verified/approved are left alone: nothing about
+    them is out, and resetting them would throw away work the office still has.
+    """
+    term = get_term(db, school_id, term_id)
+    published = list(
+        db.scalars(
+            select(Result).where(
+                Result.school_id == school_id,
+                Result.term_id == term.id,
+                Result.status == ResultStatus.PUBLISHED.value,
+            )
+        )
+    )
+    if not published:
+        return {
+            "term_id": str(term.id),
+            "term_name": term.name,
+            "unpublished": 0,
+            "archive_version": None,
+            "message": f"{term.name} has no published results.",
+        }
+
+    archive = archive_term_results(
+        db, school_id, term_id=term.id, actor_id=actor_id, reason=reason
+    )
+
+    now = utcnow()
+    for result in published:
+        result.status = ResultStatus.DRAFT.value
+        result.submitted_at = None
+        result.approved_at = None
+        result.approved_by = None
+        result.published_at = None
+        result.published_snapshot = None
+        db.add(
+            ResultEvent(
+                school_id=school_id,
+                result_id=result.id,
+                actor_id=actor_id,
+                action="unpublish",
+                from_status=ResultStatus.PUBLISHED.value,
+                to_status=ResultStatus.DRAFT.value,
+                note=reason,
+                created_at=now,
+            )
+        )
+    db.flush()
+
+    return {
+        "term_id": str(term.id),
+        "term_name": term.name,
+        "unpublished": len(published),
+        "archive_version": archive.version if archive else None,
+        "message": (
+            f"{len(published)} published result"
+            f"{'' if len(published) == 1 else 's'} returned to draft"
+            + (f"; the published cards were archived as version {archive.version}" if archive else "")
+            + "."
+        ),
+    }

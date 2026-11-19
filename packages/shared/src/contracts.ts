@@ -2551,3 +2551,17 @@ export const SaAuditSchema = z.object({
   pages: z.number(),
 });
 export type SaAudit = z.infer<typeof SaAuditSchema>;
+
+
+// --- Platform: a school's published results ---------------------------------------
+export const PlatformTermResultsSchema = z.object({
+  term_id: z.string().uuid(),
+  term_name: z.string(),
+  term_status: z.string(),
+  session_id: z.string().uuid(),
+  session_name: z.string().default(""),
+  counts: z.record(z.number()),
+  published: z.number(),
+  archive_version: z.number().nullable().default(null),
+});
+export type PlatformTermResults = z.infer<typeof PlatformTermResultsSchema>;

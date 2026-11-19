@@ -67,6 +67,8 @@ import {
   StudentResultCodeSchema,
   PlatformSchool,
   PlatformSchoolSchema,
+  PlatformTermResults,
+  PlatformTermResultsSchema,
   SchoolAdminCreate,
   SchoolAdminCreated,
   SchoolAdminCreatedSchema,
@@ -549,6 +551,31 @@ export async function setSchoolSuspended(
     method: "PATCH",
     body: JSON.stringify({ suspended }),
     zod: PlatformSchoolSchema.parse,
+  });
+}
+
+export async function fetchSchoolResults(
+  schoolId: string,
+): Promise<PlatformTermResults[]> {
+  return request(`/platform/schools/${schoolId}/results`, {
+    zod: PlatformTermResultsSchema.array().parse,
+  });
+}
+
+/** Return a term's published results to draft. Platform administrators only. */
+export async function unpublishSchoolResults(
+  schoolId: string,
+  body: { term_id: string; reason: string },
+): Promise<{
+  term_id: string;
+  term_name: string;
+  unpublished: number;
+  archive_version: number | null;
+  message: string;
+}> {
+  return request(`/platform/schools/${schoolId}/results/unpublish`, {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }
 
@@ -2425,6 +2452,8 @@ export const api = {
   fetchPlatformSchools,
   setSchoolAi,
   setSchoolSuspended,
+  fetchSchoolResults,
+  unpublishSchoolResults,
   createSchoolAdmin,
   fetchPlatformTeachers,
   superAdminOverview,
