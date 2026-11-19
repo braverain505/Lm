@@ -16,6 +16,8 @@ import {
 import { useMemo, useRef, useState } from "react";
 
 import { api } from "@clearis/shared";
+import { StudentSortSelect } from "@/components/student-sort-select";
+import { useStudentSort } from "@/hooks/use-student-sort";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +54,8 @@ export default function StudentsPage() {
   const canEdit = useHasPermission("students.edit");
   const canEnroll = useHasPermission("students.enroll");
   const canManageClasses = useHasPermission("academics.manage");
-  const { data = [], isLoading } = useStudents();
+  const [sort, setSort] = useStudentSort();
+  const { data = [], isLoading } = useStudents({ sort });
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

@@ -401,6 +401,10 @@ export const ScoresheetSchema = z.object({
   applied_term_id: z.string().uuid().nullable(),
   applied_term_name: z.string().nullable(),
   locked: z.boolean(),
+  // The lock, scope by scope: a school can fix its nursery structure while
+  // primary results are already published for the term.
+  locked_default: z.boolean().default(false),
+  locked_sections: z.record(z.boolean()).default({}),
   report_cards: SectionDesignsSchema,
 });
 export type Scoresheet = z.infer<typeof ScoresheetSchema>;

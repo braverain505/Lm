@@ -5,7 +5,7 @@ import re
 import uuid
 from datetime import date
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from ..core import security
@@ -435,6 +435,23 @@ def delete_staff(db: Session, school_id: uuid.UUID, staff_id: uuid.UUID) -> None
 
 
 # --- Students -------------------------------------------------------------------
+# How a roster can be ordered. Case-insensitive, so "adeyemi" and "Adeyemi" sit
+# together instead of sorting capital letters first — school registers are typed
+# by hand and the casing is never consistent.
+STUDENT_SORTS: dict[str, tuple] = {
+    "surname": (func.lower(Student.last_name), func.lower(Student.first_name), func.lower(Student.middle_name)),
+    "first_name": (func.lower(Student.first_name), func.lower(Student.last_name), func.lower(Student.middle_name)),
+    "admission": (func.lower(Student.admission_no),),
+    "recent": (Student.created_at.desc(),),
+}
+DEFAULT_STUDENT_SORT = "surname"
+
+
+def student_order(sort: str | None) -> tuple:
+    """The order_by clauses for a roster, falling back to surname."""
+    return STUDENT_SORTS.get((sort or "").strip().lower(), STUDENT_SORTS[DEFAULT_STUDENT_SORT])
+
+
 def list_students(
     db: Session,
     school_id: uuid.UUID,
@@ -442,6 +459,7 @@ def list_students(
     arm_id: uuid.UUID | None = None,
     q: str | None = None,
     arm_ids: set[uuid.UUID] | None = None,
+    sort: str | None = None,
 ) -> list[Student]:
     """Students in a school, newest class first.
 
@@ -495,12 +513,8 @@ def list_students(
         )
     return list(
         db.scalars(
-            stmt.order_by(
-                current_class.is_(None),
-                current_class,
-                Student.last_name,
-                Student.first_name,
-            )
+            # Pupils with a class first, then the school's chosen order within it.
+            stmt.order_by(current_class.is_(None), current_class, *student_order(sort))
         )
     )
 
@@ -693,6 +707,7 @@ def list_enrollments(
     arm_id: uuid.UUID,
     *,
     include_inactive: bool = False,
+    sort: str | None = None,
 ) -> list[StudentEnrollment]:
     """Enrollments in one arm, current/active by default.
 
@@ -723,7 +738,9 @@ def list_enrollments(
             StudentEnrollment.is_current.is_(True),
             StudentEnrollment.status == "active",
         )
-    return list(db.scalars(query.order_by(StudentEnrollment.student_id)))
+    # Ordered by the pupil's name, not by the enrolment's UUID: a teacher
+    # entering marks needs the register in an order they can read.
+    return list(db.scalars(query.order_by(*student_order(sort))))
 
 
 def set_enrollment_status(

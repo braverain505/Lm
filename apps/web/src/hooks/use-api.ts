@@ -456,21 +456,24 @@ export function useUpdateSectionDesigns() {
   });
 }
 
-export function useStudents(options: UseApiOptions = {}) {
+export function useStudents(options: UseApiOptions & { sort?: string } = {}) {
   const schoolId = useActiveSchoolId();
+  const { sort } = options;
   return useQuery({
-    queryKey: ["students", schoolId],
+    queryKey: ["students", schoolId, sort ?? "surname"],
     enabled: !!schoolId && options.enabled !== false,
-    queryFn: async () => api.schoolFetch<Student[]>(schoolId!, "/students"),
+    queryFn: async () =>
+      api.schoolFetch<Student[]>(schoolId!, `/students?sort=${sort ?? "surname"}`),
   });
 }
 
-export function useRoster(armId: string | null) {
+export function useRoster(armId: string | null, sort = "surname") {
   const schoolId = useActiveSchoolId();
   return useQuery({
-    queryKey: ["roster", schoolId, armId],
+    queryKey: ["roster", schoolId, armId, sort],
     enabled: !!schoolId && !!armId,
-    queryFn: async () => api.schoolFetch<Student[]>(schoolId!, `/students?arm_id=${armId}`),
+    queryFn: async () =>
+      api.schoolFetch<Student[]>(schoolId!, `/students?arm_id=${armId}&sort=${sort}`),
   });
 }
 
@@ -683,15 +686,20 @@ export function useReadiness(termId: string | null) {
   });
 }
 
-export function useScoreCard(armId: string | null, subjectId: string | null, termId: string | null) {
+export function useScoreCard(
+  armId: string | null,
+  subjectId: string | null,
+  termId: string | null,
+  sort = "surname",
+) {
   const schoolId = useActiveSchoolId();
   return useQuery({
-    queryKey: ["scorecard", schoolId, armId, subjectId, termId],
+    queryKey: ["scorecard", schoolId, armId, subjectId, termId, sort],
     enabled: !!schoolId && !!armId && !!subjectId && !!termId,
     queryFn: async () =>
       api.schoolFetch<ScoreCard>(
         schoolId!,
-        `/results/scorecard?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}`,
+        `/results/scorecard?arm_id=${armId}&subject_id=${subjectId}&term_id=${termId}&sort=${sort}`,
       ),
   });
 }

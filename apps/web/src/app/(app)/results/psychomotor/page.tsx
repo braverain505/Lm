@@ -7,7 +7,9 @@ import { PsychomotorEditor } from "@/components/psychomotor-editor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentSortSelect } from "@/components/student-sort-select";
 import { useArms, useRoster } from "@/hooks/use-api";
+import { useStudentSort } from "@/hooks/use-student-sort";
 import { useAuth } from "@/providers/auth-provider";
 import { useSessionTerm } from "@/providers/session-context";
 
@@ -51,7 +53,8 @@ export default function PsychomotorPage() {
     }
   }, [isHomeroomTeacher, visibleArms, armId]);
 
-  const { data: roster = [], isLoading: rosterLoading } = useRoster(armId || null);
+  const [sort, setSort] = useStudentSort();
+  const { data: roster = [], isLoading: rosterLoading } = useRoster(armId || null, sort);
 
   if (!isHomeroomTeacher) {
     return (
@@ -103,6 +106,10 @@ export default function PsychomotorPage() {
                 administrator to set the form teacher on your class.
               </p>
             )}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Order</Label>
+            <StudentSortSelect value={sort} onChange={setSort} className="flex h-9 items-center gap-2 rounded-xl border border-border/90 bg-background/70 px-3 text-[13px]" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="student">Student</Label>

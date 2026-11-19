@@ -297,9 +297,15 @@ export function ScoresheetEditor({ canManageDesigns = false }: { canManageDesign
           });
           setMode(saved.mode);
           setDirty(false);
+          const waiting = [
+            ...(saved.locked_default ? ["the school-wide set"] : []),
+            ...SECTION_KEYS.filter((key) => saved.locked_sections[key]).map(
+              (key) => SECTION_LABELS[key],
+            ),
+          ];
           toast(
-            saved.locked
-              ? "Scoresheet saved — it applies from the next term"
+            waiting.length
+              ? `Scoresheet saved — ${waiting.join(", ")} applies from the next term`
               : "Scoresheet saved",
           );
         },
@@ -327,13 +333,36 @@ export function ScoresheetEditor({ canManageDesigns = false }: { canManageDesign
           <Skeleton className="h-32 w-full" />
         ) : (
           <>
-            {data?.locked && (
-              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] leading-relaxed text-amber-700 dark:text-amber-300">
-                {data.applied_term_name} already has published results, so this
-                change will be in force from the next term. Existing results are
-                left exactly as they are.
-              </p>
-            )}
+            {data && data.locked && (() => {
+              const lockedNames = [
+                ...(data.locked_default
+                  ? [data.mode === "same" ? "every class" : "the school-wide set"]
+                  : []),
+                ...SECTION_KEYS.filter((key) => data.locked_sections[key]).map(
+                  (key) => SECTION_LABELS[key],
+                ),
+              ];
+              const freeNames = [
+                ...(data.locked_default ? [] : [data.mode === "same" ? "every class" : "the school-wide set"]),
+                ...SECTION_KEYS.filter((key) => !data.locked_sections[key]).map(
+                  (key) => SECTION_LABELS[key],
+                ),
+              ];
+              return (
+                <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[12px] leading-relaxed text-amber-700 dark:text-amber-300">
+                  {data.applied_term_name} already has published results for{" "}
+                  <strong>{lockedNames.join(", ")}</strong>, so their scoresheet
+                  changes from the next term — published marks are left exactly as
+                  they are.{" "}
+                  {freeNames.length > 0 && (
+                    <>
+                      <strong>{freeNames.join(", ")}</strong> can change now and
+                      applies immediately.
+                    </>
+                  )}
+                </p>
+              );
+            })()}
 
             <div className="space-y-2">
               <p className="text-[12px] font-medium">Who follows this scoresheet?</p>
@@ -392,6 +421,14 @@ export function ScoresheetEditor({ canManageDesigns = false }: { canManageDesign
                     {owns[key] && (
                       <span className="ml-1.5 text-[10px] uppercase tracking-wide text-primary">
                         own
+                      </span>
+                    )}
+                    {data?.locked_sections[key] && (
+                      <span
+                        className="ml-1.5 text-[10px] uppercase tracking-wide text-amber-600"
+                        title="Results for this section are already published — changes apply from the next term"
+                      >
+                        locked
                       </span>
                     )}
                   </button>

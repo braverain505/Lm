@@ -180,6 +180,7 @@ def get_scorecard(
     arm_id: uuid.UUID,
     subject_id: uuid.UUID,
     term_id: uuid.UUID,
+    sort: str | None = None,
     ctx=Depends(require_permission(RESULTS_VIEW)),
 ):
     """One class x subject grid. A teacher may only open the grids they are the
@@ -192,7 +193,7 @@ def get_scorecard(
         permission_codes=ctx.permission_codes, is_superadmin=ctx.user.is_superadmin,
     )
     result = results_service.scorecard(
-        db, ctx.school.id, arm_id=arm_id, subject_id=subject_id, term_id=term_id
+        db, ctx.school.id, arm_id=arm_id, subject_id=subject_id, term_id=term_id, sort=sort
     )
     db.commit()
     return result

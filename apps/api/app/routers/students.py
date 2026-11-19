@@ -67,9 +67,10 @@ def list_students(
     ctx=Depends(require_permission(STUDENTS_VIEW)),
     arm_id: uuid.UUID | None = None,
     q: str | None = None,
+    sort: str | None = None,
 ):
     rows = people_service.list_students(
-        db, ctx.school.id, arm_id=arm_id, q=q, arm_ids=_roster_scope(db, ctx)
+        db, ctx.school.id, arm_id=arm_id, q=q, arm_ids=_roster_scope(db, ctx), sort=sort
     )
     return [StudentOut.model_validate(s) for s in rows]
 
@@ -156,13 +157,14 @@ def list_arm_enrollments(
     arm_id: uuid.UUID,
     db: DbSession,
     ctx=Depends(require_permission(STUDENTS_VIEW)),
+    sort: str | None = None,
 ):
     scope = _roster_scope(db, ctx)
     if scope is not None and arm_id not in scope:
         raise NotFoundError("Class arm not found")
     return [
         EnrollmentOut.model_validate(e)
-        for e in people_service.list_enrollments(db, ctx.school.id, arm_id)
+        for e in people_service.list_enrollments(db, ctx.school.id, arm_id, sort=sort)
     ]
 
 

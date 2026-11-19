@@ -23,6 +23,8 @@ import {
   useSubjects,
   useTerms,
 } from "@/hooks/use-api";
+import { StudentSortSelect } from "@/components/student-sort-select";
+import { useStudentSort } from "@/hooks/use-student-sort";
 import { useAuth } from "@/providers/auth-provider";
 import { useToast } from "@/components/toast";
 import { downloadCsv, slug } from "@/lib/csv";
@@ -204,7 +206,8 @@ function ScoreGrid() {
     return subjects.filter((subject) => !allowed || allowed.has(subject.id));
   }, [armId, isTeacher, myAssignments, subjects]);
 
-  const { data: card, isLoading } = useScoreCard(armId, subjectId, termId);
+  const [sort, setSort] = useStudentSort();
+  const { data: card, isLoading } = useScoreCard(armId, subjectId, termId, sort);
   const { data: components = [] } = useComponents(termId, armId);
   const { data: gradeBands = [] } = useGradeBands(termId);
 
@@ -497,6 +500,11 @@ function ScoreGrid() {
             ))}
           </select>
         </div>
+        <StudentSortSelect
+          value={sort}
+          onChange={setSort}
+          className="ml-auto flex items-center gap-2 rounded-lg border border-border/80 bg-background px-2 py-1.5 text-[11px] text-muted-foreground"
+        />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

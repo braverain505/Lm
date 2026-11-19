@@ -179,10 +179,13 @@ describe("View Scoresheet — the teacher's own marks, read back", () => {
     await chooseClass();
     await screen.findByText("Mathematics");
 
-    await waitFor(() => expect(useScoreCard).toHaveBeenCalledWith("arm-1", "sub-1", "term-1"));
-    expect(useScoreCard).toHaveBeenCalledWith("arm-1", "sub-2", "term-1");
+    // The grid is asked for in the school's chosen order, surname by default.
+    await waitFor(() =>
+      expect(useScoreCard).toHaveBeenCalledWith("arm-1", "sub-1", "term-1", "surname"),
+    );
+    expect(useScoreCard).toHaveBeenCalledWith("arm-1", "sub-2", "term-1", "surname");
     // Nothing is requested for a class the teacher did not choose.
-    expect(useScoreCard).not.toHaveBeenCalledWith("arm-9", "sub-3", "term-1");
+    expect(useScoreCard).not.toHaveBeenCalledWith("arm-9", "sub-3", "term-1", "surname");
   });
 
   it("downloads the saved marks, with blanks left blank", async () => {

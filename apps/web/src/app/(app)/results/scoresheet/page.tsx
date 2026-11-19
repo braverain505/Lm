@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader } from "@/components/ui/loader";
 import { useMyAssignments, useScoreCard, useSessions, useTerms } from "@/hooks/use-api";
+import { useStudentSort } from "@/hooks/use-student-sort";
 import { downloadCsv, slug } from "@/lib/csv";
 import { scoresheetRows } from "@/lib/exports";
 import {
@@ -189,7 +190,8 @@ function SubjectSheet({
   termName: string;
 }) {
   const { toast } = useToast();
-  const { data: card, isLoading, error } = useScoreCard(armId, assignment.subject_id, termId);
+  const [sort] = useStudentSort();
+  const { data: card, isLoading, error } = useScoreCard(armId, assignment.subject_id, termId, sort);
 
   if (isLoading) {
     return (

@@ -82,6 +82,10 @@ class ScoresheetOut(BaseModel):
     # True when the term in force already has published results, so a change is
     # stored for future terms but does not touch this one.
     locked: bool = False
+    # The lock, scope by scope: the school-wide set, and each section. A school
+    # can fix its nursery structure while primary results are already out.
+    locked_default: bool = False
+    locked_sections: dict[str, bool] = {}
     # The report card design per section, for the same card in settings.
     report_cards: dict[str, SectionDesignOut] = {}
 

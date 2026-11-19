@@ -442,3 +442,85 @@ def test_a_childs_portal_card_follows_their_section(client, db):
     )
     assert r.status_code == 200, r.text
     assert r.json()["report_template"]["theme"] == "elegant"
+
+
+# --- A published section does not freeze the others -------------------------------
+def _a_published_result(db, sid, cfg, arm_id, *, admission="P-001") -> None:
+    """One published result for a class: the state that locks a scoresheet."""
+    from datetime import date
+
+    from app.models import Student, StudentEnrollment
+    from app.models.results import Result
+
+    student = Student(
+        school_id=uuid.UUID(sid), admission_no=admission,
+        first_name="Ada", last_name="Alpha", gender="female",
+    )
+    db.add(student)
+    db.flush()
+    enrollment = StudentEnrollment(
+        school_id=uuid.UUID(sid), student_id=student.id, class_arm_id=uuid.UUID(arm_id),
+        academic_session_id=uuid.UUID(cfg["session_id"]), enrolled_at=date.today(),
+    )
+    db.add(enrollment)
+    db.flush()
+    db.add(
+        Result(
+            school_id=uuid.UUID(sid), student_enrollment_id=enrollment.id,
+            subject_id=uuid.UUID(cfg["subject_id"]), term_id=uuid.UUID(cfg["term_id"]),
+            class_arm_id=uuid.UUID(arm_id), status="published", total=70,
+        )
+    )
+    db.commit()
+
+
+def test_a_published_primary_does_not_lock_the_nursery_scoresheet(client, db):
+    """The bug this guards: a school could not fix its nursery structure because
+    primary marks were already out for the term."""
+    register_school(client)
+    sid = active_school_id(client)
+    cfg = _configure(client, sid, db)
+
+    nursery = [{"name": "1st CA", "max_score": 20},
+               {"name": "2nd CA", "max_score": 20},
+               {"name": "Exam", "max_score": 60}]
+    primary = [{"name": "1st CA", "max_score": 10},
+               {"name": "2nd CA", "max_score": 10},
+               {"name": "Exam", "max_score": 80}]
+    r = _put(client, sid, nursery, mode="separate", sections={"primary": primary})
+    assert r.status_code == 200, r.text
+
+    arm = _make_arm(client, sid, cfg["session_id"], "Nursery 1 A", section="nursery")
+    assert [c["name"] for c in _arm_components(client, sid, cfg["term_id"], arm["id"])] == [
+        "1st CA", "2nd CA", "Exam",
+    ]
+
+    # The primary class has its marks out for the term. The pipeline is
+    # submit → verify → approve → publish, so the test writes the published row
+    # directly — the lock reads exactly this.
+    primary_arm = _make_arm(client, sid, cfg["session_id"], "Primary 1 A", section="primary")
+    _a_published_result(db, sid, cfg, primary_arm["id"])
+
+    # The office now widens the nursery CA marks, as El Gibbor needed: 15/15/70.
+    wider = [{"name": "1st CA", "max_score": 15},
+             {"name": "2nd CA", "max_score": 15},
+             {"name": "Exam", "max_score": 70}]
+    r = _put(client, sid, wider, mode="separate", sections={"primary": primary})
+    assert r.status_code == 200, r.text
+    body = r.json()
+
+    # Primary is protected; nursery moves now.
+    assert body["locked"] is True
+    assert body["locked_sections"]["primary"] is True
+    assert body["locked_sections"]["nursery"] is False
+    assert body["locked_default"] is False
+
+    rows = _arm_components(client, sid, cfg["term_id"], arm["id"])
+    assert [(c["name"], c["max_score"]) for c in rows] == [
+        ("1st CA", 15.0), ("2nd CA", 15.0), ("Exam", 70.0),
+    ]
+    # Primary's own components are untouched.
+    primary_rows = _arm_components(client, sid, cfg["term_id"], primary_arm["id"])
+    assert [(c["name"], c["max_score"]) for c in primary_rows] == [
+        ("1st CA", 10.0), ("2nd CA", 10.0), ("Exam", 80.0),
+    ]

@@ -406,6 +406,60 @@ def _term_has_published_results(
     return bool(published)
 
 
+def _arms_for_scope(
+    db: Session,
+    school_id: uuid.UUID,
+    term: Term,
+    *,
+    section: str | None,
+    sections_with_rows: set[str],
+    separate: bool,
+) -> list[uuid.UUID]:
+    """The classes a scoresheet scope actually governs.
+
+    A section's set governs that section's classes. The school-wide set governs
+    every class when sections are not in use, and otherwise only the classes with
+    no section, plus the classes whose section has no set of its own (they fall
+    back to it).
+    """
+    arms = list(
+        db.scalars(
+            select(ClassArm).where(
+                ClassArm.school_id == school_id,
+                ClassArm.academic_session_id == term.academic_session_id,
+            )
+        )
+    )
+    if section is not None:
+        return [arm.id for arm in arms if arm.section == section]
+    if not separate:
+        return [arm.id for arm in arms]
+    return [
+        arm.id
+        for arm in arms
+        if arm.section is None or arm.section not in sections_with_rows
+    ]
+
+
+def _scope_has_published_results(
+    db: Session, school_id: uuid.UUID, term_id: uuid.UUID, arm_ids: list[uuid.UUID]
+) -> bool:
+    """Whether any class in this scope has results out for the term."""
+    if not arm_ids:
+        return False
+    published = db.scalar(
+        select(func.count())
+        .select_from(Result)
+        .where(
+            Result.school_id == school_id,
+            Result.term_id == term_id,
+            Result.class_arm_id.in_(arm_ids),
+            Result.status == ResultStatus.PUBLISHED.value,
+        )
+    )
+    return bool(published)
+
+
 def _clean_rows(raw) -> list[dict] | None:
     """One scoresheet's components, read defensively.
 
@@ -683,11 +737,36 @@ def scoresheet_state(db: Session, school_id: uuid.UUID) -> dict:
 
     saved = scoresheet_for(db, school_id)
     term = _current_term(db, school_id)
-    locked = bool(
-        term is not None
-        and saved is not None
-        and _term_has_published_results(db, school_id, term.id)
+    separate = sections_service.is_separate(db, school_id)
+    sections_with_rows = (
+        {name for name, rows in saved["sections"].items() if rows} if saved else set()
     )
+    locked_default = bool(
+        term is not None
+        and _scope_has_published_results(
+            db, school_id, term.id,
+            _arms_for_scope(
+                db, school_id, term,
+                section=None, sections_with_rows=sections_with_rows, separate=separate,
+            ),
+        )
+    )
+    locked_sections = {
+        section: bool(
+            term is not None
+            and _scope_has_published_results(
+                db, school_id, term.id,
+                _arms_for_scope(
+                    db, school_id, term,
+                    section=section, sections_with_rows=sections_with_rows, separate=separate,
+                ),
+            )
+        )
+        for section in sections_service.SECTIONS
+    }
+    # ``locked`` keeps its old meaning for callers that only want one answer:
+    # something in this scoresheet cannot move for the current term.
+    locked = locked_default or any(locked_sections.values())
 
     if saved is not None:
         default = saved["default"]
@@ -733,6 +812,8 @@ def scoresheet_state(db: Session, school_id: uuid.UUID) -> dict:
         "applied_term_id": term.id if term is not None else None,
         "applied_term_name": term.name if term is not None else None,
         "locked": locked,
+        "locked_default": locked_default,
+        "locked_sections": locked_sections,
         "report_cards": report_card_service.report_card_sections(db, school_id),
     }
 
@@ -761,16 +842,37 @@ def update_scoresheet(
     db.flush()
 
     term = _current_term(db, school_id)
-    if term is None or _term_has_published_results(db, school_id, term.id):
+    if term is None:
         return scoresheet_state(db, school_id)
 
-    _sync_term_components(
-        db, school_id, term.id, resolved["default"], previous["default"]
+    # Apply scope by scope. A term having *some* published results used to freeze
+    # the whole scoresheet, so a school could not fix its nursery structure just
+    # because primary marks were already out. Each scope now moves only if its
+    # own classes have nothing published.
+    separate = sections_service.is_separate(db, school_id)
+    sections_with_rows = {
+        name for name, rows in resolved["sections"].items() if rows
+    }
+
+    default_arms = _arms_for_scope(
+        db, school_id, term,
+        section=None, sections_with_rows=sections_with_rows, separate=separate,
     )
+    if not _scope_has_published_results(db, school_id, term.id, default_arms):
+        _sync_term_components(
+            db, school_id, term.id, resolved["default"], previous["default"]
+        )
+
     for section in sections_service.SECTIONS:
         rows = resolved["sections"].get(section)
         before = previous["sections"].get(section)
         if not rows and not before:
+            continue
+        section_arms = _arms_for_scope(
+            db, school_id, term,
+            section=section, sections_with_rows=sections_with_rows, separate=separate,
+        )
+        if _scope_has_published_results(db, school_id, term.id, section_arms):
             continue
         _sync_term_components(
             db, school_id, term.id, rows or [], before or [], section=section
@@ -833,7 +935,7 @@ def update_results_policy(
 
 
 def _result_enrollments(
-    db: Session, school_id: uuid.UUID, arm_id: uuid.UUID
+    db: Session, school_id: uuid.UUID, arm_id: uuid.UUID, *, sort: str | None = None
 ) -> list[StudentEnrollment]:
     """Every enrollment in the arm — the population a term's results belong to.
 
@@ -841,7 +943,7 @@ def _result_enrollments(
     be reopened after promotion, and its score grid, workbench and report-card
     index must still show the students who sat it.
     """
-    return list_enrollments(db, school_id, arm_id, include_inactive=True)
+    return list_enrollments(db, school_id, arm_id, include_inactive=True, sort=sort)
 
 
 # --- Scorecard ----------------------------------------------------------------
@@ -852,12 +954,13 @@ def scorecard(
     arm_id: uuid.UUID,
     subject_id: uuid.UUID,
     term_id: uuid.UUID,
+    sort: str | None = None,
 ) -> dict:
-    """The full grid for one arm x subject x term."""
+    """The full grid for one arm x subject x term, pupils in the school's order."""
     arm = get_arm(db, school_id, arm_id)
     subject = get_subject(db, school_id, subject_id)
     term = get_term(db, school_id, term_id)
-    enrollments = _result_enrollments(db, school_id, arm_id)
+    enrollments = _result_enrollments(db, school_id, arm_id, sort=sort)
 
     components = ensure_default_components(db, school_id, term.id)
     components = effective_components(db, school_id, term.id, class_arm_id=arm.id)
